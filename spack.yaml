@@ -1,0 +1,14 @@
+spack:
+  specs:
+  - cmake
+  - pkg-config
+  - libuuid
+  - mochi-margo@master
+  - mochi-thallium
+  - mochi-abt-io
+  - mochi-ssg
+  - nlohmann-json
+  - spdlog
+  - cppunit
+  - tclap
+  concretization: together
