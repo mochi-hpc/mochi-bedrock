@@ -7,6 +7,7 @@
 #include "bedrock/Exception.hpp"
 #include "bedrock/MargoContext.hpp"
 #include "bedrock/ABTioContext.hpp"
+#include "bedrock/ModuleContext.hpp"
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -38,22 +39,27 @@ Server::Server(const std::string& address, const std::string& configfile)
 
     // Extract margo section from the config
     spdlog::trace("Initializing MargoContext");
-    auto margoConfig    = config["margo"];
-    auto margoConfigStr = margoConfig.dump();
+    auto margoConfig = config["margo"].dump();
     // Dependency-injecting spdlog into Margo
     setupMargoLogging();
+
     // Initialize margo context
-    auto margoCtx         = MargoContext(address, margoConfigStr);
+    auto margoCtx         = MargoContext(address, margoConfig);
     self->m_margo_context = margoCtx;
     spdlog::trace("MargoContext initialized");
 
     // Initialize abt-io context
     spdlog::trace("Initializing ABTioContext");
-    auto abtioConfig      = config["abt_io"];
-    auto abtioConfigStr   = abtioConfig.dump();
-    auto abtioCtx         = ABTioContext(margoCtx, abtioConfigStr);
+    auto abtioConfig      = config["abt_io"].dump();
+    auto abtioCtx         = ABTioContext(margoCtx, abtioConfig);
     self->m_abtio_context = abtioCtx;
     spdlog::trace("ABTioContext initialized");
+
+    // Initialize the module context
+    spdlog::trace("Initialize ModuleContext");
+    auto librariesConfig = config["libraries"].dump();
+    ModuleContext::loadModulesFromJSON(librariesConfig);
+    spdlog::trace("ModuleContext initialized");
 }
 
 Server::~Server() = default;

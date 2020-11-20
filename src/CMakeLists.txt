@@ -5,6 +5,7 @@ set (server-src-files
      Backend.cpp
      ABTioContext.cpp
      MargoContext.cpp
+     ModuleContext.cpp
      MargoLogging.cpp)
 
 set (client-src-files

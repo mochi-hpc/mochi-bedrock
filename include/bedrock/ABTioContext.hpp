@@ -19,7 +19,7 @@ class MargoContext;
 class ABTioContextImpl;
 
 /**
- * @brief The ABTioContext class is encapsulates a margo_instance_id.
+ * @brief The ABTioContext class is encapsulates multiple ABT-IO instances.
  */
 class ABTioContext {
 
