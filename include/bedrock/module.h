@@ -89,7 +89,7 @@ typedef int (*bedrock_deregister_provider_fn)(bedrock_module_provider_t);
  * @return BEDROCK_SUCCESS or other error code.
  */
 typedef int (*bedrock_init_client_fn)(margo_instance_id mid,
-                                          bedrock_module_client_t*);
+                                      bedrock_module_client_t*);
 
 /**
  * @brief Type of function called to destroy a client.
@@ -128,7 +128,8 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
 /**
  * @brief A global instance of the bedrock_module structure must be provided
  * in a shared library to make up a Bedrock module.
- * The dependencies array should be terminated by a BEDROCK_NO_MORE_DEPENDENCIES.
+ * The dependencies array should be terminated by a
+ * BEDROCK_NO_MORE_DEPENDENCIES.
  */
 struct bedrock_module {
     bedrock_register_provider_fn       register_provider;

@@ -38,7 +38,6 @@ class ModuleContext {
     static bool registerModule(const std::string&    moduleName,
                                const bedrock_module& module);
 
-
     /**
      * @brief Register a factory. This function is used mainly by the
      * BEDROCK_REGISTER_MODULE_FACTORY macro in ServiceFactory.hpp to
@@ -50,8 +49,9 @@ class ModuleContext {
      * @return true if the module factory was register, false if a factory
      * with the same name was already present.
      */
-    static bool registerFactory(const std::string& moduleName,
-                                std::unique_ptr<AbstractServiceFactory>&& factory);
+    static bool
+    registerFactory(const std::string&                        moduleName,
+                    std::unique_ptr<AbstractServiceFactory>&& factory);
 
     /**
      * @brief Load a module with a given name from the specified library file.

@@ -5,8 +5,4 @@
  */
 #include "bedrock/ServiceFactory.hpp"
 
-namespace bedrock {
-
-
-
-}
+namespace bedrock {}

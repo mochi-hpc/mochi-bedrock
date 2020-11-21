@@ -34,12 +34,9 @@ const char* bedrock_args_get_config(bedrock_args_t args) {
 }
 
 void* bedrock_args_get_dependency(bedrock_args_t args, const char* name) {
-    auto a = reinterpret_cast<bedrock::FactoryArgs*>(args);
+    auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
     auto it = a->dependencies.find(name);
-    if (it == a->dependencies.end()) {
-        return nullptr;
-    }
+    if (it == a->dependencies.end()) { return nullptr; }
     return it->second;
 }
-
 }

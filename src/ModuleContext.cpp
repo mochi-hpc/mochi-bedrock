@@ -15,15 +15,18 @@ namespace bedrock {
 
 using nlohmann::json;
 
-static std::unordered_map<std::string, std::unique_ptr<AbstractServiceFactory>> s_modules;
+static std::unordered_map<std::string, std::unique_ptr<AbstractServiceFactory>>
+    s_modules;
 
 bool ModuleContext::registerModule(const std::string&    moduleName,
                                    const bedrock_module& module) {
-    return registerFactory(moduleName, std::make_unique<DynLibServiceFactory>(module));
+    return registerFactory(moduleName,
+                           std::make_unique<DynLibServiceFactory>(module));
 }
 
-bool ModuleContext::registerFactory(const std::string& moduleName,
-        std::unique_ptr<AbstractServiceFactory>&& factory) {
+bool ModuleContext::registerFactory(
+    const std::string&                        moduleName,
+    std::unique_ptr<AbstractServiceFactory>&& factory) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
     s_modules[moduleName] = std::move(factory);
     return true;
@@ -32,8 +35,8 @@ bool ModuleContext::registerFactory(const std::string& moduleName,
 bool ModuleContext::loadModule(const std::string& moduleName,
                                const std::string& library) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
-    std::unique_ptr<AbstractServiceFactory> factory =
-        std::make_unique<DynLibServiceFactory>(moduleName, library);
+    std::unique_ptr<AbstractServiceFactory> factory
+        = std::make_unique<DynLibServiceFactory>(moduleName, library);
     s_modules[moduleName] = std::move(factory);
     return true;
 }

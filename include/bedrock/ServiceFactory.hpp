@@ -15,7 +15,8 @@
 /**
  * @brief Helper class to register module types into the ModuleContext.
  */
-template <typename AbstractServiceFactoryType> class __BedrockAbstractServiceFactoryRegistration;
+template <typename AbstractServiceFactoryType>
+class __BedrockAbstractServiceFactoryRegistration;
 
 namespace bedrock {
 
@@ -74,8 +75,8 @@ class AbstractServiceFactory {
 
     /**
      * @brief Register a provider with the given args. The resulting provider
-     * must be cast into a void* and returned. This pointer is what may be passed
-     * as dependency to other providers if required.
+     * must be cast into a void* and returned. This pointer is what may be
+     * passed as dependency to other providers if required.
      *
      * @param args Arguments.
      *
@@ -116,7 +117,9 @@ class AbstractServiceFactory {
      *
      * @return a provider handle cast into a void*.
      */
-    virtual void* createProviderHandle(void* client, hg_addr_t address, uint16_t provider_id) = 0;
+    virtual void* createProviderHandle(void* client, hg_addr_t address,
+                                       uint16_t provider_id)
+        = 0;
 
     /**
      * @brief Destroy a provider handle.
@@ -134,10 +137,11 @@ class AbstractServiceFactory {
 } // namespace bedrock
 
 #define BEDROCK_REGISTER_MODULE_FACTORY(__module_name, __factory_type) \
-    static __BedrockAbstractServiceFactoryRegistration<__factory_type>          \
+    static __BedrockAbstractServiceFactoryRegistration<__factory_type> \
         __bedrock##__module_name##_module(#__factory_type)
 
-template <typename AbstractServiceFactoryType> class __BedrockAbstractServiceFactoryRegistration {
+template <typename AbstractServiceFactoryType>
+class __BedrockAbstractServiceFactoryRegistration {
 
   public:
     __BedrockAbstractServiceFactoryRegistration(const std::string& moduleName) {
