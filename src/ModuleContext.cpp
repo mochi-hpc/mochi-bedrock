@@ -5,47 +5,37 @@
  */
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/Exception.hpp"
+#include "bedrock/ServiceFactory.hpp"
+#include "DynLibServiceFactory.hpp"
 #include <bedrock/module.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
-#include <dlfcn.h>
 
 namespace bedrock {
 
 using nlohmann::json;
 
-static std::unordered_map<std::string, bedrock_module> s_modules;
+static std::unordered_map<std::string, std::unique_ptr<AbstractServiceFactory>> s_modules;
 
 bool ModuleContext::registerModule(const std::string&    moduleName,
                                    const bedrock_module& module) {
+    return registerFactory(moduleName, std::make_unique<DynLibServiceFactory>(module));
+}
+
+bool ModuleContext::registerFactory(const std::string& moduleName,
+        std::unique_ptr<AbstractServiceFactory>&& factory) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
-    s_modules[moduleName] = module;
+    s_modules[moduleName] = std::move(factory);
     return true;
 }
 
 bool ModuleContext::loadModule(const std::string& moduleName,
                                const std::string& library) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
-    spdlog::trace("Loading module {} from library {}", moduleName, library);
-    void* handle = nullptr;
-    if (library == "")
-        handle = dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL);
-    else
-        handle = dlopen(library.c_str(), RTLD_NOW | RTLD_GLOBAL);
-    if (!handle)
-        throw Exception("Could not dlopen library {}: {}", library, dlerror());
-    auto symbol_name = moduleName + "_bedrock_module";
-    typedef void (*module_init_fn)(bedrock_module*);
-    module_init_fn init_module
-        = (module_init_fn)dlsym(handle, symbol_name.c_str());
-    if (!init_module) {
-        std::string error = dlerror();
-        dlclose(handle);
-        throw Exception("Could not load {} module: {}", moduleName, error);
-    }
-    bedrock_module m;
-    init_module(&m);
-    return registerModule(moduleName, m);
+    std::unique_ptr<AbstractServiceFactory> factory =
+        std::make_unique<DynLibServiceFactory>(moduleName, library);
+    s_modules[moduleName] = std::move(factory);
+    return true;
 }
 
 void ModuleContext::loadModules(

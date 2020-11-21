@@ -9,7 +9,7 @@
 #include <margo.h>
 #include <bedrock/common.h>
 
-#ifndef __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -57,7 +57,7 @@ struct bedrock_dependency {
     int32_t     flags;
 };
 
-#define BEDROCK_NO_MORE_DEPENDENCY \
+#define BEDROCK_NO_MORE_DEPENDENCIES \
     { NULL, NULL, 0 }
 
 /**
@@ -88,17 +88,17 @@ typedef int (*bedrock_deregister_provider_fn)(bedrock_module_provider_t);
  *
  * @return BEDROCK_SUCCESS or other error code.
  */
-typedef int (*bedrock_register_client_fn)(margo_instance_id mid,
+typedef int (*bedrock_init_client_fn)(margo_instance_id mid,
                                           bedrock_module_client_t*);
 
 /**
- * @brief Type of function called to deregister a client.
+ * @brief Type of function called to destroy a client.
  *
  * @param [in] bedrock_module_client_t Client.
  *
  * @return BEDROCK_SUCCESS or other error code.
  */
-typedef int (*bedrock_deregister_client_fn)(bedrock_module_client_t);
+typedef int (*bedrock_finalize_client_fn)(bedrock_module_client_t);
 
 /**
  * @brief Type of function called to create a provider handle from a
@@ -128,14 +128,14 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
 /**
  * @brief A global instance of the bedrock_module structure must be provided
  * in a shared library to make up a Bedrock module.
- * The dependencies array should be terminated by a BEDROCK_NO_MORE_DEPENDENCY.
+ * The dependencies array should be terminated by a BEDROCK_NO_MORE_DEPENDENCIES.
  */
 struct bedrock_module {
     bedrock_register_provider_fn       register_provider;
     bedrock_deregister_provider_fn     deregister_provider;
-    bedrock_register_client_fn         register_client;
-    bedrock_deregister_client_fn       deregister_client;
-    bedrock_create_provider_handle_fn  register_provider_handle;
+    bedrock_init_client_fn             init_client;
+    bedrock_finalize_client_fn         finalize_client;
+    bedrock_create_provider_handle_fn  create_provider_handle;
     bedrock_destroy_provider_handle_fn destroy_provider_handle;
     struct bedrock_dependency*         dependencies;
 };
@@ -155,7 +155,7 @@ struct bedrock_module {
  * Note: if the macro is called in a C++ file instead of
  * a C file, it should be preceded by extern "C".
  */
-#define DEFINE_BEDROCK_C_MODULE(__name__, __struct__) \
+#define BEDROCK_REGISTER_MODULE(__name__, __struct__) \
     void __name__##_bedrock_init(struct bedrock_module* m) { *m = __struct__; }
 
 /**
@@ -175,6 +175,15 @@ margo_instance_id bedrock_args_get_margo_instance(bedrock_args_t args);
  * @return The Argobots pool or ABT_POOL_NULL in case of error.
  */
 ABT_pool bedrock_args_get_pool(bedrock_args_t args);
+
+/**
+ * @brief Get the provider id that the provider should be registered with.
+ *
+ * @param args Arguments to the provider registration.
+ *
+ * @return The provider id.
+ */
+uint16_t bedrock_args_get_provider_id(bedrock_args_t args);
 
 /**
  * @brief Get the JSON-formated configuration string.
@@ -206,7 +215,7 @@ const char* bedrock_args_get_name(bedrock_args_t args);
  */
 void* bedrock_args_get_dependency(bedrock_args_t args, const char* name);
 
-#ifndef __cplusplus
+#ifdef __cplusplus
 }
 #endif
 
