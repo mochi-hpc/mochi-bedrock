@@ -15,6 +15,7 @@ namespace tl = thallium;
 
 class Server;
 class ProviderManager;
+class DependencyFinder;
 class MargoContextImpl;
 
 /**
@@ -24,6 +25,7 @@ class MargoContext {
 
     friend class Server;
     friend class ProviderManager;
+    friend class DependencyFinder;
 
   public:
     /**

@@ -9,6 +9,7 @@
 #include "bedrock/ABTioContext.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/ProviderManager.hpp"
+#include "bedrock/DependencyFinder.hpp"
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -68,10 +69,17 @@ Server::Server(const std::string& address, const std::string& configfile)
     ModuleContext::loadModulesFromJSON(librariesConfig);
     spdlog::trace("ModuleContext initialized");
 
+    // Initializing dependency finder
+    spdlog::trace("Initializing DependencyFinder");
+    auto dependencyFinder
+        = DependencyFinder(margoCtx, abtioCtx, providerManager);
+    spdlog::trace("DependencyFinder initialized");
+
     // Starting up providers
     spdlog::trace("Initializing providers");
     auto providerManagerConfig = config["providers"].dump();
-    providerManager.addProviderListFromJSON(providerManagerConfig);
+    providerManager.addProviderListFromJSON(providerManagerConfig,
+                                            dependencyFinder);
     spdlog::trace("Providers initialized");
 }
 

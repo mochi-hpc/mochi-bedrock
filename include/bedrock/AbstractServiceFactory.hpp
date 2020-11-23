@@ -36,6 +36,16 @@ struct FactoryArgs {
 };
 
 /**
+ * @brief The Dependency structure is the C++ counterpart of the
+ * bedrock_dependency structure in C.
+ */
+struct Dependency {
+    std::string name;
+    std::string type;
+    int32_t     flags;
+};
+
+/**
  * @brief Interface for service modules. To build a new module in C++,
  * implement a class MyServiceFactory that inherits from AbstractServiceFactory,
  * and put BEDROCK_REGISTER_MODULE_FACTORY(mymodule, MyServiceFactory);
@@ -132,7 +142,7 @@ class AbstractServiceFactory {
     /**
      * @brief Return the dependencies of a provider.
      */
-    virtual std::vector<const bedrock_dependency*> getDependencies() = 0;
+    virtual const std::vector<Dependency>& getDependencies() = 0;
 };
 
 } // namespace bedrock

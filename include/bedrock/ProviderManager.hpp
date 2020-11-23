@@ -15,6 +15,7 @@ namespace bedrock {
 
 class ProviderManagerImpl;
 class Server;
+class DependencyFinder;
 
 /**
  * @brief A ProviderManager is a Bedrock provider that manages
@@ -24,6 +25,7 @@ class Server;
 class ProviderManager {
 
     friend class Server;
+    friend class DependencyFinder;
 
   public:
     /**
@@ -115,15 +117,19 @@ class ProviderManager {
      *  }
      *
      * @param jsonString JSON string.
+     * @param finder DependencyFinder to resolve the dependencies found.
      */
-    void addProviderFromJSON(const std::string& jsonString);
+    void addProviderFromJSON(const std::string&      jsonString,
+                             const DependencyFinder& finder);
 
     /**
      * @brief Add a list of providers represented by a JSON string.
      *
      * @param jsonString JSON string.
+     * @param finder DependencyFinder.
      */
-    void addProviderListFromJSON(const std::string& jsonString);
+    void addProviderListFromJSON(const std::string&      jsonString,
+                                 const DependencyFinder& finder);
 
   private:
     std::shared_ptr<ProviderManagerImpl> self;

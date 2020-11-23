@@ -7,6 +7,7 @@
 #include "bedrock/Exception.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
+#include "bedrock/DependencyFinder.hpp"
 
 #include "ProviderManagerImpl.hpp"
 
@@ -146,7 +147,8 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
     provider.factory->deregisterProvider(provider.handle);
 }
 
-void ProviderManager::addProviderFromJSON(const std::string& jsonString) {
+void ProviderManager::addProviderFromJSON(
+    const std::string& jsonString, const DependencyFinder& dependencyFinder) {
     auto config = json::parse(jsonString);
     if (!config.is_object()) {
         throw Exception(
@@ -165,6 +167,13 @@ void ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     }
     descriptor.type = type_it->get<std::string>();
 
+    auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
+    if (!service_factory) {
+        throw Exception(
+            "Could not find service factory for provider type \"{}\"",
+            descriptor.type);
+    }
+
     auto provider_config    = "{}"s;
     auto provider_config_it = config.find("config");
     if (provider_config_it != config.end()) {
@@ -177,13 +186,31 @@ void ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     }
     auto pool_name = pool_it->get<std::string>();
 
-    // TODO resolve dependencies
-    std::unordered_map<std::string, void*> dependencies;
+    auto deps_from_config = config.value("dependencies", json::object());
+
+    std::unordered_map<std::string, void*>             dependencies;
+    std::unordered_map<std::string, DependencyWrapper> dependency_wrappers;
+
+    for (const auto& dependency : service_factory->getDependencies()) {
+        spdlog::trace("Resolving dependency {}", dependency.name);
+        if (deps_from_config.contains(dependency.name)) {
+            dependency_wrappers[dependency.name] = dependencyFinder.find(
+                dependency.type, deps_from_config[dependency.name]);
+            dependencies[dependency.name]
+                = dependency_wrappers[dependency.name].handle;
+        } else if (dependency.flags & BEDROCK_REQUIRED) {
+            throw Exception("Missing dependency {} in configuration",
+                            dependency.name);
+        } else {
+            dependencies[dependency.name] = nullptr;
+        }
+    }
 
     registerProvider(descriptor, pool_name, provider_config, dependencies);
 }
 
-void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
+void ProviderManager::addProviderListFromJSON(
+    const std::string& jsonString, const DependencyFinder& dependencyFinder) {
     auto config = json::parse(jsonString);
     if (config.is_null()) { return; }
     if (!config.is_array()) {
@@ -192,7 +219,7 @@ void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
             "ProviderManager::addProviderListFromJSON (expected array)");
     }
     for (const auto& provider : config) {
-        addProviderFromJSON(provider.dump());
+        addProviderFromJSON(provider.dump(), dependencyFinder);
     }
 }
 

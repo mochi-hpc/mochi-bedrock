@@ -6,13 +6,9 @@
 #ifndef __BEDROCK_MARGO_CONTEXT_IMPL_H
 #define __BEDROCK_MARGO_CONTEXT_IMPL_H
 
-#include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
+#include <margo.h>
 
 namespace bedrock {
-
-using namespace std::string_literals;
-namespace tl = thallium;
 
 class MargoContextImpl {
 

@@ -10,6 +10,12 @@ class ServiceBFactory : public bedrock::AbstractServiceFactory {
 
     public:
 
+    ServiceBFactory() {
+        m_dependencies.push_back({ "a_provider", "module_a", BEDROCK_REQUIRED });
+        m_dependencies.push_back({ "a_local", "module_a", BEDROCK_REQUIRED });
+        m_dependencies.push_back({ "a_client", "module_a", BEDROCK_REQUIRED });
+    }
+
     void* registerProvider(const bedrock::FactoryArgs& args) override {
         std::cout << "Registering a provider from module B" << std::endl;
         std::cout << " -> mid         = " << (void*)args.mid << std::endl;
@@ -49,9 +55,13 @@ class ServiceBFactory : public bedrock::AbstractServiceFactory {
         std::cout << "Destroying provider handle from module B" << std::endl;
     }
 
-    std::vector<const bedrock_dependency*> getDependencies() override {
-        return std::vector<const bedrock_dependency*>();
+    const std::vector<bedrock::Dependency>& getDependencies() override {
+        return m_dependencies;
     }
+
+    private:
+
+    std::vector<bedrock::Dependency> m_dependencies;
 };
 
 BEDROCK_REGISTER_MODULE_FACTORY(module_b, ServiceBFactory)

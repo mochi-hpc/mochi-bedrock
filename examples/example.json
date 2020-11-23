@@ -19,7 +19,7 @@
             "pool" : "__primary__",
             "config" : {},
             "dependencies" : {
-                "a" : "ProviderA"
+                "a_provider" : "ProviderA"
             }
         }
     ]

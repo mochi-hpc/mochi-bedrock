@@ -16,6 +16,7 @@ namespace tl = thallium;
 
 class Server;
 class MargoContext;
+class DependencyFinder;
 class ABTioContextImpl;
 
 /**
@@ -24,6 +25,7 @@ class ABTioContextImpl;
 class ABTioContext {
 
     friend class Server;
+    friend class DependencyFinder;
 
   public:
     /**

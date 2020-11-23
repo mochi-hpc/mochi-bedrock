@@ -7,6 +7,7 @@ set (server-src-files
      MargoContext.cpp
      ModuleContext.cpp
      ProviderManager.cpp
+     DependencyFinder.cpp
      Module.cpp
      MargoLogging.cpp)
 

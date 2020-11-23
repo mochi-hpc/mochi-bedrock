@@ -38,6 +38,16 @@ class DynLibServiceFactory : public AbstractServiceFactory {
             throw Exception("Could not load {} module: {}", moduleName, error);
         }
         init_module(&m_module);
+        if (m_module.dependencies == nullptr) return;
+        int i = 0;
+        while (m_module.dependencies[i].name != nullptr) {
+            Dependency d;
+            d.name  = m_module.dependencies[i].name;
+            d.type  = m_module.dependencies[i].type;
+            d.flags = m_module.dependencies[i].flags;
+            m_dependencies.push_back(d);
+            i++;
+        }
     }
 
     /**
@@ -170,19 +180,14 @@ class DynLibServiceFactory : public AbstractServiceFactory {
     /**
      * @brief Return the dependencies of a provider.
      */
-    std::vector<const bedrock_dependency*> getDependencies() override {
-        std::vector<const bedrock_dependency*> deps;
-        if (m_module.dependencies == nullptr) { return deps; }
-        int i = 0;
-        while (m_module.dependencies[i].name != nullptr) {
-            deps.push_back(&m_module.dependencies[i]);
-        }
-        return deps;
+    const std::vector<Dependency>& getDependencies() override {
+        return m_dependencies;
     }
 
   private:
-    void*          m_handle = nullptr;
-    bedrock_module m_module;
+    void*                   m_handle = nullptr;
+    bedrock_module          m_module;
+    std::vector<Dependency> m_dependencies;
 };
 
 } // namespace bedrock
