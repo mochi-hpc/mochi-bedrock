@@ -10,6 +10,7 @@
 #include <bedrock/module.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <dlfcn.h>
 
 namespace bedrock {
 
@@ -35,8 +36,21 @@ bool ModuleContext::registerFactory(
 bool ModuleContext::loadModule(const std::string& moduleName,
                                const std::string& library) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
+
+    spdlog::trace("Loading module {} from library {}", moduleName, library);
+    void* handle = nullptr;
+    if (library == "")
+        handle = dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL);
+    else
+        handle = dlopen(library.c_str(), RTLD_NOW | RTLD_GLOBAL);
+    if (!handle)
+        throw Exception("Could not dlopen library {}: {}", library, dlerror());
+    // C++ libraries will have registered themselves automatically
+    if (s_modules.find(moduleName) != s_modules.end()) return true;
+
+    // otherwise, we need to create a DynLibServiceFactory
     std::shared_ptr<AbstractServiceFactory> factory
-        = std::make_shared<DynLibServiceFactory>(moduleName, library);
+        = std::make_shared<DynLibServiceFactory>(moduleName, handle);
     s_modules[moduleName] = std::move(factory);
     return true;
 }

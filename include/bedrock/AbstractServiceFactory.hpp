@@ -11,6 +11,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <iostream>
 
 /**
  * @brief Helper class to register module types into the ModuleContext.
@@ -137,16 +138,16 @@ class AbstractServiceFactory {
 } // namespace bedrock
 
 #define BEDROCK_REGISTER_MODULE_FACTORY(__module_name, __factory_type) \
-    static __BedrockAbstractServiceFactoryRegistration<__factory_type> \
-        __bedrock##__module_name##_module(#__factory_type)
+    __BedrockAbstractServiceFactoryRegistration<__factory_type>        \
+        __bedrock##__module_name##_module(#__module_name);
 
 template <typename AbstractServiceFactoryType>
 class __BedrockAbstractServiceFactoryRegistration {
 
   public:
     __BedrockAbstractServiceFactoryRegistration(const std::string& moduleName) {
-        auto factory = std::make_unique<AbstractServiceFactoryType>();
-        bedrock::ModuleContext::registerFactory(moduleName, std::move(factory));
+        auto factory = std::make_shared<AbstractServiceFactoryType>();
+        bedrock::ModuleContext::registerFactory(moduleName, factory);
     }
 };
 

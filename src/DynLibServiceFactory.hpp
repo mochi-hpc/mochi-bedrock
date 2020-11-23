@@ -26,17 +26,8 @@ class DynLibServiceFactory : public AbstractServiceFactory {
     /**
      * @brief Constructor.
      */
-    DynLibServiceFactory(const std::string& moduleName,
-                         const std::string& library) {
-        spdlog::trace("Loading module {} from library {}", moduleName, library);
-        m_handle = nullptr;
-        if (library == "")
-            m_handle = dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL);
-        else
-            m_handle = dlopen(library.c_str(), RTLD_NOW | RTLD_GLOBAL);
-        if (!m_handle)
-            throw Exception("Could not dlopen library {}: {}", library,
-                            dlerror());
+    DynLibServiceFactory(const std::string& moduleName, void* handle) {
+        m_handle         = handle;
         auto symbol_name = moduleName + "_bedrock_init";
         typedef void (*module_init_fn)(bedrock_module*);
         module_init_fn init_module
