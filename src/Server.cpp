@@ -8,6 +8,7 @@
 #include "bedrock/MargoContext.hpp"
 #include "bedrock/ABTioContext.hpp"
 #include "bedrock/ModuleContext.hpp"
+#include "bedrock/ProviderManager.hpp"
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -48,6 +49,12 @@ Server::Server(const std::string& address, const std::string& configfile)
     self->m_margo_context = margoCtx;
     spdlog::trace("MargoContext initialized");
 
+    // Initializing the provider manager
+    spdlog::trace("Initializing ProviderManager");
+    auto providerManager     = ProviderManager(margoCtx);
+    self->m_provider_manager = providerManager;
+    spdlog::trace("ProviderManager initialized");
+
     // Initialize abt-io context
     spdlog::trace("Initializing ABTioContext");
     auto abtioConfig      = config["abt_io"].dump();
@@ -60,6 +67,12 @@ Server::Server(const std::string& address, const std::string& configfile)
     auto librariesConfig = config["libraries"].dump();
     ModuleContext::loadModulesFromJSON(librariesConfig);
     spdlog::trace("ModuleContext initialized");
+
+    // Starting up providers
+    spdlog::trace("Initializing providers");
+    auto providerManagerConfig = config["providers"].dump();
+    providerManager.addProviderListFromJSON(providerManagerConfig);
+    spdlog::trace("Providers initialized");
 }
 
 Server::~Server() = default;

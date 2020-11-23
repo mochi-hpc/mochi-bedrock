@@ -6,6 +6,7 @@ set (server-src-files
      ABTioContext.cpp
      MargoContext.cpp
      ModuleContext.cpp
+     ProviderManager.cpp
      Module.cpp
      MargoLogging.cpp)
 

@@ -7,7 +7,7 @@
 #define __BEDROCK_DYN_LIB_SERVICE_FACTORY_H
 
 #include "bedrock/module.h"
-#include "bedrock/ServiceFactory.hpp"
+#include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/Exception.hpp"
 #include <spdlog/spdlog.h>
 #include <dlfcn.h>

@@ -49,13 +49,13 @@ margo_instance_id MargoContext::getMargoInstance() const {
 
 ABT_pool MargoContext::getPool(int index) const {
     ABT_pool pool = ABT_POOL_NULL;
-    int      ret  = margo_get_pool_by_index(self->m_mid, index, &pool);
+    margo_get_pool_by_index(self->m_mid, index, &pool);
     return pool;
 }
 
 ABT_pool MargoContext::getPool(const std::string& name) const {
     ABT_pool pool = ABT_POOL_NULL;
-    int      ret  = margo_get_pool_by_name(self->m_mid, name.c_str(), &pool);
+    margo_get_pool_by_name(self->m_mid, name.c_str(), &pool);
     return pool;
 }
 

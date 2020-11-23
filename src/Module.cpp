@@ -4,7 +4,7 @@
  * See COPYRIGHT in top-level directory.
  */
 #include <bedrock/module.h>
-#include <bedrock/ServiceFactory.hpp>
+#include <bedrock/AbstractServiceFactory.hpp>
 
 extern "C" {
 

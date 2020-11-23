@@ -14,6 +14,7 @@ namespace bedrock {
 namespace tl = thallium;
 
 class Server;
+class ProviderManager;
 class MargoContextImpl;
 
 /**
@@ -22,6 +23,7 @@ class MargoContextImpl;
 class MargoContext {
 
     friend class Server;
+    friend class ProviderManager;
 
   public:
     /**

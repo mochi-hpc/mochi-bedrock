@@ -50,8 +50,8 @@ class ModuleContext {
      * with the same name was already present.
      */
     static bool
-    registerFactory(const std::string&                        moduleName,
-                    std::unique_ptr<AbstractServiceFactory>&& factory);
+    registerFactory(const std::string&                             moduleName,
+                    const std::shared_ptr<AbstractServiceFactory>& factory);
 
     /**
      * @brief Load a module with a given name from the specified library file.
@@ -82,7 +82,15 @@ class ModuleContext {
      */
     static void loadModulesFromJSON(const std::string& jsonString);
 
-    // ModuleFactory getModuleFactory(const std::string& moduleName);
+    /**
+     * @brief Get an AbstractServiceFactory from a given module name.
+     *
+     * @param moduleName Module name.
+     *
+     * @return An AbstractServiceFactory, or nullptr if not found.
+     */
+    static AbstractServiceFactory*
+    getServiceFactory(const std::string& moduleName);
 };
 
 } // namespace bedrock

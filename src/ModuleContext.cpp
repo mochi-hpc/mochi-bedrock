@@ -5,7 +5,7 @@
  */
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/Exception.hpp"
-#include "bedrock/ServiceFactory.hpp"
+#include "bedrock/AbstractServiceFactory.hpp"
 #include "DynLibServiceFactory.hpp"
 #include <bedrock/module.h>
 #include <nlohmann/json.hpp>
@@ -15,18 +15,18 @@ namespace bedrock {
 
 using nlohmann::json;
 
-static std::unordered_map<std::string, std::unique_ptr<AbstractServiceFactory>>
+static std::unordered_map<std::string, std::shared_ptr<AbstractServiceFactory>>
     s_modules;
 
 bool ModuleContext::registerModule(const std::string&    moduleName,
                                    const bedrock_module& module) {
     return registerFactory(moduleName,
-                           std::make_unique<DynLibServiceFactory>(module));
+                           std::make_shared<DynLibServiceFactory>(module));
 }
 
 bool ModuleContext::registerFactory(
-    const std::string&                        moduleName,
-    std::unique_ptr<AbstractServiceFactory>&& factory) {
+    const std::string&                             moduleName,
+    const std::shared_ptr<AbstractServiceFactory>& factory) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
     s_modules[moduleName] = std::move(factory);
     return true;
@@ -35,8 +35,8 @@ bool ModuleContext::registerFactory(
 bool ModuleContext::loadModule(const std::string& moduleName,
                                const std::string& library) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
-    std::unique_ptr<AbstractServiceFactory> factory
-        = std::make_unique<DynLibServiceFactory>(moduleName, library);
+    std::shared_ptr<AbstractServiceFactory> factory
+        = std::make_shared<DynLibServiceFactory>(moduleName, library);
     s_modules[moduleName] = std::move(factory);
     return true;
 }
@@ -65,6 +65,15 @@ void ModuleContext::loadModulesFromJSON(const std::string& jsonString) {
             loadModule(mod.key(), "");
         }
     }
+}
+
+AbstractServiceFactory*
+ModuleContext::getServiceFactory(const std::string& moduleName) {
+    auto it = s_modules.find(moduleName);
+    if (it == s_modules.end())
+        return nullptr;
+    else
+        return it->second.get();
 }
 
 } // namespace bedrock

@@ -2,5 +2,25 @@
     "libraries" : {
         "module_a" : "examples/libexample-module-a.so",
         "module_b" : "examples/libexample-module-b.so"
-    }
+    },
+    "providers" : [
+        {
+            "name" : "ProviderA",
+            "type" : "module_a",
+            "provider_id" : 42,
+            "pool" : "__primary__",
+            "config" : {},
+            "dependencies" : {}
+        },
+        {
+            "name" : "ProviderB",
+            "type" : "module_b",
+            "provider_id" : 33,
+            "pool" : "__primary__",
+            "config" : {},
+            "dependencies" : {
+                "a" : "ProviderA"
+            }
+        }
+    ]
 }

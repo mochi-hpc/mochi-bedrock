@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_BACKEND_HPP
-#define __BEDROCK_BACKEND_HPP
+#ifndef __BEDROCK_ABSTRACT_SERVICE_FACTORY_HPP
+#define __BEDROCK_ABSTRACT_SERVICE_FACTORY_HPP
 
 #include <bedrock/module.h>
 #include <bedrock/ModuleContext.hpp>
