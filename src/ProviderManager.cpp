@@ -119,6 +119,7 @@ void ProviderManager::registerProvider(
         args.mid          = margoCtx.getMargoInstance();
         args.pool         = margoCtx.getPool(pool_name);
         args.config       = config;
+        args.provider_id  = descriptor.provider_id;
         args.dependencies = dependencies;
 
         if (args.pool == ABT_POOL_NULL || args.pool == nullptr) {
