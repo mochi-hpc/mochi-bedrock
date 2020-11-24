@@ -9,6 +9,7 @@
 #include "MargoContextImpl.hpp"
 #include "ABTioContextImpl.hpp"
 #include "ProviderManagerImpl.hpp"
+#include "DependencyFinderImpl.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -20,9 +21,10 @@ namespace tl = thallium;
 class ServerImpl {
 
   public:
-    std::shared_ptr<MargoContextImpl>    m_margo_context;
-    std::shared_ptr<ABTioContextImpl>    m_abtio_context;
-    std::shared_ptr<ProviderManagerImpl> m_provider_manager;
+    std::shared_ptr<MargoContextImpl>     m_margo_context;
+    std::shared_ptr<ABTioContextImpl>     m_abtio_context;
+    std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
+    std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
 };
 
 } // namespace bedrock

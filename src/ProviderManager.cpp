@@ -42,7 +42,7 @@ ProviderManager::operator bool() const { return static_cast<bool>(self); }
 
 static auto resolveSpec(ProviderManagerImpl* manager, const std::string& spec)
     -> decltype(manager->m_providers.begin()) {
-    auto                                   column = spec.find('.');
+    auto                                   column = spec.find(':');
     decltype(manager->m_providers.begin()) it;
     if (column == std::string::npos) {
         it = std::find_if(

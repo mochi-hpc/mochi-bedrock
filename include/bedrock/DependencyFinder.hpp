@@ -15,6 +15,7 @@
 
 namespace bedrock {
 
+class Server;
 class DependencyFinderImpl;
 
 /**
@@ -22,6 +23,8 @@ class DependencyFinderImpl;
  * specification and resolves it into a void* handle to that dependency.
  */
 class DependencyFinder {
+
+    friend class Server;
 
   public:
     /**
@@ -83,6 +86,83 @@ class DependencyFinder {
      * @return handle to dependency
      */
     VoidPtr find(const std::string& type, const std::string& spec) const;
+
+    /**
+     * @brief Find a local provider based on a type and provider id.
+     * Throws an exception if not found.
+     *
+     * @param type Provider type
+     * @param provider_id Provider id
+     *
+     * @return An abstract pointer to the dependency.
+     */
+    VoidPtr findProvider(const std::string& type, uint16_t provider_id) const;
+
+    /**
+     * @brief Find a local provider based on a name.
+     * Throws an exception if not found.
+     *
+     * @param type Type of provider
+     * @param name Provider name
+     *
+     * @return An abstract pointer to the dependency.
+     */
+    VoidPtr findProvider(const std::string& type,
+                         const std::string& name) const;
+
+    /**
+     * @brief Get a client of a given type. The returned
+     * handle will remain valid until the program terminates.
+     *
+     * @param type Type of client.
+     *
+     * @return An abstract pointer to the dependency.
+     */
+    VoidPtr getClient(const std::string& type) const;
+
+    /**
+     * @brief Get an admin of a given type. The returned
+     * handle will remain valid until the program terminates.
+     *
+     * @param type Type of admin.
+     *
+     * @return An abstract pointer to the dependency.
+     */
+    VoidPtr getAdmin(const std::string& type) const;
+
+    /**
+     * @brief Make a provider handle to a specified provider.
+     * Throws an exception if no provider was found with this
+     * provider id at the specified location.
+     * The returned VoidPtr object owns the underlying provider
+     * handle, so the caller is responsible for copying it if
+     * necessary.
+     *
+     * @param type Type of service.
+     * @param provider_id Provider id
+     * @param locator Location (e.g. "local" or mercury or ssg addresses)
+     *
+     * @return An abstract pointer to the dependency.
+     */
+    VoidPtr makeProviderHandle(const std::string& type, uint16_t provider_id,
+                               const std::string& locator) const;
+
+    /**
+     * @brief Make a provider handle to a specified provider.
+     * Throws an exception if no provider was found with this
+     * provider name at the specified location.
+     * The returned VoidPtr object owns the underlying provider
+     * handle, so the caller is responsible for copying it if
+     * necessary.
+     *
+     * @param type Type of service.
+     * @param provider_id Provider id
+     * @param locator Location (e.g. "local" or mercury or ssg addresses)
+     *
+     * @return An abstract pointer to the dependency.
+     */
+    VoidPtr makeProviderHandle(const std::string& type, const std::string& name,
+                               const std::string& locator) const;
 
   private:
     std::shared_ptr<DependencyFinderImpl> self;

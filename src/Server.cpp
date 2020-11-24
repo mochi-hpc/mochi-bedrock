@@ -73,6 +73,7 @@ Server::Server(const std::string& address, const std::string& configfile)
     spdlog::trace("Initializing DependencyFinder");
     auto dependencyFinder
         = DependencyFinder(margoCtx, abtioCtx, providerManager);
+    self->m_dependency_finder = dependencyFinder;
     spdlog::trace("DependencyFinder initialized");
 
     // Starting up providers
