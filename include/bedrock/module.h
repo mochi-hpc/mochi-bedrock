@@ -205,16 +205,28 @@ const char* bedrock_args_get_config(bedrock_args_t args);
 const char* bedrock_args_get_name(bedrock_args_t args);
 
 /**
+ * @brief Get the number of dependencies of a given name in the argument.
+ *
+ * @param args Arguments to the provider registration.
+ * @param name Name of the dependency.
+ *
+ * @return Number of dependencies.
+ */
+size_t bedrock_args_get_num_dependencies(bedrock_args_t args, const char* name);
+
+/**
  * @brief Get the dependency associated with the name. If the dependency
  * is an array, the result can be cast into a void** that is null-terminated.
  *
  * @param args Arguments to the provider registration.
  * @param name Name of the dependency.
+ * @param index Index of the dependency (relevant for arrays, otherwise use 0).
  *
  * @return The dependency entry, or NULL if there is none associated with
  * this name.
  */
-void* bedrock_args_get_dependency(bedrock_args_t args, const char* name);
+void* bedrock_args_get_dependency(bedrock_args_t args, const char* name,
+                                  size_t index);
 
 #ifdef __cplusplus
 }

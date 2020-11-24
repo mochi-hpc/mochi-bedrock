@@ -89,10 +89,11 @@ class ProviderManager {
      * @param config JSON configuration for the provider.
      * @param dependencies Dependency map.
      */
-    void registerProvider(
-        const ProviderDescriptor& descriptor, const std::string& pool_name,
-        const std::string&                            config,
-        const std::unordered_map<std::string, void*>& dependencies);
+    void
+    registerProvider(const ProviderDescriptor& descriptor,
+                     const std::string& pool_name, const std::string& config,
+                     const std::unordered_map<std::string, std::vector<void*>>&
+                         dependencies);
 
     /**
      * @brief Deregister a provider from a specification. The specification has

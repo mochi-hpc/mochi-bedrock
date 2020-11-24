@@ -33,10 +33,20 @@ const char* bedrock_args_get_config(bedrock_args_t args) {
     return a->config.c_str();
 }
 
-void* bedrock_args_get_dependency(bedrock_args_t args, const char* name) {
+void* bedrock_args_get_dependency(bedrock_args_t args, const char* name,
+                                  size_t index) {
     auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
     auto it = a->dependencies.find(name);
     if (it == a->dependencies.end()) { return nullptr; }
-    return it->second;
+    if (index >= it->second.size()) return nullptr;
+    return it->second[index];
+}
+
+size_t bedrock_args_get_num_dependencies(bedrock_args_t args,
+                                         const char*    name) {
+    auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
+    auto it = a->dependencies.find(name);
+    if (it == a->dependencies.end()) { return 0; }
+    return it->second.size();
 }
 }

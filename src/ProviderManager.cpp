@@ -72,8 +72,8 @@ bool ProviderManager::lookupProvider(const std::string& spec,
 
 void ProviderManager::registerProvider(
     const ProviderDescriptor& descriptor, const std::string& pool_name,
-    const std::string&                            config,
-    const std::unordered_map<std::string, void*>& dependencies) {
+    const std::string&                                         config,
+    const std::unordered_map<std::string, std::vector<void*>>& dependencies) {
     if (descriptor.name.empty()) {
         throw Exception("Provider name cannot be empty");
     }
@@ -188,21 +188,44 @@ void ProviderManager::addProviderFromJSON(
 
     auto deps_from_config = config.value("dependencies", json::object());
 
-    std::unordered_map<std::string, void*>   dependencies;
-    std::unordered_map<std::string, VoidPtr> dependency_wrappers;
+    std::unordered_map<std::string, std::vector<void*>>   dependencies;
+    std::unordered_map<std::string, std::vector<VoidPtr>> dependency_wrappers;
 
     for (const auto& dependency : service_factory->getDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
-            dependency_wrappers[dependency.name] = dependencyFinder.find(
-                dependency.type, deps_from_config[dependency.name]);
-            dependencies[dependency.name]
-                = dependency_wrappers[dependency.name].handle;
+            auto dep_config = deps_from_config[dependency.name];
+            if (!(dependency.flags & BEDROCK_ARRAY)) {
+                if (!dep_config.is_string()) {
+                    throw Exception("Dependency {} should be a string",
+                                    dependency.name);
+                }
+                auto ptr = dependencyFinder.find(dependency.type,
+                                                 dep_config.get<std::string>());
+                dependencies[dependency.name].push_back(ptr.handle);
+                dependency_wrappers[dependency.name].push_back(std::move(ptr));
+            } else {
+                if (!dep_config.is_array()) {
+                    throw Exception("Dependency {} should be an array",
+                                    dependency.name);
+                }
+                std::vector<std::string> deps;
+                for (const auto& elem : dep_config) {
+                    if (!elem.is_string()) {
+                        throw Exception(
+                            "Item in dependency array {} should be a string",
+                            dependency.name);
+                    }
+                    auto ptr = dependencyFinder.find(dependency.type,
+                                                     elem.get<std::string>());
+                    dependencies[dependency.name].push_back(ptr.handle);
+                    dependency_wrappers[dependency.name].push_back(
+                        std::move(ptr));
+                }
+            }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
             throw Exception("Missing dependency {} in configuration",
                             dependency.name);
-        } else {
-            dependencies[dependency.name] = nullptr;
         }
     }
 

@@ -20,7 +20,7 @@
             "config" : {},
             "dependencies" : {
                 "a_provider" : "module_a:42",
-                "a_local" : "ProviderA@local",
+                "a_local" : [ "ProviderA@local" ],
                 "a_client" : "module_a:client"
             }
         }

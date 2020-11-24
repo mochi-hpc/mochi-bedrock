@@ -27,12 +27,13 @@ namespace bedrock {
  * The C equivalent of this structure is the bedrock_args_t handle.
  */
 struct FactoryArgs {
-    std::string                            name;         // name of the provider
-    margo_instance_id                      mid;          // margo instance
-    uint16_t                               provider_id;  // provider id
-    ABT_pool                               pool;         // Argobots pool
-    std::string                            config;       // JSON configuration
-    std::unordered_map<std::string, void*> dependencies; // dependencies
+    std::string       name;        // name of the provider
+    margo_instance_id mid;         // margo instance
+    uint16_t          provider_id; // provider id
+    ABT_pool          pool;        // Argobots pool
+    std::string       config;      // JSON configuration
+    std::unordered_map<std::string, std::vector<void*>>
+        dependencies; // dependencies
 };
 
 /**
