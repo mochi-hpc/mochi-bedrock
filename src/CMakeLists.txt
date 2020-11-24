@@ -1,8 +1,8 @@
 # set source files
 set (server-src-files
      Server.cpp
-     Provider.cpp
-     Backend.cpp
+#     Provider.cpp
+#     Backend.cpp
      ABTioContext.cpp
      MargoContext.cpp
      ModuleContext.cpp
@@ -19,9 +19,6 @@ set (client-src-files
 set (admin-src-files
      Admin.cpp)
 
-set (dummy-src-files
-     dummy/DummyBackend.cpp)
-
 # load package helper for generating cmake CONFIG packages
 include (CMakePackageConfigHelpers)
 
@@ -32,11 +29,10 @@ set (bedrock-pkg "share/cmake/bedrock")
 set (bedrock-vers "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}")
 
 # server library
-add_library (bedrock-server ${server-src-files} ${dummy-src-files})
+add_library (bedrock-server ${server-src-files})
 target_link_libraries (bedrock-server
     thallium
     PkgConfig::ABTIO
-    PkgConfig::UUID
     nlohmann_json::nlohmann_json)
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC
@@ -48,28 +44,28 @@ set_target_properties (bedrock-server
     SOVERSION ${BEDROCK_VERSION_MAJOR})
 
 # client library
-add_library (bedrock-client ${client-src-files})
-target_link_libraries (bedrock-client thallium PkgConfig::UUID)
-target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
-target_include_directories (bedrock-client BEFORE PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
-target_include_directories (bedrock-client BEFORE PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
-set_target_properties (bedrock-client
-    PROPERTIES VERSION ${BEDROCK_VERSION}
-    SOVERSION ${BEDROCK_VERSION_MAJOR})
+#add_library (bedrock-client ${client-src-files})
+#target_link_libraries (bedrock-client thallium)
+#target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
+#target_include_directories (bedrock-client BEFORE PUBLIC
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
+#target_include_directories (bedrock-client BEFORE PUBLIC
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+#set_target_properties (bedrock-client
+#    PROPERTIES VERSION ${BEDROCK_VERSION}
+#    SOVERSION ${BEDROCK_VERSION_MAJOR})
 
 # admin library
-add_library (bedrock-admin ${admin-src-files})
-target_link_libraries (bedrock-admin thallium PkgConfig::UUID nlohmann_json::nlohmann_json)
-target_include_directories (bedrock-admin PUBLIC $<INSTALL_INTERFACE:include>)
-target_include_directories (bedrock-admin BEFORE PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
-target_include_directories (bedrock-admin BEFORE PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
-set_target_properties (bedrock-admin
-    PROPERTIES VERSION ${BEDROCK_VERSION}
-    SOVERSION ${BEDROCK_VERSION_MAJOR})
+#add_library (bedrock-admin ${admin-src-files})
+#target_link_libraries (bedrock-admin thallium nlohmann_json::nlohmann_json)
+#target_include_directories (bedrock-admin PUBLIC $<INSTALL_INTERFACE:include>)
+#target_include_directories (bedrock-admin BEFORE PUBLIC
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
+#target_include_directories (bedrock-admin BEFORE PUBLIC
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+#set_target_properties (bedrock-admin
+#    PROPERTIES VERSION ${BEDROCK_VERSION}
+#    SOVERSION ${BEDROCK_VERSION_MAJOR})
 
 # installation stuff (packaging and install commands)
 write_basic_package_version_file(
@@ -88,17 +84,17 @@ configure_package_config_file(bedrock-config.cmake.in
 # some bits for the pkg-config file
 set (DEST_DIR "${CMAKE_INSTALL_PREFIX}")
 set (SERVER_PRIVATE_LIBS "-lbedrock-server")
-set (CLIENT_PRIVATE_LIBS "-lbedrock-client")
-set (ADMIN_PRIVATE_LIBS  "-lbedrock-admin")
+#set (CLIENT_PRIVATE_LIBS "-lbedrock-client")
+#set (ADMIN_PRIVATE_LIBS  "-lbedrock-admin")
 configure_file ("bedrock-server.pc.in" "bedrock-server.pc" @ONLY)
-configure_file ("bedrock-client.pc.in" "bedrock-client.pc" @ONLY)
-configure_file ("bedrock-admin.pc.in"  "bedrock-admin.pc"  @ONLY)
+#configure_file ("bedrock-client.pc.in" "bedrock-client.pc" @ONLY)
+#configure_file ("bedrock-admin.pc.in"  "bedrock-admin.pc"  @ONLY)
 
 # configure config.h
-configure_file ("config.h.in" "config.h" @ONLY) 
+configure_file ("config.h.in" "config.h" @ONLY)
 
 # "make install" rules
-install (TARGETS bedrock-admin # bedrock-server bedrock-client
+install (TARGETS bedrock-server # bedrock-admin bedrock-client
          EXPORT bedrock-targets
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib)
@@ -110,8 +106,11 @@ install (FILES "${CMAKE_CURRENT_BINARY_DIR}/bedrock-config.cmake"
          DESTINATION ${bedrock-pkg} )
 install (DIRECTORY ../include/bedrock
          DESTINATION include
+         FILES_MATCHING PATTERN "*.hpp")
+install (DIRECTORY ../include/bedrock
+         DESTINATION include
          FILES_MATCHING PATTERN "*.h")
 install (FILES "${CMAKE_CURRENT_BINARY_DIR}/bedrock-server.pc"
-               "${CMAKE_CURRENT_BINARY_DIR}/bedrock-client.pc"
-               "${CMAKE_CURRENT_BINARY_DIR}/bedrock-admin.pc"
+#               "${CMAKE_CURRENT_BINARY_DIR}/bedrock-client.pc"
+#               "${CMAKE_CURRENT_BINARY_DIR}/bedrock-admin.pc"
          DESTINATION "lib/pkgconfig/")

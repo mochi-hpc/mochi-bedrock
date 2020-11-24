@@ -128,7 +128,7 @@ void ProviderManager::registerProvider(
         }
 
         spdlog::trace("Registering provider {} of type {} with provider id {}",
-                     descriptor.name, descriptor.type, descriptor.provider_id);
+                      descriptor.name, descriptor.type, descriptor.provider_id);
         wrapper.handle = service_factory->registerProvider(args);
 
         self->m_providers.push_back(wrapper);
