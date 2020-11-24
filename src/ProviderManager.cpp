@@ -188,8 +188,8 @@ void ProviderManager::addProviderFromJSON(
 
     auto deps_from_config = config.value("dependencies", json::object());
 
-    std::unordered_map<std::string, void*>             dependencies;
-    std::unordered_map<std::string, DependencyWrapper> dependency_wrappers;
+    std::unordered_map<std::string, void*>   dependencies;
+    std::unordered_map<std::string, VoidPtr> dependency_wrappers;
 
     for (const auto& dependency : service_factory->getDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);

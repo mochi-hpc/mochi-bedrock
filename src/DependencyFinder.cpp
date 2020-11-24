@@ -47,14 +47,14 @@ static bool isPositiveNumber(const std::string& str) {
     return true;
 }
 
-DependencyWrapper DependencyFinder::find(const std::string& type,
-                                         const std::string& spec) const {
+VoidPtr DependencyFinder::find(const std::string& type,
+                               const std::string& spec) const {
     if (type == "pool") { // Argobots pool
         ABT_pool p = MargoContext(self->m_margo_context).getPool(spec);
         if (p == ABT_POOL_NULL) {
             throw Exception("Could not find pool with name \"{}\"", spec);
         }
-        return DependencyWrapper(p);
+        return VoidPtr(p);
     } else if (type == "abt_io") { // ABTIO instance
         abt_io_instance_id abt_id
             = ABTioContext(self->m_abtio_context).getABTioInstance(spec);
@@ -62,7 +62,7 @@ DependencyWrapper DependencyFinder::find(const std::string& type,
             throw Exception("Could not find ABT-IO instance with name \"{}\"",
                             spec);
         }
-        return DependencyWrapper(abt_id);
+        return VoidPtr(abt_id);
     } else { // Provider or provider handle
 
         // TODO use a regex (([a-zA-Z_][a-zA-Z0-9_]*)(:[0-9]+)?)(@(.+))?
@@ -115,7 +115,7 @@ DependencyWrapper DependencyFinder::find(const std::string& type,
             }
         }
     }
-    return DependencyWrapper();
+    return VoidPtr();
 }
 
 } // namespace bedrock

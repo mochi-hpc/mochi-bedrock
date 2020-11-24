@@ -9,7 +9,7 @@
 #include <bedrock/MargoContext.hpp>
 #include <bedrock/ABTioContext.hpp>
 #include <bedrock/ProviderManager.hpp>
-#include <bedrock/DependencyWrapper.hpp>
+#include <bedrock/VoidPtr.hpp>
 #include <string>
 #include <memory>
 
@@ -82,8 +82,7 @@ class DependencyFinder {
      *
      * @return handle to dependency
      */
-    DependencyWrapper find(const std::string& type,
-                           const std::string& spec) const;
+    VoidPtr find(const std::string& type, const std::string& spec) const;
 
   private:
     std::shared_ptr<DependencyFinderImpl> self;
