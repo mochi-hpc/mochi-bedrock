@@ -127,7 +127,7 @@ void ProviderManager::registerProvider(
             throw Exception("Could not find pool \"{}\"", pool_name);
         }
 
-        spdlog::info("Registering provider {} of type {} with provider id {}",
+        spdlog::trace("Registering provider {} of type {} with provider id {}",
                      descriptor.name, descriptor.type, descriptor.provider_id);
         wrapper.handle = service_factory->registerProvider(args);
 
@@ -143,7 +143,7 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
         throw Exception("Could not find provider for spec \"{}\"", spec);
     }
     auto& provider = *it;
-    spdlog::info("Deregistering provider {}", provider.name);
+    spdlog::trace("Deregistering provider {}", provider.name);
     provider.factory->deregisterProvider(provider.handle);
 }
 
