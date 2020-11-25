@@ -17,6 +17,7 @@ class Server;
 class ProviderManager;
 class DependencyFinder;
 class MargoContextImpl;
+class SSGContext;
 
 /**
  * @brief The MargoContext class is encapsulates a margo_instance_id.
@@ -26,6 +27,7 @@ class MargoContext {
     friend class Server;
     friend class ProviderManager;
     friend class DependencyFinder;
+    friend class SSGContext;
 
   public:
     /**

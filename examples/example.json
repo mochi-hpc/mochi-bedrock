@@ -1,4 +1,9 @@
 {
+    "ssg" : {
+        "name" : "mygroup",
+        "bootstrap" : "init",
+        "group_file" : "mygroup.ssg"
+    },
     "libraries" : {
         "module_a" : "examples/libexample-module-a.so",
         "module_b" : "examples/libexample-module-b.so"

@@ -31,8 +31,10 @@ set (BUILD_SHARED_LIBS "ON" CACHE BOOL "Build a shared library")
 find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)
-# comment if you don't need abt-io
+# search for abt-io
 pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
+# search for ssg
+pkg_check_modules (SSG REQUIRED IMPORTED_TARGET ssg)
 # search for nlohmann/json
 find_package (nlohmann_json REQUIRED)
 # search for TCLAP

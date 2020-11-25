@@ -6,6 +6,7 @@ set (server-src-files
      ABTioContext.cpp
      MargoContext.cpp
      ModuleContext.cpp
+     SSGContext.cpp
      ProviderManager.cpp
      DependencyFinder.cpp
      Module.cpp
@@ -33,6 +34,7 @@ add_library (bedrock-server ${server-src-files})
 target_link_libraries (bedrock-server
     thallium
     PkgConfig::ABTIO
+    PkgConfig::SSG
     nlohmann_json::nlohmann_json)
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC

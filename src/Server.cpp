@@ -10,6 +10,7 @@
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/ProviderManager.hpp"
 #include "bedrock/DependencyFinder.hpp"
+#include "bedrock/SSGContext.hpp"
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -75,6 +76,13 @@ Server::Server(const std::string& address, const std::string& configfile)
         = DependencyFinder(margoCtx, abtioCtx, providerManager);
     self->m_dependency_finder = dependencyFinder;
     spdlog::trace("DependencyFinder initialized");
+
+    // Initializing SSG context
+    spdlog::trace("Initializing SSGContext");
+    auto ssgConfig      = config["ssg"].dump();
+    auto ssgCtx         = SSGContext(margoCtx, ssgConfig);
+    self->m_ssg_context = ssgCtx;
+    spdlog::trace("SSGContext initialized");
 
     // Starting up providers
     spdlog::trace("Initializing providers");
