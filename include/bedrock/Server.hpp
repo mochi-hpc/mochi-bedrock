@@ -67,10 +67,12 @@ class Server {
     /**
      * @brief Blocks until the underlying margo instance is finalized.
      */
-    void waitForFinalize() const;
+    void waitForFinalize();
 
   private:
     std::unique_ptr<ServerImpl> self;
+
+    static void onFinalize(void* uargs);
 };
 
 } // namespace bedrock
