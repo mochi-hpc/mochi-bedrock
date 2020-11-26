@@ -239,11 +239,10 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
         }
 
         ProviderDescriptor descriptor;
-        // TODO make the timeout (10.0) configurable
-        // TODO make the provide id (0) configurable
         try {
             auto spec = type + ":" + std::to_string(provider_id);
-            self->lookupRemoteProvider(addr, 0, spec, 10.0, &descriptor);
+            auto pid  = self->m_provider_manager->get_provider_id();
+            self->lookupRemoteProvider(addr, pid, spec, &descriptor);
         } catch (...) {
             margo_addr_free(mid, addr);
             throw;
@@ -312,10 +311,9 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
             }
         }
 
-        // TODO make the timeout (10.0) configurable
-        // TODO make provider id (0) configurable
         try {
-            self->lookupRemoteProvider(addr, 0, name, 10.0, &descriptor);
+            auto pid = self->m_provider_manager->get_provider_id();
+            self->lookupRemoteProvider(addr, pid, name, &descriptor);
         } catch (...) {
             margo_addr_free(mid, addr);
             throw;

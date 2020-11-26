@@ -36,13 +36,13 @@ class ProviderManagerImpl
     tl::remote_procedure m_lookup_provider;
     tl::remote_procedure m_list_providers;
 
-    template <typename... Args>
-    ProviderManagerImpl(Args&&... args)
-    : tl::provider<ProviderManagerImpl>(std::forward<Args>(args)...),
+    ProviderManagerImpl(const tl::engine& engine, uint16_t provider_id,
+                        const tl::pool& pool)
+    : tl::provider<ProviderManagerImpl>(engine, provider_id),
       m_lookup_provider(define("bedrock_lookup_provider",
-                               &ProviderManagerImpl::lookupProviderRPC)),
+                               &ProviderManagerImpl::lookupProviderRPC, pool)),
       m_list_providers(define("bedrock_list_providers",
-                              &ProviderManagerImpl::listProvidersRPC)) {}
+                              &ProviderManagerImpl::listProvidersRPC, pool)) {}
 
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),

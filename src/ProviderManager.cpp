@@ -24,9 +24,9 @@ using namespace std::string_literals;
 using nlohmann::json;
 
 ProviderManager::ProviderManager(const MargoContext& margo,
-                                 uint16_t            provider_id)
+                                 uint16_t provider_id, ABT_pool pool)
 : self(std::make_shared<ProviderManagerImpl>(margo.getThalliumEngine(),
-                                             provider_id)) {
+                                             provider_id, tl::pool(pool))) {
     self->m_margo_context = margo;
 }
 

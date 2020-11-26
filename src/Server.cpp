@@ -51,9 +51,36 @@ Server::Server(const std::string& address, const std::string& configfile)
     self->m_margo_context = margoCtx;
     spdlog::trace("MargoContext initialized");
 
+    // Extract bedrock section from the config
+    spdlog::trace("Reading Bedrock config");
+    if (!config.contains("bedrock")) config["bedrock"] = json::object();
+    if (!config["bedrock"].is_object())
+        throw Exception("Invalid entry type for \"bedrock\" (expected object)");
+    auto   bedrockConfig = config["bedrock"];
+    double dependency_timeout
+        = bedrockConfig.value("dependency_resolution_timeout", 30.0);
+    uint16_t bedrock_provider_id = bedrockConfig.value("provider_id", 0);
+    ABT_pool bedrock_pool        = ABT_POOL_NULL;
+    if (bedrockConfig.contains("pool")) {
+        auto bedrockPoolRef = bedrockConfig["pool"];
+        if (bedrockPoolRef.is_string()) {
+            bedrock_pool = margoCtx.getPool(bedrockPoolRef.get<std::string>());
+        } else if (bedrockPoolRef.is_number_integer()) {
+            bedrock_pool = margoCtx.getPool(bedrockPoolRef.get<int>());
+        } else {
+            throw Exception("Invalid type in Bedrock's \"pool\" entry");
+        }
+        if (bedrock_pool == ABT_POOL_NULL) {
+            throw Exception(
+                "Invalid pool reference {} in Bedrock configuration",
+                bedrockPoolRef.dump());
+        }
+    }
+
     // Initializing the provider manager
     spdlog::trace("Initializing ProviderManager");
-    auto providerManager     = ProviderManager(margoCtx);
+    auto providerManager
+        = ProviderManager(margoCtx, bedrock_provider_id, bedrock_pool);
     self->m_provider_manager = providerManager;
     spdlog::trace("ProviderManager initialized");
 
@@ -81,7 +108,8 @@ Server::Server(const std::string& address, const std::string& configfile)
     spdlog::trace("Initializing DependencyFinder");
     auto dependencyFinder
         = DependencyFinder(margoCtx, abtioCtx, ssgCtx, providerManager);
-    self->m_dependency_finder = dependencyFinder;
+    self->m_dependency_finder            = dependencyFinder;
+    self->m_dependency_finder->m_timeout = dependency_timeout;
     spdlog::trace("DependencyFinder initialized");
 
     // Starting up providers

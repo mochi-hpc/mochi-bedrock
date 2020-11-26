@@ -34,9 +34,11 @@ class ProviderManager {
      *
      * @param margo Margo context
      * @param provider_id Provider id at which this provider manager
+     * @param pool Pool in which to execute RPCs looking up providers
      * responds for remote provider lookups.
      */
-    ProviderManager(const MargoContext& margo, uint16_t provider_id = 0);
+    ProviderManager(const MargoContext& margo, uint16_t provider_id = 0,
+                    ABT_pool pool = ABT_POOL_NULL);
 
     /**
      * @brief Copy-constructor.
