@@ -16,6 +16,7 @@
 #ifdef ENABLE_PMIX
     #include <ssg-pmix.h>
 #endif
+#include <regex>
 
 namespace bedrock {
 
@@ -345,6 +346,38 @@ void SSGContext::membershipUpdate(void* group_data, ssg_member_id_t member_id,
     (void)gdata;
     spdlog::trace("SSG membership updated: member_id={}, update_type={}",
                   member_id, update_type);
+}
+
+hg_addr_t SSGContext::resolveAddress(const std::string& address) const {
+    std::regex re(
+            "ssg:\\/\\/([a-zA-Z_][a-zA-Z0-9_]*)\\/(#?)([0-9][0-9]*)$");
+    std::smatch match;
+    if (std::regex_search(address, match, re)) {
+        auto group_name   = match.str(1);
+        auto is_member_id = match.str(2) == "#";
+        auto member_id_or_rank = atol(match.str(3).c_str());
+        auto gid = getGroup(group_name);
+        if(gid == SSG_GROUP_ID_INVALID) {
+            throw Exception("Could not resolve \"{}\" to a valid SSG group");
+        }
+        ssg_member_id_t member_id;
+        if(!is_member_id) {
+            member_id = ssg_get_group_member_id_from_rank(gid, member_id_or_rank);
+            if(member_id == SSG_MEMBER_ID_INVALID) {
+                throw Exception("Invalid rank {} in group {}", member_id_or_rank, group_name);
+            }
+        } else {
+            member_id = member_id_or_rank;
+        }
+        hg_addr_t addr = ssg_get_group_member_addr(gid, member_id);
+        if(addr == HG_ADDR_NULL) {
+            throw Exception("Invalid member id {} in group {}", member_id, group_name);
+        }
+        return addr;
+    } else {
+        throw Exception("Invalid SSG address specification \"{}\"", address);
+    }
+    return HG_ADDR_NULL;
 }
 
 } // namespace bedrock

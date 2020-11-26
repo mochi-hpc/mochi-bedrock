@@ -93,7 +93,8 @@ class SSGContext {
      * - ssg://<group-name>/members/<member-id>
      * - ssg://<group-name>/ranks/<rank>
      * This function will throw an exception if the address
-     * could not be resolved.
+     * could not be resolved. The caller is not supposed to
+     * destroy the returned hg_addr_t.
      *
      * @param address Address
      *
