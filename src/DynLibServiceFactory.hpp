@@ -17,15 +17,9 @@ namespace bedrock {
 class DynLibServiceFactory : public AbstractServiceFactory {
 
   public:
-    /**
-     * @brief Constructor.
-     */
     DynLibServiceFactory(const bedrock_module& mod)
     : m_handle(nullptr), m_module(mod) {}
 
-    /**
-     * @brief Constructor.
-     */
     DynLibServiceFactory(const std::string& moduleName, void* handle) {
         m_handle         = handle;
         auto symbol_name = moduleName + "_bedrock_init";
@@ -50,45 +44,21 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         }
     }
 
-    /**
-     * @brief Move-constructor.
-     */
     DynLibServiceFactory(DynLibServiceFactory&& other)
     : m_handle(other.m_handle), m_module(other.m_module) {
         other.m_handle = nullptr;
     }
 
-    /**
-     * @brief Copy-constructor.
-     */
     DynLibServiceFactory(const DynLibServiceFactory&) = delete;
 
-    /**
-     * @brief Move-assignment operator.
-     */
     DynLibServiceFactory& operator=(DynLibServiceFactory&&) = delete;
 
-    /**
-     * @brief Copy-assignment operator.
-     */
     DynLibServiceFactory& operator=(const DynLibServiceFactory&) = delete;
 
-    /**
-     * @brief Destructor.
-     */
     virtual ~DynLibServiceFactory() {
         if (m_handle) dlclose(m_handle);
     }
 
-    /**
-     * @brief Register a provider with the given args. The resulting provider
-     * must be cast into a void* and returned. This pointer is what may be
-     * passed as dependency to other providers if required.
-     *
-     * @param args Arguments.
-     *
-     * @return The provider cast into a void*.
-     */
     void* registerProvider(const FactoryArgs& args) override {
         void* provider = nullptr;
         auto  a
@@ -101,11 +71,6 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         return provider;
     }
 
-    /**
-     * @brief Deregister a provider.
-     *
-     * @param provider Provider.
-     */
     void deregisterProvider(void* provider) override {
         int ret = m_module.deregister_provider(provider);
         if (ret != BEDROCK_SUCCESS) {
@@ -114,13 +79,14 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         }
     }
 
-    /**
-     * @brief Register a client for the service.
-     *
-     * @param mid Margo instance.
-     *
-     * @return A client cast into a void*.
-     */
+    std::string getProviderConfig(void* provider) override {
+        auto config = m_module.get_provider_config(provider);
+        if (!config) return std::string();
+        auto config_str = std::string(config);
+        free(config);
+        return config_str;
+    }
+
     void* initClient(margo_instance_id mid) override {
         void* client = nullptr;
         int   ret    = m_module.init_client(mid, &client);
@@ -130,11 +96,6 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         return client;
     }
 
-    /**
-     * @brief Deregister a client.
-     *
-     * @param client Client.
-     */
     void finalizeClient(void* client) override {
         int ret = m_module.finalize_client(client);
         if (ret != BEDROCK_SUCCESS) {
@@ -142,16 +103,6 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         }
     }
 
-    /**
-     * @brief Create a provider handle from the client, and address,
-     * and a provider id.
-     *
-     * @param client Client
-     * @param address Address
-     * @param provider_id Provider id
-     *
-     * @return a provider handle cast into a void*.
-     */
     void* createProviderHandle(void* client, hg_addr_t address,
                                uint16_t provider_id) override {
         void* ph = nullptr;
@@ -164,11 +115,6 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         return ph;
     }
 
-    /**
-     * @brief Destroy a provider handle.
-     *
-     * @param providerHandle Provider handle.
-     */
     void destroyProviderHandle(void* providerHandle) override {
         int ret = m_module.destroy_provider_handle(providerHandle);
         if (ret != BEDROCK_SUCCESS) {
@@ -177,9 +123,6 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         }
     }
 
-    /**
-     * @brief Return the dependencies of a provider.
-     */
     const std::vector<Dependency>& getDependencies() override {
         return m_dependencies;
     }

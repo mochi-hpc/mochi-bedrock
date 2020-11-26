@@ -104,6 +104,13 @@ class AbstractServiceFactory {
     virtual void deregisterProvider(void* provider) = 0;
 
     /**
+     * @brief Get the configuration of a provider.
+     *
+     * @return the string configuration.
+     */
+    virtual std::string getProviderConfig(void* provider) = 0;
+
+    /**
      * @brief Register a client for the service.
      *
      * @param mid Margo instance.

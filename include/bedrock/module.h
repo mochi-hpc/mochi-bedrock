@@ -126,6 +126,16 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
     bedrock_module_provider_handle_t);
 
 /**
+ * @brief Type of function called to get the configuration of a provider.
+ * The returned string, if not NULL, should be freed by the caller.
+ *
+ * @param bedrock_module_provider_t Provider.
+ *
+ * @return null-terminated configuration string.
+ */
+typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
+
+/**
  * @brief A global instance of the bedrock_module structure must be provided
  * in a shared library to make up a Bedrock module.
  * The dependencies array should be terminated by a
@@ -134,6 +144,7 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
 struct bedrock_module {
     bedrock_register_provider_fn       register_provider;
     bedrock_deregister_provider_fn     deregister_provider;
+    bedrock_provider_get_config_fn     get_provider_config;
     bedrock_init_client_fn             init_client;
     bedrock_finalize_client_fn         finalize_client;
     bedrock_create_provider_handle_fn  create_provider_handle;

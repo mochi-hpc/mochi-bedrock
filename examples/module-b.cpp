@@ -31,6 +31,10 @@ class ServiceBFactory : public bedrock::AbstractServiceFactory {
         std::cout << "Deregistring provider from module B" << std::endl;
     }
 
+    std::string getProviderConfig(void* provider) override {
+        return "{}";
+    }
+
     void* initClient(margo_instance_id mid) override {
         (void)mid;
         std::cout << "Initializing client from module B" << std::endl;

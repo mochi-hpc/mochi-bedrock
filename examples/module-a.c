@@ -34,6 +34,12 @@ static int module_a_deregister_provider(
     return BEDROCK_SUCCESS;
 }
 
+static char* module_a_get_provider_config(
+        bedrock_module_provider_t provider) {
+    (void)provider;
+    return strdup("{}");
+}
+
 static int module_a_init_client(
         margo_instance_id mid,
         bedrock_module_client_t* client)
@@ -77,6 +83,7 @@ static int module_a_destroy_provider_handle(
 static struct bedrock_module module_a = {
     .register_provider       = module_a_register_provider,
     .deregister_provider     = module_a_deregister_provider,
+    .get_provider_config     = module_a_get_provider_config,
     .init_client             = module_a_init_client,
     .finalize_client         = module_a_finalize_client,
     .create_provider_handle  = module_a_create_provider_handle,
