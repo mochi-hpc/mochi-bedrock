@@ -10,6 +10,12 @@
 #include <margo.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#ifdef ENABLE_MPI
+    #include <ssg-mpi.h>
+#endif
+#ifdef ENABLE_PMIX
+    #include <ssg-pmix.h>
+#endif
 
 namespace bedrock {
 
@@ -293,8 +299,16 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
 
     } else if (bootstrap_method == "pmix") {
 #ifdef ENABLE_PMIX
-        // TODO
-        throw Exception("PMIx is not yet supported by Bedrock");
+        pmix_proc_t proc;
+        auto        ret = PMIx_Init(&proc, NULL, 0);
+        if (ret != PMIX_SUCCESS) {
+            throw Exception("Could not initialize PMIx (PMIx_Init returned {})",
+                            ret);
+        }
+        gid = ssg_group_create_pmix(
+            self->m_margo_context->m_mid, name.c_str(), proc,
+            const_cast<ssg_group_config_t*>(config),
+            SSGContext::membershipUpdate, group_data.get());
 #else
         throw Exception("Bedrock was not compiled with PMIx support");
 #endif
