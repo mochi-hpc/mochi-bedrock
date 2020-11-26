@@ -84,6 +84,13 @@ class MargoContext {
     margo_instance_id getMargoInstance() const;
 
     /**
+     * @brief Get the thallium engine associated with the Margo instance.
+     *
+     * @return reference to the thallium engine.
+     */
+    const tl::engine& getThalliumEngine() const;
+
+    /**
      * @brief Get the pool corresponding to a particular index.
      */
     ABT_pool getPool(int index) const;

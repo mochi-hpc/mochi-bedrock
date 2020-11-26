@@ -7,6 +7,7 @@
 #define __BEDROCK_PROVIDER_WRAPPER_HPP
 
 #include <string>
+#include <thallium/serialization/stl/string.hpp>
 
 namespace bedrock {
 
@@ -21,11 +22,7 @@ struct ProviderDescriptor {
     std::string type;        // name of the module
     uint16_t    provider_id; // provider id
 
-    template <typename A> void serialize(A& ar) {
-        ar& name;
-        ar& type;
-        ar& provider_id;
-    }
+    template <typename A> void serialize(A& ar) { ar(name, type, provider_id); }
 };
 
 /**

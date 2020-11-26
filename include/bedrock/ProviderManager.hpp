@@ -26,14 +26,17 @@ class ProviderManager {
 
     friend class Server;
     friend class DependencyFinder;
+    friend class ProviderManagerImpl;
 
   public:
     /**
      * @brief Constructor.
      *
      * @param margo Margo context
+     * @param provider_id Provider id at which this provider manager
+     * responds for remote provider lookups.
      */
-    ProviderManager(const MargoContext& margo);
+    ProviderManager(const MargoContext& margo, uint16_t provider_id = 0);
 
     /**
      * @brief Copy-constructor.
@@ -80,6 +83,13 @@ class ProviderManager {
      */
     bool lookupProvider(const std::string& spec,
                         ProviderWrapper*   wrapper = nullptr) const;
+
+    /**
+     * @brief List the providers managed by the ProviderManager.
+     *
+     * @return the providers managed by the ProviderManager.
+     */
+    std::vector<ProviderDescriptor> listProviders() const;
 
     /**
      * @brief Register a provider from a descriptor.

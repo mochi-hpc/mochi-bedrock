@@ -23,8 +23,10 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-ProviderManager::ProviderManager(const MargoContext& margo)
-: self(std::make_shared<ProviderManagerImpl>()) {
+ProviderManager::ProviderManager(const MargoContext& margo,
+                                 uint16_t            provider_id)
+: self(std::make_shared<ProviderManagerImpl>(margo.getThalliumEngine(),
+                                             provider_id)) {
     self->m_margo_context = margo;
 }
 
@@ -40,34 +42,21 @@ ProviderManager::~ProviderManager() = default;
 
 ProviderManager::operator bool() const { return static_cast<bool>(self); }
 
-static auto resolveSpec(ProviderManagerImpl* manager, const std::string& spec)
-    -> decltype(manager->m_providers.begin()) {
-    auto                                   column = spec.find(':');
-    decltype(manager->m_providers.begin()) it;
-    if (column == std::string::npos) {
-        it = std::find_if(
-            manager->m_providers.begin(), manager->m_providers.end(),
-            [&spec](const ProviderWrapper& item) { return item.name == spec; });
-    } else {
-        auto     type            = spec.substr(0, column);
-        auto     provider_id_str = spec.substr(column + 1);
-        uint16_t provider_id     = atoi(provider_id_str.c_str());
-        it                       = std::find_if(
-            manager->m_providers.begin(), manager->m_providers.end(),
-            [&type, &provider_id](const ProviderWrapper& item) {
-                return item.type == type && item.provider_id == provider_id;
-            });
-    }
-    return it;
-}
-
 bool ProviderManager::lookupProvider(const std::string& spec,
                                      ProviderWrapper*   wrapper) const {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-    auto                       it = resolveSpec(self.get(), spec);
+    auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end()) { return false; }
     if (wrapper) { *wrapper = *it; }
     return true;
+}
+
+std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
+    std::lock_guard<tl::mutex>      lock(self->m_providers_mtx);
+    std::vector<ProviderDescriptor> result;
+    result.reserve(self->m_providers.size());
+    for (const auto& w : self->m_providers) { result.push_back(w); }
+    return result;
 }
 
 void ProviderManager::registerProvider(
@@ -89,7 +78,7 @@ void ProviderManager::registerProvider(
 
     {
         std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-        auto it = resolveSpec(self.get(), descriptor.name);
+        auto                       it = self->resolveSpec(descriptor.name);
         if (it != self->m_providers.end()) {
             throw Exception(
                 "Could not register provider: a provider with the name \"{}\""
@@ -97,9 +86,7 @@ void ProviderManager::registerProvider(
                 descriptor.name);
         }
 
-        it = resolveSpec(self.get(),
-                         descriptor.type + ":"
-                             + std::to_string(descriptor.provider_id));
+        it = self->resolveSpec(descriptor.type, descriptor.provider_id);
         if (it != self->m_providers.end()) {
             throw Exception(
                 "Could not register provider: a provider with the type \"{}\""
@@ -138,7 +125,7 @@ void ProviderManager::registerProvider(
 
 void ProviderManager::deregisterProvider(const std::string& spec) {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-    auto                       it = resolveSpec(self.get(), spec);
+    auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end()) {
         throw Exception("Could not find provider for spec \"{}\"", spec);
     }

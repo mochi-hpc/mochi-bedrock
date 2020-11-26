@@ -102,7 +102,8 @@ void Server::onFinalize(void* uargs) {
 }
 
 void Server::waitForFinalize() {
-    margo_push_finalize_callback(self->m_margo_context->m_mid, &Server::onFinalize, this);
+    margo_push_finalize_callback(self->m_margo_context->m_mid,
+                                 &Server::onFinalize, this);
     margo_wait_for_finalize(self->m_margo_context->m_mid);
 }
 

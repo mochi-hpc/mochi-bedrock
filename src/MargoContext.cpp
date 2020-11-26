@@ -15,7 +15,8 @@ namespace bedrock {
 
 MargoContext::MargoContext(margo_instance_id mid)
 : self(std::make_shared<MargoContextImpl>()) {
-    self->m_mid = mid;
+    self->m_mid    = mid;
+    self->m_engine = tl::engine(mid);
 }
 
 MargoContext::MargoContext(const std::string& address,
@@ -28,6 +29,7 @@ MargoContext::MargoContext(const std::string& address,
     self->m_mid = margo_init_ext(address.c_str(), MARGO_SERVER_MODE, &args);
     if (self->m_mid == MARGO_INSTANCE_NULL)
         throw Exception("Could not initialize Margo");
+    self->m_engine = tl::engine(self->m_mid);
     setupMargoLoggingForInstance(self->m_mid);
 }
 
@@ -45,6 +47,10 @@ MargoContext::operator bool() const { return static_cast<bool>(self); }
 
 margo_instance_id MargoContext::getMargoInstance() const {
     return self ? self->m_mid : MARGO_INSTANCE_NULL;
+}
+
+const tl::engine& MargoContext::getThalliumEngine() const {
+    return self->m_engine;
 }
 
 ABT_pool MargoContext::getPool(int index) const {

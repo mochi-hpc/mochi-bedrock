@@ -1,4 +1,10 @@
 {
+    "margo" : {
+        "use_progress_thread" : false,
+        "rpc_thread_count" : 0,
+        "mercury" : {
+        }
+    },
     "ssg" : {
         "name" : "mygroup",
         "bootstrap" : "init",
@@ -26,7 +32,7 @@
             "dependencies" : {
                 "ssg_group" : "mygroup",
                 "a_provider" : "module_a:42",
-                "a_local" : [ "ProviderA@local" ],
+                "a_local" : [ "ProviderA@ssg://mygroup/0" ],
                 "a_client" : "module_a:client"
             }
         }

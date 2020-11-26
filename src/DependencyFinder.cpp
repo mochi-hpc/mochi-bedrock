@@ -8,8 +8,11 @@
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/Exception.hpp"
+#include <thallium.hpp>
 #include <cctype>
 #include <regex>
+
+namespace tl = thallium;
 
 namespace bedrock {
 
@@ -17,7 +20,7 @@ DependencyFinder::DependencyFinder(const MargoContext&    margo,
                                    const ABTioContext&    abtio,
                                    const SSGContext&      ssg,
                                    const ProviderManager& pmanager)
-: self(std::make_shared<DependencyFinderImpl>()) {
+: self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio;
     self->m_ssg_context      = ssg;
@@ -183,7 +186,13 @@ VoidPtr DependencyFinder::getClient(const std::string& type) const {
 VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                                              uint16_t           provider_id,
                                              const std::string& locator) const {
+    auto      mid             = self->m_margo_context->m_mid;
+    auto      client          = getClient(type);
+    auto      service_factory = ModuleContext::getServiceFactory(type);
+    hg_addr_t addr            = HG_ADDR_NULL;
+
     if (locator == "local") {
+
         ProviderWrapper wrapper;
         if (!ProviderManager(self->m_provider_manager)
                  .lookupProvider(type + ":" + std::to_string(provider_id),
@@ -197,60 +206,128 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                 "Invalid type {} for provider handle to provider of type {}",
                 type, wrapper.type);
         }
-        auto        client          = getClient(type);
-        auto        service_factory = ModuleContext::getServiceFactory(type);
-        hg_addr_t   self_addr       = HG_ADDR_NULL;
-        hg_return_t hret
-            = margo_addr_self(self->m_margo_context->m_mid, &self_addr);
+        hg_return_t hret = margo_addr_self(mid, &addr);
         if (hret != HG_SUCCESS) {
             throw Exception(
                 "Failed to get self address, margo_addr_self returned {}",
                 hret);
         }
-        void* ph = service_factory->createProviderHandle(
-            client.handle, self_addr, provider_id);
-        return VoidPtr(ph, [service_factory](void* ph) {
-            service_factory->destroyProviderHandle(ph);
-        });
+
     } else {
-        // TODO
-        throw Exception("Looking up remote provider is not yet supported");
+
+        if (locator.rfind("ssg://", 0) == 0) {
+
+            hg_addr_t ssg_addr
+                = SSGContext(self->m_ssg_context).resolveAddress(locator);
+            hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
+            if (hret != HG_SUCCESS) {
+                throw Exception(
+                    "Failed to duplicate address returned by "
+                    "SSGContext (margo_addr_dup returned {})",
+                    hret);
+            }
+
+        } else {
+
+            hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
+            if (hret != HG_SUCCESS) {
+                throw Exception(
+                    "Failed to lookup address {} "
+                    "(margo_addr_lookup returned {})",
+                    locator, hret);
+            }
+        }
+
+        ProviderDescriptor descriptor;
+        // TODO make the timeout (10.0) configurable
+        // TODO make the provide id (0) configurable
+        try {
+            auto spec = type + ":" + std::to_string(provider_id);
+            self->lookupRemoteProvider(addr, 0, spec, 10.0, &descriptor);
+        } catch (...) {
+            margo_addr_free(mid, addr);
+            throw;
+        }
     }
+
+    void* ph = service_factory->createProviderHandle(client.handle, addr,
+                                                     provider_id);
+    margo_addr_free(mid, addr);
+    return VoidPtr(ph, [service_factory](void* ph) {
+        service_factory->destroyProviderHandle(ph);
+    });
 }
 
 VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                                              const std::string& name,
                                              const std::string& locator) const {
+    auto               mid             = self->m_margo_context->m_mid;
+    auto               client          = getClient(type);
+    auto               service_factory = ModuleContext::getServiceFactory(type);
+    hg_addr_t          addr            = HG_ADDR_NULL;
+    ProviderDescriptor descriptor;
+
     if (locator == "local") {
+
         ProviderWrapper wrapper;
         if (!ProviderManager(self->m_provider_manager)
                  .lookupProvider(name, &wrapper)) {
-            throw Exception("Could not find local provider named \"{}\"", name);
+            throw Exception("Could not find local provider of name {}", name);
         }
         if (wrapper.type != type) {
             throw Exception(
                 "Invalid type {} for provider handle to provider of type {}",
                 type, wrapper.type);
         }
-        auto        client          = getClient(type);
-        auto        service_factory = ModuleContext::getServiceFactory(type);
-        hg_addr_t   self_addr       = HG_ADDR_NULL;
-        hg_return_t hret
-            = margo_addr_self(self->m_margo_context->m_mid, &self_addr);
+        hg_return_t hret = margo_addr_self(mid, &addr);
         if (hret != HG_SUCCESS) {
             throw Exception(
                 "Failed to get self address, margo_addr_self returned {}",
                 hret);
         }
-        void* ph = service_factory->createProviderHandle(
-            client.handle, self_addr, wrapper.provider_id);
-        return VoidPtr(ph, [service_factory](void* ph) {
-            service_factory->destroyProviderHandle(ph);
-        });
+        descriptor = wrapper;
+
     } else {
-        // TODO
-        throw Exception("Looking up remote provider is not yet supported");
+
+        if (locator.rfind("ssg://", 0) == 0) {
+
+            hg_addr_t ssg_addr
+                = SSGContext(self->m_ssg_context).resolveAddress(locator);
+            hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
+            if (hret != HG_SUCCESS) {
+                throw Exception(
+                    "Failed to duplicate address returned by "
+                    "SSGContext (margo_addr_dup returned {})",
+                    hret);
+            }
+
+        } else {
+
+            hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
+            if (hret != HG_SUCCESS) {
+                throw Exception(
+                    "Failed to lookup address {} "
+                    "(margo_addr_lookup returned {})",
+                    locator, hret);
+            }
+        }
+
+        // TODO make the timeout (10.0) configurable
+        // TODO make provider id (0) configurable
+        try {
+            self->lookupRemoteProvider(addr, 0, name, 10.0, &descriptor);
+        } catch (...) {
+            margo_addr_free(mid, addr);
+            throw;
+        }
     }
+
+    void* ph = service_factory->createProviderHandle(client.handle, addr,
+                                                     descriptor.provider_id);
+    margo_addr_free(mid, addr);
+    return VoidPtr(ph, [service_factory](void* ph) {
+        service_factory->destroyProviderHandle(ph);
+    });
 }
 
 } // namespace bedrock

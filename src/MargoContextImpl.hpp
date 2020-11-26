@@ -7,6 +7,9 @@
 #define __BEDROCK_MARGO_CONTEXT_IMPL_H
 
 #include <margo.h>
+#include <thallium.hpp>
+
+namespace tl = thallium;
 
 namespace bedrock {
 
@@ -14,6 +17,7 @@ class MargoContextImpl {
 
   public:
     margo_instance_id m_mid;
+    tl::engine        m_engine;
 };
 
 } // namespace bedrock
