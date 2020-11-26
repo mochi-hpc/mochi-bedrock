@@ -11,6 +11,7 @@ class ServiceBFactory : public bedrock::AbstractServiceFactory {
     public:
 
     ServiceBFactory() {
+        m_dependencies.push_back({ "ssg_group", "ssg", BEDROCK_REQUIRED });
         m_dependencies.push_back({ "a_provider", "module_a", BEDROCK_REQUIRED });
         m_dependencies.push_back({ "a_local", "module_a", BEDROCK_REQUIRED | BEDROCK_ARRAY});
         m_dependencies.push_back({ "a_client", "module_a", BEDROCK_REQUIRED });
@@ -32,6 +33,7 @@ class ServiceBFactory : public bedrock::AbstractServiceFactory {
     }
 
     std::string getProviderConfig(void* provider) override {
+        (void)provider;
         return "{}";
     }
 

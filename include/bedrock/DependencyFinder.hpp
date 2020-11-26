@@ -8,6 +8,7 @@
 
 #include <bedrock/MargoContext.hpp>
 #include <bedrock/ABTioContext.hpp>
+#include <bedrock/SSGContext.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/VoidPtr.hpp>
 #include <string>
@@ -31,9 +32,12 @@ class DependencyFinder {
      * @brief Constructor.
      *
      * @param margo Margo context
+     * @param abtio ABT-IO context
+     * @param ssg SSG context
+     * @param pmanager Provider manager
      */
     DependencyFinder(const MargoContext& margo, const ABTioContext& abtio,
-                     const ProviderManager& pmanager);
+                     const SSGContext& ssg, const ProviderManager& pmanager);
 
     /**
      * @brief Copy-constructor.

@@ -15,10 +15,12 @@ namespace bedrock {
 
 DependencyFinder::DependencyFinder(const MargoContext&    margo,
                                    const ABTioContext&    abtio,
+                                   const SSGContext&      ssg,
                                    const ProviderManager& pmanager)
 : self(std::make_shared<DependencyFinderImpl>()) {
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio;
+    self->m_ssg_context      = ssg;
     self->m_provider_manager = pmanager;
 }
 
@@ -58,6 +60,12 @@ VoidPtr DependencyFinder::find(const std::string& type,
                             spec);
         }
         return VoidPtr(abt_id);
+    } else if (type == "ssg") { // SSG group
+        ssg_group_id_t gid = SSGContext(self->m_ssg_context).getGroup(spec);
+        if (gid == SSG_GROUP_ID_INVALID) {
+            throw Exception("Could not find SSG group with name \"{}\"", spec);
+        }
+        return VoidPtr(reinterpret_cast<void*>(gid));
     } else { // Provider or provider handle
 
         std::regex re(

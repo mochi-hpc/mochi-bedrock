@@ -14,6 +14,8 @@
 
 namespace bedrock {
 
+class SSGContextImpl;
+
 class SSGData {
   public:
     ssg_group_id_t                m_gid;
