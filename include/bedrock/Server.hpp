@@ -6,9 +6,9 @@
 #ifndef __BEDROCK_SERVER_HPP
 #define __BEDROCK_SERVER_HPP
 
-#include <bedrock/MargoContext.hpp>
-#include <bedrock/ABTioContext.hpp>
-#include <bedrock/SSGContext.hpp>
+#include <bedrock/MargoManager.hpp>
+#include <bedrock/ABTioManager.hpp>
+#include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <thallium.hpp>
 #include <memory>
@@ -61,14 +61,14 @@ class Server {
     ~Server();
 
     /**
-     * @brief Get the underlying MargoContext.
+     * @brief Get the underlying MargoManager.
      */
-    MargoContext getMargoContext() const;
+    MargoManager getMargoManager() const;
 
     /**
-     * @brief Get the underlying ABTioContext.
+     * @brief Get the underlying ABTioManager.
      */
-    ABTioContext getABTioContext() const;
+    ABTioManager getABTioManager() const;
 
     /**
      * @brief Get the underlying ProviderManager.
@@ -78,7 +78,7 @@ class Server {
     /**
      * @brief Get the underlying SSG context.
      */
-    SSGContext getSSGContext() const;
+    SSGManager getSSGManager() const;
 
     /**
      * @brief Blocks until the underlying margo instance is finalized.

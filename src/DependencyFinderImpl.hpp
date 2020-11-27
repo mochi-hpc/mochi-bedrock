@@ -6,9 +6,9 @@
 #ifndef __BEDROCK_DEPENDENCY_FINDER_IMPL_H
 #define __BEDROCK_DEPENDENCY_FINDER_IMPL_H
 
-#include "MargoContextImpl.hpp"
-#include "ABTioContextImpl.hpp"
-#include "SSGContextImpl.hpp"
+#include "MargoManagerImpl.hpp"
+#include "ABTioManagerImpl.hpp"
+#include "SSGManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
 #include "bedrock/VoidPtr.hpp"
 #include "bedrock/RequestResult.hpp"
@@ -28,9 +28,9 @@ class DependencyFinderImpl {
 
   public:
     tl::engine                               m_engine;
-    std::shared_ptr<MargoContextImpl>        m_margo_context;
-    std::shared_ptr<ABTioContextImpl>        m_abtio_context;
-    std::shared_ptr<SSGContextImpl>          m_ssg_context;
+    std::shared_ptr<MargoManagerImpl>        m_margo_context;
+    std::shared_ptr<ABTioManagerImpl>        m_abtio_context;
+    std::shared_ptr<SSGManagerImpl>          m_ssg_context;
     std::shared_ptr<ProviderManagerImpl>     m_provider_manager;
     std::unordered_map<client_type, VoidPtr> m_cached_clients;
     double                                   m_timeout = 30.0;

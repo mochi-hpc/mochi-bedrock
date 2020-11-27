@@ -5,12 +5,12 @@
  */
 #include "bedrock/Server.hpp"
 #include "bedrock/Exception.hpp"
-#include "bedrock/MargoContext.hpp"
-#include "bedrock/ABTioContext.hpp"
+#include "bedrock/MargoManager.hpp"
+#include "bedrock/ABTioManager.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/ProviderManager.hpp"
 #include "bedrock/DependencyFinder.hpp"
-#include "bedrock/SSGContext.hpp"
+#include "bedrock/SSGManager.hpp"
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -42,15 +42,15 @@ Server::Server(const std::string& address, const std::string& configfile)
     spdlog::trace("Parsing done");
 
     // Extract margo section from the config
-    spdlog::trace("Initializing MargoContext");
+    spdlog::trace("Initializing MargoManager");
     auto margoConfig = config["margo"].dump();
     // Dependency-injecting spdlog into Margo
     setupMargoLogging();
 
     // Initialize margo context
-    auto margoCtx         = MargoContext(address, margoConfig);
-    self->m_margo_context = margoCtx;
-    spdlog::trace("MargoContext initialized");
+    auto margoCtx         = MargoManager(address, margoConfig);
+    self->m_margo_manager = margoCtx;
+    spdlog::trace("MargoManager initialized");
 
     // Extract bedrock section from the config
     spdlog::trace("Reading Bedrock config");
@@ -86,11 +86,11 @@ Server::Server(const std::string& address, const std::string& configfile)
     spdlog::trace("ProviderManager initialized");
 
     // Initialize abt-io context
-    spdlog::trace("Initializing ABTioContext");
+    spdlog::trace("Initializing ABTioManager");
     auto abtioConfig      = config["abt_io"].dump();
-    auto abtioCtx         = ABTioContext(margoCtx, abtioConfig);
-    self->m_abtio_context = abtioCtx;
-    spdlog::trace("ABTioContext initialized");
+    auto abtioCtx         = ABTioManager(margoCtx, abtioConfig);
+    self->m_abtio_manager = abtioCtx;
+    spdlog::trace("ABTioManager initialized");
 
     // Initialize the module context
     spdlog::trace("Initialize ModuleContext");
@@ -99,11 +99,11 @@ Server::Server(const std::string& address, const std::string& configfile)
     spdlog::trace("ModuleContext initialized");
 
     // Initializing SSG context
-    spdlog::trace("Initializing SSGContext");
+    spdlog::trace("Initializing SSGManager");
     auto ssgConfig      = config["ssg"].dump();
-    auto ssgCtx         = SSGContext(margoCtx, ssgConfig);
-    self->m_ssg_context = ssgCtx;
-    spdlog::trace("SSGContext initialized");
+    auto ssgCtx         = SSGManager(margoCtx, ssgConfig);
+    self->m_ssg_manager = ssgCtx;
+    spdlog::trace("SSGManager initialized");
 
     // Initializing dependency finder
     spdlog::trace("Initializing DependencyFinder");
@@ -123,15 +123,15 @@ Server::Server(const std::string& address, const std::string& configfile)
 
 Server::~Server() = default;
 
-MargoContext Server::getMargoContext() const { return self->m_margo_context; }
+MargoManager Server::getMargoManager() const { return self->m_margo_manager; }
 
-ABTioContext Server::getABTioContext() const { return self->m_abtio_context; }
+ABTioManager Server::getABTioManager() const { return self->m_abtio_manager; }
 
 ProviderManager Server::getProviderManager() const {
     return self->m_provider_manager;
 }
 
-SSGContext Server::getSSGContext() const { return self->m_ssg_context; }
+SSGManager Server::getSSGManager() const { return self->m_ssg_manager; }
 
 void Server::onFinalize(void* uargs) {
     auto server = reinterpret_cast<Server*>(uargs);
@@ -143,9 +143,9 @@ std::string Server::getCurrentConfig() const {
 }
 
 void Server::waitForFinalize() {
-    margo_push_finalize_callback(self->m_margo_context->m_mid,
+    margo_push_finalize_callback(self->m_margo_manager->m_mid,
                                  &Server::onFinalize, this);
-    margo_wait_for_finalize(self->m_margo_context->m_mid);
+    margo_wait_for_finalize(self->m_margo_manager->m_mid);
 }
 
 } // namespace bedrock

@@ -16,7 +16,7 @@ namespace bedrock {
 
 using nlohmann::json;
 
-class MargoContextImpl {
+class MargoManagerImpl {
 
   public:
     margo_instance_id m_mid;

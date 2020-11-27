@@ -7,7 +7,7 @@
 #define __BEDROCK_PROVIDER_MANAGER_HPP
 
 #include <bedrock/ProviderWrapper.hpp>
-#include <bedrock/MargoContext.hpp>
+#include <bedrock/MargoManager.hpp>
 #include <string>
 #include <memory>
 
@@ -37,7 +37,7 @@ class ProviderManager {
      * @param pool Pool in which to execute RPCs looking up providers
      * responds for remote provider lookups.
      */
-    ProviderManager(const MargoContext& margo, uint16_t provider_id = 0,
+    ProviderManager(const MargoManager& margo, uint16_t provider_id = 0,
                     ABT_pool pool = ABT_POOL_NULL);
 
     /**

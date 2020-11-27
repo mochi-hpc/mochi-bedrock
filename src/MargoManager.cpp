@@ -3,9 +3,9 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/MargoContext.hpp"
+#include "bedrock/MargoManager.hpp"
 #include "bedrock/Exception.hpp"
-#include "MargoContextImpl.hpp"
+#include "MargoManagerImpl.hpp"
 #include "MargoLogging.hpp"
 #include <margo.h>
 
@@ -13,15 +13,15 @@ namespace tl = thallium;
 
 namespace bedrock {
 
-MargoContext::MargoContext(margo_instance_id mid)
-: self(std::make_shared<MargoContextImpl>()) {
+MargoManager::MargoManager(margo_instance_id mid)
+: self(std::make_shared<MargoManagerImpl>()) {
     self->m_mid    = mid;
     self->m_engine = tl::engine(mid);
 }
 
-MargoContext::MargoContext(const std::string& address,
+MargoManager::MargoManager(const std::string& address,
                            const std::string& configString)
-: self(std::make_shared<MargoContextImpl>()) {
+: self(std::make_shared<MargoManagerImpl>()) {
     struct margo_init_info args = MARGO_INIT_INFO_INITIALIZER;
     if (!configString.empty() && configString != "null") {
         args.json_config = configString.c_str();
@@ -33,47 +33,47 @@ MargoContext::MargoContext(const std::string& address,
     setupMargoLoggingForInstance(self->m_mid);
 }
 
-MargoContext::MargoContext(const MargoContext&) = default;
+MargoManager::MargoManager(const MargoManager&) = default;
 
-MargoContext::MargoContext(MargoContext&&) = default;
+MargoManager::MargoManager(MargoManager&&) = default;
 
-MargoContext& MargoContext::operator=(const MargoContext&) = default;
+MargoManager& MargoManager::operator=(const MargoManager&) = default;
 
-MargoContext& MargoContext::operator=(MargoContext&&) = default;
+MargoManager& MargoManager::operator=(MargoManager&&) = default;
 
-MargoContext::~MargoContext() = default;
+MargoManager::~MargoManager() = default;
 
-MargoContext::operator bool() const { return static_cast<bool>(self); }
+MargoManager::operator bool() const { return static_cast<bool>(self); }
 
-margo_instance_id MargoContext::getMargoInstance() const {
+margo_instance_id MargoManager::getMargoInstance() const {
     return self ? self->m_mid : MARGO_INSTANCE_NULL;
 }
 
-const tl::engine& MargoContext::getThalliumEngine() const {
+const tl::engine& MargoManager::getThalliumEngine() const {
     return self->m_engine;
 }
 
-std::string MargoContext::getCurrentConfig() const {
+std::string MargoManager::getCurrentConfig() const {
     return self->makeConfig().dump();
 }
 
-ABT_pool MargoContext::getPool(int index) const {
+ABT_pool MargoManager::getPool(int index) const {
     ABT_pool pool = ABT_POOL_NULL;
     margo_get_pool_by_index(self->m_mid, index, &pool);
     return pool;
 }
 
-ABT_pool MargoContext::getPool(const std::string& name) const {
+ABT_pool MargoManager::getPool(const std::string& name) const {
     ABT_pool pool = ABT_POOL_NULL;
     margo_get_pool_by_name(self->m_mid, name.c_str(), &pool);
     return pool;
 }
 
-size_t MargoContext::getNumPools() const {
+size_t MargoManager::getNumPools() const {
     return margo_get_num_pools(self->m_mid);
 }
 
-std::pair<std::string, int> MargoContext::getPoolInfo(ABT_pool pool) const {
+std::pair<std::string, int> MargoManager::getPoolInfo(ABT_pool pool) const {
     std::pair<std::string, int> result   = {"", -1};
     auto                        numPools = getNumPools();
     for (size_t i = 0; i < numPools; i++) {

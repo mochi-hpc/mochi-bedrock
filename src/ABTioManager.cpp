@@ -3,10 +3,10 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/ABTioContext.hpp"
+#include "bedrock/ABTioManager.hpp"
 #include "bedrock/Exception.hpp"
-#include "bedrock/MargoContext.hpp"
-#include "ABTioContextImpl.hpp"
+#include "bedrock/MargoManager.hpp"
+#include "ABTioManagerImpl.hpp"
 #include <margo.h>
 
 namespace tl = thallium;
@@ -15,9 +15,9 @@ namespace bedrock {
 
 using nlohmann::json;
 
-ABTioContext::ABTioContext(const MargoContext& margoCtx,
+ABTioManager::ABTioManager(const MargoManager& margoCtx,
                            const std::string&  configString)
-: self(std::make_shared<ABTioContextImpl>()) {
+: self(std::make_shared<ABTioManagerImpl>()) {
     self->m_margo_context = margoCtx;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
@@ -59,14 +59,14 @@ ABTioContext::ABTioContext(const MargoContext& margoCtx,
             auto pool_str = pool_json_it->get<std::string>();
             pool          = margoCtx.getPool(pool_str);
             if (pool == ABT_POOL_NULL) {
-                throw Exception("Could not find pool \"{}\" in MargoContext",
+                throw Exception("Could not find pool \"{}\" in MargoManager",
                                 pool_str);
             }
         } else if (pool_json_it->is_number_integer()) {
             pool_index = pool_json_it->get<int>();
             pool       = margoCtx.getPool(pool_index);
             if (pool == ABT_POOL_NULL) {
-                throw Exception("Could not find pool {} in MargoContext",
+                throw Exception("Could not find pool {} in MargoManager",
                                 pool_index);
             }
         } else {
@@ -100,20 +100,20 @@ ABTioContext::ABTioContext(const MargoContext& margoCtx,
     self->m_instances = std::move(abt_io_entries);
 }
 
-ABTioContext::ABTioContext(const ABTioContext&) = default;
+ABTioManager::ABTioManager(const ABTioManager&) = default;
 
-ABTioContext::ABTioContext(ABTioContext&&) = default;
+ABTioManager::ABTioManager(ABTioManager&&) = default;
 
-ABTioContext& ABTioContext::operator=(const ABTioContext&) = default;
+ABTioManager& ABTioManager::operator=(const ABTioManager&) = default;
 
-ABTioContext& ABTioContext::operator=(ABTioContext&&) = default;
+ABTioManager& ABTioManager::operator=(ABTioManager&&) = default;
 
-ABTioContext::~ABTioContext() = default;
+ABTioManager::~ABTioManager() = default;
 
-ABTioContext::operator bool() const { return static_cast<bool>(self); }
+ABTioManager::operator bool() const { return static_cast<bool>(self); }
 
 abt_io_instance_id
-ABTioContext::getABTioInstance(const std::string& name) const {
+ABTioManager::getABTioInstance(const std::string& name) const {
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p.name == name; });
     if (it == self->m_instances.end())
@@ -122,19 +122,19 @@ ABTioContext::getABTioInstance(const std::string& name) const {
         return it->abt_io_id;
 }
 
-abt_io_instance_id ABTioContext::getABTioInstance(int index) const {
+abt_io_instance_id ABTioManager::getABTioInstance(int index) const {
     if (index < 0 || index >= (int)self->m_instances.size())
         return ABT_IO_INSTANCE_NULL;
     return self->m_instances[index].abt_io_id;
 }
 
-const std::string& ABTioContext::getABTioInstanceName(int index) const {
+const std::string& ABTioManager::getABTioInstanceName(int index) const {
     static const std::string empty = "";
     if (index < 0 || index >= (int)self->m_instances.size()) return empty;
     return self->m_instances[index].name;
 }
 
-int ABTioContext::getABTioInstanceIndex(const std::string& name) const {
+int ABTioManager::getABTioInstanceIndex(const std::string& name) const {
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p.name == name; });
     if (it == self->m_instances.end())
@@ -143,11 +143,11 @@ int ABTioContext::getABTioInstanceIndex(const std::string& name) const {
         return std::distance(self->m_instances.begin(), it);
 }
 
-size_t ABTioContext::numABTioInstances() const {
+size_t ABTioManager::numABTioInstances() const {
     return self->m_instances.size();
 }
 
-std::string ABTioContext::getCurrentConfig() const {
+std::string ABTioManager::getCurrentConfig() const {
     return self->makeConfig().dump();
 }
 

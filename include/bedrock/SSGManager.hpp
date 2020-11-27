@@ -3,10 +3,10 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_SSG_CONTEXT_HPP
-#define __BEDROCK_SSG_CONTEXT_HPP
+#ifndef __BEDROCK_SSG_MANAGER_HPP
+#define __BEDROCK_SSG_MANAGER_HPP
 
-#include <bedrock/MargoContext.hpp>
+#include <bedrock/MargoManager.hpp>
 #include <ssg.h>
 #include <string>
 #include <memory>
@@ -15,12 +15,12 @@ namespace bedrock {
 
 class Server;
 class DependencyFinder;
-class SSGContextImpl;
+class SSGManagerImpl;
 
 /**
- * @brief The SSGContext class encapsulates an ssg_group_id_t.
+ * @brief The SSGManager class encapsulates an ssg_group_id_t.
  */
-class SSGContext {
+class SSGManager {
 
     friend class Server;
     friend class DependencyFinder;
@@ -29,38 +29,38 @@ class SSGContext {
     /**
      * @brief Constructor from a JSON configurations string.
      *
-     * @param margo MargoContext
+     * @param margo MargoManager
      * @param configString Configuration string.
      */
-    SSGContext(const MargoContext& margo, const std::string& configString = "");
+    SSGManager(const MargoManager& margo, const std::string& configString = "");
 
     /**
      * @brief Copy-constructor.
      */
-    SSGContext(const SSGContext&);
+    SSGManager(const SSGManager&);
 
     /**
      * @brief Move-constructor.
      */
-    SSGContext(SSGContext&&);
+    SSGManager(SSGManager&&);
 
     /**
      * @brief Copy-assignment operator.
      */
-    SSGContext& operator=(const SSGContext&);
+    SSGManager& operator=(const SSGManager&);
 
     /**
      * @brief Move-assignment operator.
      */
-    SSGContext& operator=(SSGContext&&);
+    SSGManager& operator=(SSGManager&&);
 
     /**
      * @brief Destructor.
      */
-    ~SSGContext();
+    ~SSGManager();
 
     /**
-     * @brief Checks whether the SSGContext instance is valid.
+     * @brief Checks whether the SSGManager instance is valid.
      */
     operator bool() const;
 
@@ -108,11 +108,11 @@ class SSGContext {
     std::string getCurrentConfig() const;
 
   private:
-    std::shared_ptr<SSGContextImpl> self;
+    std::shared_ptr<SSGManagerImpl> self;
 
-    inline operator std::shared_ptr<SSGContextImpl>() const { return self; }
+    inline operator std::shared_ptr<SSGManagerImpl>() const { return self; }
 
-    inline SSGContext(std::shared_ptr<SSGContextImpl> impl)
+    inline SSGManager(std::shared_ptr<SSGManagerImpl> impl)
     : self(std::move(impl)) {}
 
     static void membershipUpdate(void* group_data, ssg_member_id_t member_id,

@@ -6,8 +6,8 @@
 #ifndef __BEDROCK_SSG_CONTEXT_IMPL_H
 #define __BEDROCK_SSG_CONTEXT_IMPL_H
 
-#include "bedrock/MargoContext.hpp"
-#include "MargoContextImpl.hpp"
+#include "bedrock/MargoManager.hpp"
+#include "MargoManagerImpl.hpp"
 #include <spdlog/spdlog.h>
 #include <ssg.h>
 #include <memory>
@@ -16,7 +16,7 @@
 
 namespace bedrock {
 
-class SSGContextImpl;
+class SSGManagerImpl;
 
 class SSGData {
   public:
@@ -25,7 +25,7 @@ class SSGData {
     std::string                       bootstrap;
     std::string                       group_file;
     ABT_pool                          pool;
-    std::shared_ptr<MargoContextImpl> margo_ctx;
+    std::shared_ptr<MargoManagerImpl> margo_ctx;
 
     ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
 
@@ -34,7 +34,7 @@ class SSGData {
         c["name"]       = name;
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
-        c["pool"]       = MargoContext(margo_ctx).getPoolInfo(pool).first;
+        c["pool"]       = MargoManager(margo_ctx).getPoolInfo(pool).first;
         c["credential"] = config.ssg_credential;
         c["swim"]       = json::object();
         auto& swim      = c["swim"];
@@ -58,10 +58,10 @@ class SSGData {
     }
 };
 
-class SSGContextImpl {
+class SSGManagerImpl {
 
   public:
-    std::shared_ptr<MargoContextImpl>     m_margo_context;
+    std::shared_ptr<MargoManagerImpl>     m_margo_context;
     std::vector<std::unique_ptr<SSGData>> m_ssg_groups;
     // note: we need a vector of unique_ptr because
     // membership callbacks are being passed the internal pointer

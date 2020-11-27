@@ -3,10 +3,10 @@ set (server-src-files
      Server.cpp
 #     Provider.cpp
 #     Backend.cpp
-     ABTioContext.cpp
-     MargoContext.cpp
+     ABTioManager.cpp
+     MargoManager.cpp
      ModuleContext.cpp
-     SSGContext.cpp
+     SSGManager.cpp
      ProviderManager.cpp
      DependencyFinder.cpp
      Module.cpp

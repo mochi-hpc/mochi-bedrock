@@ -3,10 +3,10 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/SSGContext.hpp"
+#include "bedrock/SSGManager.hpp"
 #include "bedrock/Exception.hpp"
-#include "bedrock/MargoContext.hpp"
-#include "SSGContextImpl.hpp"
+#include "bedrock/MargoManager.hpp"
+#include "SSGManagerImpl.hpp"
 #include <margo.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -43,7 +43,7 @@ static bool s_initialized_pmix = false;
 
 static void validateGroupConfig(json&                           config,
                                 const std::vector<std::string>& existing_names,
-                                const MargoContext&             margo) {
+                                const MargoManager&             margo) {
     // validate name field
     auto default_name
         = "__ssg_"s + std::to_string(existing_names.size()) + "__";
@@ -117,7 +117,7 @@ static void validateGroupConfig(json&                           config,
 }
 
 static void extractConfigParameters(const json&         config,
-                                    const MargoContext& margo,
+                                    const MargoManager& margo,
                                     std::string& name, std::string& bootstrap,
                                     ssg_group_config_t& group_config,
                                     std::string& group_file, ABT_pool& pool) {
@@ -142,9 +142,9 @@ static void extractConfigParameters(const json&         config,
     }
 }
 
-SSGContext::SSGContext(const MargoContext& margo,
+SSGManager::SSGManager(const MargoManager& margo,
                        const std::string&  configString)
-: self(std::make_shared<SSGContextImpl>()) {
+: self(std::make_shared<SSGManagerImpl>()) {
     self->m_margo_context = margo;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
@@ -180,15 +180,15 @@ SSGContext::SSGContext(const MargoContext& margo,
     }
 }
 
-SSGContext::SSGContext(const SSGContext&) = default;
+SSGManager::SSGManager(const SSGManager&) = default;
 
-SSGContext::SSGContext(SSGContext&&) = default;
+SSGManager::SSGManager(SSGManager&&) = default;
 
-SSGContext& SSGContext::operator=(const SSGContext&) = default;
+SSGManager& SSGManager::operator=(const SSGManager&) = default;
 
-SSGContext& SSGContext::operator=(SSGContext&&) = default;
+SSGManager& SSGManager::operator=(SSGManager&&) = default;
 
-SSGContext::~SSGContext() {
+SSGManager::~SSGManager() {
     if (self.use_count() == 1) {
         self->m_ssg_groups.resize(0);
         s_num_ssg_init -= 1;
@@ -196,9 +196,9 @@ SSGContext::~SSGContext() {
     }
 }
 
-SSGContext::operator bool() const { return static_cast<bool>(self); }
+SSGManager::operator bool() const { return static_cast<bool>(self); }
 
-ssg_group_id_t SSGContext::getGroup(const std::string& group_name) const {
+ssg_group_id_t SSGManager::getGroup(const std::string& group_name) const {
     auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
                            [&](auto& g) { return g->name == group_name; });
     if (it == self->m_ssg_groups.end())
@@ -207,7 +207,7 @@ ssg_group_id_t SSGContext::getGroup(const std::string& group_name) const {
         return (*it)->gid;
 }
 
-ssg_group_id_t SSGContext::createGroup(const std::string&        name,
+ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                                        const ssg_group_config_t* config,
                                        ABT_pool                  pool,
                                        const std::string& bootstrap_method,
@@ -254,7 +254,7 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
 
         gid = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
                                const_cast<ssg_group_config_t*>(config),
-                               SSGContext::membershipUpdate, group_data.get());
+                               SSGManager::membershipUpdate, group_data.get());
 
     } else if (bootstrap_method == "join") {
 
@@ -271,7 +271,7 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
                 " (ssg_group_id_load returned {}",
                 group_file, ret);
         }
-        ret = ssg_group_join(mid, gid, SSGContext::membershipUpdate,
+        ret = ssg_group_join(mid, gid, SSGManager::membershipUpdate,
                              group_data.get());
         if (ret != SSG_SUCCESS) {
             throw Exception(
@@ -291,7 +291,7 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
         gid = ssg_group_create_mpi(
             self->m_margo_context->m_mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(config),
-            SSGContext::membershipUpdate, group_data.get());
+            SSGManager::membershipUpdate, group_data.get());
 #else
         throw Exception("Bedrock was not compiled with MPI support");
 #endif
@@ -307,7 +307,7 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
         gid = ssg_group_create_pmix(
             self->m_margo_context->m_mid, name.c_str(), proc,
             const_cast<ssg_group_config_t*>(config),
-            SSGContext::membershipUpdate, group_data.get());
+            SSGManager::membershipUpdate, group_data.get());
 #else
         throw Exception("Bedrock was not compiled with PMIx support");
 #endif
@@ -338,7 +338,7 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
     return gid;
 }
 
-void SSGContext::membershipUpdate(void* group_data, ssg_member_id_t member_id,
+void SSGManager::membershipUpdate(void* group_data, ssg_member_id_t member_id,
                                   ssg_member_update_type_t update_type) {
     SSGData* gdata = reinterpret_cast<SSGData*>(group_data);
     (void)gdata;
@@ -346,7 +346,7 @@ void SSGContext::membershipUpdate(void* group_data, ssg_member_id_t member_id,
                   member_id, update_type);
 }
 
-hg_addr_t SSGContext::resolveAddress(const std::string& address) const {
+hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
     std::regex  re("ssg:\\/\\/([a-zA-Z_][a-zA-Z0-9_]*)\\/(#?)([0-9][0-9]*)$");
     std::smatch match;
     if (std::regex_search(address, match, re)) {
@@ -380,7 +380,7 @@ hg_addr_t SSGContext::resolveAddress(const std::string& address) const {
     return HG_ADDR_NULL;
 }
 
-std::string SSGContext::getCurrentConfig() const {
+std::string SSGManager::getCurrentConfig() const {
     return self->makeConfig().dump();
 }
 

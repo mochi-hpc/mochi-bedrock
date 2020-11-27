@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_MARGO_CONTEXT_HPP
-#define __BEDROCK_MARGO_CONTEXT_HPP
+#ifndef __BEDROCK_MARGO_MANAGER_HPP
+#define __BEDROCK_MARGO_MANAGER_HPP
 
 #include <thallium.hpp>
 #include <memory>
@@ -16,25 +16,25 @@ namespace tl = thallium;
 class Server;
 class ProviderManager;
 class DependencyFinder;
-class MargoContextImpl;
-class SSGContext;
+class MargoManagerImpl;
+class SSGManager;
 class SSGData;
-class ABTioContext;
+class ABTioManager;
 class ABTioEntry;
 class ProviderEntry;
 
 /**
- * @brief The MargoContext class is encapsulates a margo_instance_id.
+ * @brief The MargoManager class is encapsulates a margo_instance_id.
  */
-class MargoContext {
+class MargoManager {
 
     friend class Server;
     friend class ProviderManager;
     friend class DependencyFinder;
-    friend class SSGContext;
+    friend class SSGManager;
     friend class SSGData;
     friend class ABTioEntry;
-    friend class ABTioContext;
+    friend class ABTioManager;
     friend class ProviderEntry;
 
   public:
@@ -43,7 +43,7 @@ class MargoContext {
      *
      * @param mid Margo instance, if already initialized.
      */
-    MargoContext(margo_instance_id mid);
+    MargoManager(margo_instance_id mid);
 
     /**
      * @brief Constructor from a JSON configurations string.
@@ -51,36 +51,36 @@ class MargoContext {
      * @param address Address.
      * @param configString Configuration string.
      */
-    MargoContext(const std::string& address,
+    MargoManager(const std::string& address,
                  const std::string& configString = "");
 
     /**
      * @brief Copy-constructor.
      */
-    MargoContext(const MargoContext&);
+    MargoManager(const MargoManager&);
 
     /**
      * @brief Move-constructor.
      */
-    MargoContext(MargoContext&&);
+    MargoManager(MargoManager&&);
 
     /**
      * @brief Copy-assignment operator.
      */
-    MargoContext& operator=(const MargoContext&);
+    MargoManager& operator=(const MargoManager&);
 
     /**
      * @brief Move-assignment operator.
      */
-    MargoContext& operator=(MargoContext&&);
+    MargoManager& operator=(MargoManager&&);
 
     /**
      * @brief Destructor.
      */
-    ~MargoContext();
+    ~MargoManager();
 
     /**
-     * @brief Checks whether the MargoContext instance is valid.
+     * @brief Checks whether the MargoManager instance is valid.
      */
     operator bool() const;
 
@@ -127,11 +127,11 @@ class MargoContext {
     std::string getCurrentConfig() const;
 
   private:
-    std::shared_ptr<MargoContextImpl> self;
+    std::shared_ptr<MargoManagerImpl> self;
 
-    inline operator std::shared_ptr<MargoContextImpl>() const { return self; }
+    inline operator std::shared_ptr<MargoManagerImpl>() const { return self; }
 
-    inline MargoContext(std::shared_ptr<MargoContextImpl> impl)
+    inline MargoManager(std::shared_ptr<MargoManagerImpl> impl)
     : self(std::move(impl)) {}
 };
 

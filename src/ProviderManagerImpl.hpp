@@ -6,7 +6,7 @@
 #ifndef __BEDROCK_PROVIDER_IMPL_H
 #define __BEDROCK_PROVIDER_IMPL_H
 
-#include "MargoContextImpl.hpp"
+#include "MargoManagerImpl.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/ProviderWrapper.hpp"
@@ -26,7 +26,7 @@ namespace tl = thallium;
 
 class ProviderEntry : public ProviderWrapper {
   public:
-    std::shared_ptr<MargoContextImpl> margo_ctx;
+    std::shared_ptr<MargoManagerImpl> margo_ctx;
     ABT_pool                          pool;
     // TODO add tracking of dependencies
 
@@ -35,7 +35,7 @@ class ProviderEntry : public ProviderWrapper {
         c["name"]         = name;
         c["type"]         = type;
         c["provider_id"]  = provider_id;
-        c["pool"]         = MargoContext(margo_ctx).getPoolInfo(pool).first;
+        c["pool"]         = MargoManager(margo_ctx).getPoolInfo(pool).first;
         c["config"]       = json::parse(factory->getProviderConfig(handle));
         c["dependencies"] = json::object();
         /* TODO
@@ -57,7 +57,7 @@ class ProviderManagerImpl
     mutable tl::mutex              m_providers_mtx;
     mutable tl::condition_variable m_providers_cv;
 
-    std::shared_ptr<MargoContextImpl> m_margo_context;
+    std::shared_ptr<MargoManagerImpl> m_margo_context;
 
     tl::remote_procedure m_lookup_provider;
     tl::remote_procedure m_list_providers;

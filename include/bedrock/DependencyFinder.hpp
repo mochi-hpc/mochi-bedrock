@@ -6,9 +6,9 @@
 #ifndef __BEDROCK_DEPENDENCY_RESOLVER_HPP
 #define __BEDROCK_DEPENDENCY_RESOLVER_HPP
 
-#include <bedrock/MargoContext.hpp>
-#include <bedrock/ABTioContext.hpp>
-#include <bedrock/SSGContext.hpp>
+#include <bedrock/MargoManager.hpp>
+#include <bedrock/ABTioManager.hpp>
+#include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/VoidPtr.hpp>
 #include <string>
@@ -36,8 +36,8 @@ class DependencyFinder {
      * @param ssg SSG context
      * @param pmanager Provider manager
      */
-    DependencyFinder(const MargoContext& margo, const ABTioContext& abtio,
-                     const SSGContext& ssg, const ProviderManager& pmanager);
+    DependencyFinder(const MargoManager& margo, const ABTioManager& abtio,
+                     const SSGManager& ssg, const ProviderManager& pmanager);
 
     /**
      * @brief Copy-constructor.

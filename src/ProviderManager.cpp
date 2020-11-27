@@ -23,7 +23,7 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-ProviderManager::ProviderManager(const MargoContext& margo,
+ProviderManager::ProviderManager(const MargoManager& margo,
                                  uint16_t provider_id, ABT_pool pool)
 : self(std::make_shared<ProviderManagerImpl>(margo.getThalliumEngine(),
                                              provider_id, tl::pool(pool))) {
@@ -94,7 +94,7 @@ void ProviderManager::registerProvider(
                 descriptor.type, descriptor.provider_id);
         }
 
-        auto margoCtx = MargoContext(self->m_margo_context);
+        auto margoCtx = MargoManager(self->m_margo_context);
 
         ProviderEntry entry;
         entry.name        = descriptor.name;

@@ -6,8 +6,8 @@
 #ifndef __BEDROCK_ABTIO_CONTEXT_IMPL_H
 #define __BEDROCK_ABTIO_CONTEXT_IMPL_H
 
-#include "bedrock/MargoContext.hpp"
-#include "MargoContextImpl.hpp"
+#include "bedrock/MargoManager.hpp"
+#include "MargoManagerImpl.hpp"
 #include <nlohmann/json.hpp>
 #include <abt-io.h>
 #include <string>
@@ -23,20 +23,20 @@ class ABTioEntry {
     std::string                       name;
     ABT_pool                          pool;
     abt_io_instance_id                abt_io_id;
-    std::shared_ptr<MargoContextImpl> margo_ctx;
+    std::shared_ptr<MargoManagerImpl> margo_ctx;
 
     json makeConfig() const {
         json config    = json::object();
         config["name"] = name;
-        config["pool"] = MargoContext(margo_ctx).getPoolInfo(pool).first;
+        config["pool"] = MargoManager(margo_ctx).getPoolInfo(pool).first;
         return config;
     }
 };
 
-class ABTioContextImpl {
+class ABTioManagerImpl {
 
   public:
-    std::shared_ptr<MargoContextImpl> m_margo_context;
+    std::shared_ptr<MargoManagerImpl> m_margo_context;
     std::vector<ABTioEntry>           m_instances;
 
     json makeConfig() const {

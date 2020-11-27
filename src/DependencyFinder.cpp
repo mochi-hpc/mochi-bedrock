@@ -16,9 +16,9 @@ namespace tl = thallium;
 
 namespace bedrock {
 
-DependencyFinder::DependencyFinder(const MargoContext&    margo,
-                                   const ABTioContext&    abtio,
-                                   const SSGContext&      ssg,
+DependencyFinder::DependencyFinder(const MargoManager&    margo,
+                                   const ABTioManager&    abtio,
+                                   const SSGManager&      ssg,
                                    const ProviderManager& pmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_margo_context    = margo;
@@ -50,21 +50,21 @@ static bool isPositiveNumber(const std::string& str) {
 VoidPtr DependencyFinder::find(const std::string& type,
                                const std::string& spec) const {
     if (type == "pool") { // Argobots pool
-        ABT_pool p = MargoContext(self->m_margo_context).getPool(spec);
+        ABT_pool p = MargoManager(self->m_margo_context).getPool(spec);
         if (p == ABT_POOL_NULL) {
             throw Exception("Could not find pool with name \"{}\"", spec);
         }
         return VoidPtr(p);
     } else if (type == "abt_io") { // ABTIO instance
         abt_io_instance_id abt_id
-            = ABTioContext(self->m_abtio_context).getABTioInstance(spec);
+            = ABTioManager(self->m_abtio_context).getABTioInstance(spec);
         if (abt_id == ABT_IO_INSTANCE_NULL) {
             throw Exception("Could not find ABT-IO instance with name \"{}\"",
                             spec);
         }
         return VoidPtr(abt_id);
     } else if (type == "ssg") { // SSG group
-        ssg_group_id_t gid = SSGContext(self->m_ssg_context).getGroup(spec);
+        ssg_group_id_t gid = SSGManager(self->m_ssg_context).getGroup(spec);
         if (gid == SSG_GROUP_ID_INVALID) {
             throw Exception("Could not find SSG group with name \"{}\"", spec);
         }
@@ -218,12 +218,12 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
         if (locator.rfind("ssg://", 0) == 0) {
 
             hg_addr_t ssg_addr
-                = SSGContext(self->m_ssg_context).resolveAddress(locator);
+                = SSGManager(self->m_ssg_context).resolveAddress(locator);
             hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
             if (hret != HG_SUCCESS) {
                 throw Exception(
                     "Failed to duplicate address returned by "
-                    "SSGContext (margo_addr_dup returned {})",
+                    "SSGManager (margo_addr_dup returned {})",
                     hret);
             }
 
@@ -291,12 +291,12 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
         if (locator.rfind("ssg://", 0) == 0) {
 
             hg_addr_t ssg_addr
-                = SSGContext(self->m_ssg_context).resolveAddress(locator);
+                = SSGManager(self->m_ssg_context).resolveAddress(locator);
             hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
             if (hret != HG_SUCCESS) {
                 throw Exception(
                     "Failed to duplicate address returned by "
-                    "SSGContext (margo_addr_dup returned {})",
+                    "SSGManager (margo_addr_dup returned {})",
                     hret);
             }
 

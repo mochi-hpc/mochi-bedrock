@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_ABTIO_CONTEXT_HPP
-#define __BEDROCK_ABTIO_CONTEXT_HPP
+#ifndef __BEDROCK_ABTIO_MANAGER_HPP
+#define __BEDROCK_ABTIO_MANAGER_HPP
 
 #include <abt-io.h>
 #include <thallium.hpp>
@@ -15,14 +15,14 @@ namespace bedrock {
 namespace tl = thallium;
 
 class Server;
-class MargoContext;
+class MargoManager;
 class DependencyFinder;
-class ABTioContextImpl;
+class ABTioManagerImpl;
 
 /**
- * @brief The ABTioContext class is encapsulates multiple ABT-IO instances.
+ * @brief The ABTioManager class is encapsulates multiple ABT-IO instances.
  */
-class ABTioContext {
+class ABTioManager {
 
     friend class Server;
     friend class DependencyFinder;
@@ -37,36 +37,36 @@ class ABTioContext {
      * @param margo_ctx Margo context.
      * @param configString JSON configuration string.
      */
-    ABTioContext(const MargoContext& margo_ctx,
+    ABTioManager(const MargoManager& margo_ctx,
                  const std::string&  configString);
 
     /**
      * @brief Copy-constructor.
      */
-    ABTioContext(const ABTioContext&);
+    ABTioManager(const ABTioManager&);
 
     /**
      * @brief Move-constructor.
      */
-    ABTioContext(ABTioContext&&);
+    ABTioManager(ABTioManager&&);
 
     /**
      * @brief Copy-assignment operator.
      */
-    ABTioContext& operator=(const ABTioContext&);
+    ABTioManager& operator=(const ABTioManager&);
 
     /**
      * @brief Move-assignment operator.
      */
-    ABTioContext& operator=(ABTioContext&&);
+    ABTioManager& operator=(ABTioManager&&);
 
     /**
      * @brief Destructor.
      */
-    ~ABTioContext();
+    ~ABTioManager();
 
     /**
-     * @brief Checks whether the ABTioContext instance is valid.
+     * @brief Checks whether the ABTioManager instance is valid.
      */
     operator bool() const;
 
@@ -111,11 +111,11 @@ class ABTioContext {
     std::string getCurrentConfig() const;
 
   private:
-    std::shared_ptr<ABTioContextImpl> self;
+    std::shared_ptr<ABTioManagerImpl> self;
 
-    inline operator std::shared_ptr<ABTioContextImpl>() const { return self; }
+    inline operator std::shared_ptr<ABTioManagerImpl>() const { return self; }
 
-    inline ABTioContext(std::shared_ptr<ABTioContextImpl> impl)
+    inline ABTioManager(std::shared_ptr<ABTioManagerImpl> impl)
     : self(std::move(impl)) {}
 };
 
