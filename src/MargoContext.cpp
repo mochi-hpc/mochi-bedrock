@@ -74,12 +74,12 @@ size_t MargoContext::getNumPools() const {
 }
 
 std::pair<std::string, int> MargoContext::getPoolInfo(ABT_pool pool) const {
-    std::pair<std::string, int> result = {"", -1};
-    auto numPools = getNumPools();
-    for(size_t i=0; i < numPools; i++) {
+    std::pair<std::string, int> result   = {"", -1};
+    auto                        numPools = getNumPools();
+    for (size_t i = 0; i < numPools; i++) {
         ABT_pool p = getPool(i);
-        if(p == pool) {
-            result.first = margo_get_pool_name(self->m_mid, i);
+        if (p == pool) {
+            result.first  = margo_get_pool_name(self->m_mid, i);
             result.second = i;
             return result;
         }

@@ -112,7 +112,7 @@ ret=0
 # This won't work if we ever have a file with a space in the name
 for file in $filestring
 do
-    if [[ ($file == *.c || $file == *.h || $file == *.c.in || $file == *.h.in) &&
+    if [[ ($file == *.cpp || $file == *.hpp || $file == *.c || $file == *.h || $file == *.c.in || $file == *.h.in) &&
           !($file == *config.h.in || $file == *examples/* || $file == scripts/* || $file == tests/* || $file == doc/*) ]]; then
         cp ${file} ${TMP_FILENAME}
         clang-format ${file} > ${TMP_FILENAME}

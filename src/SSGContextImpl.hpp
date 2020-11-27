@@ -19,36 +19,36 @@ namespace bedrock {
 class SSGContextImpl;
 
 class SSGData {
-    public:
-    std::string                   name;
-    ssg_group_config_t            config;
-    std::string                   bootstrap;
-    std::string                   group_file;
-    ABT_pool                      pool;
+  public:
+    std::string                       name;
+    ssg_group_config_t                config;
+    std::string                       bootstrap;
+    std::string                       group_file;
+    ABT_pool                          pool;
     std::shared_ptr<MargoContextImpl> margo_ctx;
 
-    ssg_group_id_t                gid = SSG_GROUP_ID_INVALID;
+    ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
 
     json makeConfig() const {
-        json c = json::object();
-        c["name"] = name;
-        c["bootstrap"] = bootstrap;
+        json c          = json::object();
+        c["name"]       = name;
+        c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
-        c["pool"] = MargoContext(margo_ctx).getPoolInfo(pool).first;
+        c["pool"]       = MargoContext(margo_ctx).getPoolInfo(pool).first;
         c["credential"] = config.ssg_credential;
-        c["swim"] = json::object();
-        auto& swim = c["swim"];
-        swim["period_length_ms"] = config.swim_period_length_ms;
+        c["swim"]       = json::object();
+        auto& swim      = c["swim"];
+        swim["period_length_ms"]        = config.swim_period_length_ms;
         swim["suspect_timeout_periods"] = config.swim_suspect_timeout_periods;
-        swim["subgroup_member_count"] = config.swim_subgroup_member_count;
-        swim["disabled"] = config.swim_disabled;
+        swim["subgroup_member_count"]   = config.swim_subgroup_member_count;
+        swim["disabled"]                = config.swim_disabled;
         return c;
     }
 
     ~SSGData() {
-        if(gid) {
+        if (gid) {
             int ret = ssg_group_leave(gid);
-            if(ret != SSG_SUCCESS) {
+            if (ret != SSG_SUCCESS) {
                 spdlog::error(
                     "Could not leave SSG group \"{}\" "
                     "(ssg_group_leave returned {})",
@@ -61,14 +61,14 @@ class SSGData {
 class SSGContextImpl {
 
   public:
-    std::shared_ptr<MargoContextImpl> m_margo_context;
+    std::shared_ptr<MargoContextImpl>     m_margo_context;
     std::vector<std::unique_ptr<SSGData>> m_ssg_groups;
     // note: we need a vector of unique_ptr because
     // membership callbacks are being passed the internal pointer
 
     json makeConfig() const {
         auto config = json::array();
-        for(const auto& g : m_ssg_groups) {
+        for (const auto& g : m_ssg_groups) {
             config.push_back(g->makeConfig());
         }
         return config;

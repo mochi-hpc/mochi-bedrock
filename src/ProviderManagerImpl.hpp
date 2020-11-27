@@ -25,18 +25,18 @@ using namespace std::string_literals;
 namespace tl = thallium;
 
 class ProviderEntry : public ProviderWrapper {
-    public:
+  public:
     std::shared_ptr<MargoContextImpl> margo_ctx;
-    ABT_pool pool;
+    ABT_pool                          pool;
     // TODO add tracking of dependencies
 
     json makeConfig() const {
-        auto c = json::object();
-        c["name"] = name;
-        c["type"] = type;
-        c["provider_id"] = provider_id;
-        c["pool"] = MargoContext(margo_ctx).getPoolInfo(pool).first;
-        c["config"] = json::parse(factory->getProviderConfig(handle));
+        auto c            = json::object();
+        c["name"]         = name;
+        c["type"]         = type;
+        c["provider_id"]  = provider_id;
+        c["pool"]         = MargoContext(margo_ctx).getPoolInfo(pool).first;
+        c["config"]       = json::parse(factory->getProviderConfig(handle));
         c["dependencies"] = json::object();
         /* TODO
         auto&d = c["dependencies"];
@@ -96,16 +96,13 @@ class ProviderManagerImpl
     }
 
     json makeConfig() const {
-        auto config = json::array();
+        auto                       config = json::array();
         std::lock_guard<tl::mutex> lock(m_providers_mtx);
-        for(auto& p : m_providers) {
-            config.push_back(p.makeConfig());
-        }
+        for (auto& p : m_providers) { config.push_back(p.makeConfig()); }
         return config;
     }
 
-    private:
-
+  private:
     void lookupProviderRPC(const tl::request& req, const std::string& spec,
                            double timeout) {
         auto            manager = ProviderManager(shared_from_this());

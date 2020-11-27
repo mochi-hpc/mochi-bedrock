@@ -127,7 +127,9 @@ MargoContext Server::getMargoContext() const { return self->m_margo_context; }
 
 ABTioContext Server::getABTioContext() const { return self->m_abtio_context; }
 
-ProviderManager Server::getProviderManager() const { return self->m_provider_manager; }
+ProviderManager Server::getProviderManager() const {
+    return self->m_provider_manager;
+}
 
 SSGContext Server::getSSGContext() const { return self->m_ssg_context; }
 

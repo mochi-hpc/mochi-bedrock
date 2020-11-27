@@ -19,7 +19,7 @@ ABTioContext::ABTioContext(const MargoContext& margoCtx,
                            const std::string&  configString)
 : self(std::make_shared<ABTioContextImpl>()) {
     self->m_margo_context = margoCtx;
-    auto config = json::parse(configString);
+    auto config           = json::parse(configString);
     if (config.is_null()) return;
     if (!config.is_array()) {
         throw Exception("\"abt_io\" entry should be an array type");
@@ -90,8 +90,8 @@ ABTioContext::ABTioContext(const MargoContext& margoCtx,
             throw Exception("Could not initialized abt-io instance {}", i);
         }
         ABTioEntry entry;
-        entry.name = names[i];
-        entry.pool = pools[i];
+        entry.name      = names[i];
+        entry.pool      = pools[i];
         entry.abt_io_id = abt_io;
         entry.margo_ctx = self->m_margo_context;
         abt_io_entries.push_back(std::move(entry));

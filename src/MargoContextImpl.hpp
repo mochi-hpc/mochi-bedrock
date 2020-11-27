@@ -23,8 +23,8 @@ class MargoContextImpl {
     tl::engine        m_engine;
 
     json makeConfig() const {
-        char* str = margo_get_config(m_mid);
-        auto config = json::parse(str);
+        char* str    = margo_get_config(m_mid);
+        auto  config = json::parse(str);
         free(str);
         return config;
     }

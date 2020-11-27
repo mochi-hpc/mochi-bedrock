@@ -19,14 +19,14 @@ namespace bedrock {
 using nlohmann::json;
 
 class ABTioEntry {
-    public:
-    std::string name;
-    ABT_pool pool;
-    abt_io_instance_id abt_io_id;
+  public:
+    std::string                       name;
+    ABT_pool                          pool;
+    abt_io_instance_id                abt_io_id;
     std::shared_ptr<MargoContextImpl> margo_ctx;
 
     json makeConfig() const {
-        json config = json::object();
+        json config    = json::object();
         config["name"] = name;
         config["pool"] = MargoContext(margo_ctx).getPoolInfo(pool).first;
         return config;
@@ -37,13 +37,11 @@ class ABTioContextImpl {
 
   public:
     std::shared_ptr<MargoContextImpl> m_margo_context;
-    std::vector<ABTioEntry> m_instances;
+    std::vector<ABTioEntry>           m_instances;
 
     json makeConfig() const {
         json config = json::array();
-        for(auto& i : m_instances) {
-            config.push_back(i.makeConfig());
-        }
+        for (auto& i : m_instances) { config.push_back(i.makeConfig()); }
         return config;
     }
 };

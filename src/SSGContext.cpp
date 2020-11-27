@@ -192,16 +192,15 @@ SSGContext::~SSGContext() {
     if (self.use_count() == 1) {
         self->m_ssg_groups.resize(0);
         s_num_ssg_init -= 1;
-        if (s_num_ssg_init == 0)
-            ssg_finalize();
+        if (s_num_ssg_init == 0) ssg_finalize();
     }
 }
 
 SSGContext::operator bool() const { return static_cast<bool>(self); }
 
 ssg_group_id_t SSGContext::getGroup(const std::string& group_name) const {
-    auto it = std::find_if(self->m_ssg_groups.begin(),
-            self->m_ssg_groups.end(), [&](auto& g) { return g->name == group_name; });
+    auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
+                           [&](auto& g) { return g->name == group_name; });
     if (it == self->m_ssg_groups.end())
         return SSG_GROUP_ID_INVALID;
     else
@@ -216,12 +215,12 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
     ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
     auto           mid        = self->m_margo_context->m_mid;
     auto           group_data = std::make_unique<SSGData>();
-    group_data->margo_ctx = self->m_margo_context;
-    group_data->name = name;
-    group_data->config = *config;
-    group_data->pool = pool;
-    group_data->bootstrap = bootstrap_method;
-    group_data->group_file = group_file;
+    group_data->margo_ctx     = self->m_margo_context;
+    group_data->name          = name;
+    group_data->config        = *config;
+    group_data->pool          = pool;
+    group_data->bootstrap     = bootstrap_method;
+    group_data->group_file    = group_file;
 
     spdlog::trace("Creating SSG group {} with bootstrap method {}", name,
                   bootstrap_method);
@@ -334,7 +333,7 @@ ssg_group_id_t SSGContext::createGroup(const std::string&        name,
             }
         }
     }
-    group_data->gid        = gid;
+    group_data->gid = gid;
     self->m_ssg_groups.push_back(std::move(group_data));
     return gid;
 }

@@ -31,11 +31,11 @@ class ServerImpl {
     std::shared_ptr<SSGContextImpl>       m_ssg_context;
 
     json makeConfig() const {
-        auto config = json::object();
-        config["margo"] = m_margo_context->makeConfig();
-        config["abt_io"] = m_abtio_context->makeConfig();
+        auto config         = json::object();
+        config["margo"]     = m_margo_context->makeConfig();
+        config["abt_io"]    = m_abtio_context->makeConfig();
         config["providers"] = m_provider_manager->makeConfig();
-        config["ssg"] = m_ssg_context->makeConfig();
+        config["ssg"]       = m_ssg_context->makeConfig();
         config["libraries"] = json::parse(ModuleContext::getCurrentConfig());
         return config;
     }
