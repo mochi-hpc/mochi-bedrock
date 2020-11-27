@@ -144,6 +144,11 @@ class ProviderManager {
     void addProviderListFromJSON(const std::string&      jsonString,
                                  const DependencyFinder& finder);
 
+    /**
+     * @brief Return the current JSON configuration.
+     */
+    std::string getCurrentConfig() const;
+
   private:
     std::shared_ptr<ProviderManagerImpl> self;
 

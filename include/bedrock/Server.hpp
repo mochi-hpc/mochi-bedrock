@@ -7,6 +7,9 @@
 #define __BEDROCK_SERVER_HPP
 
 #include <bedrock/MargoContext.hpp>
+#include <bedrock/ABTioContext.hpp>
+#include <bedrock/SSGContext.hpp>
+#include <bedrock/ProviderManager.hpp>
 #include <thallium.hpp>
 #include <memory>
 
@@ -59,15 +62,33 @@ class Server {
 
     /**
      * @brief Get the underlying MargoContext.
-     *
-     * @return the underlying MargoContext.
      */
     MargoContext getMargoContext() const;
+
+    /**
+     * @brief Get the underlying ABTioContext.
+     */
+    ABTioContext getABTioContext() const;
+
+    /**
+     * @brief Get the underlying ProviderManager.
+     */
+    ProviderManager getProviderManager() const;
+
+    /**
+     * @brief Get the underlying SSG context.
+     */
+    SSGContext getSSGContext() const;
 
     /**
      * @brief Blocks until the underlying margo instance is finalized.
      */
     void waitForFinalize();
+
+    /**
+     * @brief Return the current JSON configuration.
+     */
+    std::string getCurrentConfig() const;
 
   private:
     std::unique_ptr<ServerImpl> self;

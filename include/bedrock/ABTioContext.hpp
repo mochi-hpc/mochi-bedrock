@@ -41,15 +41,6 @@ class ABTioContext {
                  const std::string&  configString);
 
     /**
-     * @brief Constructor from an existing array of pairs
-     * <name, abt_io_instance_id>.
-     *
-     * @param abt_io_ids Vector of pairs of names and abt-io instances.
-     */
-    ABTioContext(const std::vector<std::pair<std::string, abt_io_instance_id>>&
-                     abt_io_ids);
-
-    /**
      * @brief Copy-constructor.
      */
     ABTioContext(const ABTioContext&);
@@ -113,6 +104,11 @@ class ABTioContext {
      * @brief Returns the number of abt-io instances stored.
      */
     size_t numABTioInstances() const;
+
+    /**
+     * @brief Return the current JSON configuration.
+     */
+    std::string getCurrentConfig() const;
 
   private:
     std::shared_ptr<ABTioContextImpl> self;

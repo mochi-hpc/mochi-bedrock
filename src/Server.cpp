@@ -14,6 +14,7 @@
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 #include <fstream>
 
 namespace tl = thallium;
@@ -124,9 +125,19 @@ Server::~Server() = default;
 
 MargoContext Server::getMargoContext() const { return self->m_margo_context; }
 
+ABTioContext Server::getABTioContext() const { return self->m_abtio_context; }
+
+ProviderManager Server::getProviderManager() const { return self->m_provider_manager; }
+
+SSGContext Server::getSSGContext() const { return self->m_ssg_context; }
+
 void Server::onFinalize(void* uargs) {
     auto server = reinterpret_cast<Server*>(uargs);
     server->self.reset();
+}
+
+std::string Server::getCurrentConfig() const {
+    return self->makeConfig().dump();
 }
 
 void Server::waitForFinalize() {

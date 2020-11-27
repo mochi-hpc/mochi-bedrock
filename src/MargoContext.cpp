@@ -53,6 +53,10 @@ const tl::engine& MargoContext::getThalliumEngine() const {
     return self->m_engine;
 }
 
+std::string MargoContext::getCurrentConfig() const {
+    return self->makeConfig().dump();
+}
+
 ABT_pool MargoContext::getPool(int index) const {
     ABT_pool pool = ABT_POOL_NULL;
     margo_get_pool_by_index(self->m_mid, index, &pool);
@@ -63,6 +67,24 @@ ABT_pool MargoContext::getPool(const std::string& name) const {
     ABT_pool pool = ABT_POOL_NULL;
     margo_get_pool_by_name(self->m_mid, name.c_str(), &pool);
     return pool;
+}
+
+size_t MargoContext::getNumPools() const {
+    return margo_get_num_pools(self->m_mid);
+}
+
+std::pair<std::string, int> MargoContext::getPoolInfo(ABT_pool pool) const {
+    std::pair<std::string, int> result = {"", -1};
+    auto numPools = getNumPools();
+    for(size_t i=0; i < numPools; i++) {
+        ABT_pool p = getPool(i);
+        if(p == pool) {
+            result.first = margo_get_pool_name(self->m_mid, i);
+            result.second = i;
+            return result;
+        }
+    }
+    return result;
 }
 
 } // namespace bedrock

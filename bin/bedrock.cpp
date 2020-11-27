@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
     spdlog::set_level(spdlog::level::from_str(g_log_level));
     try {
         bedrock::Server server(g_address, g_config_file);
+        spdlog::trace("Done initializing server, config is as follows:\n{}", server.getCurrentConfig());
         server.waitForFinalize();
     } catch(const std::exception& e) {
         spdlog::critical(e.what());

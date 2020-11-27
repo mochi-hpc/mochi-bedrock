@@ -91,6 +91,11 @@ class ModuleContext {
      */
     static AbstractServiceFactory*
     getServiceFactory(const std::string& moduleName);
+
+    /**
+     * @brief Return the current JSON configuration.
+     */
+    static std::string getCurrentConfig();
 };
 
 } // namespace bedrock

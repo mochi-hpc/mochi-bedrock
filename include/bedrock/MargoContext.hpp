@@ -18,6 +18,10 @@ class ProviderManager;
 class DependencyFinder;
 class MargoContextImpl;
 class SSGContext;
+class SSGData;
+class ABTioContext;
+class ABTioEntry;
+class ProviderEntry;
 
 /**
  * @brief The MargoContext class is encapsulates a margo_instance_id.
@@ -28,6 +32,10 @@ class MargoContext {
     friend class ProviderManager;
     friend class DependencyFinder;
     friend class SSGContext;
+    friend class SSGData;
+    friend class ABTioEntry;
+    friend class ABTioContext;
+    friend class ProviderEntry;
 
   public:
     /**
@@ -99,6 +107,24 @@ class MargoContext {
      * @brief Get the pool corresponding to a particular name.
      */
     ABT_pool getPool(const std::string& name) const;
+
+    /**
+     * @brief Get the number of pools.
+     */
+    size_t getNumPools() const;
+
+    /**
+     * @brief Resolve an ABT_pool handle to a <name, index> pair,
+     * or <"",-1> if the pool wasn't recognized.
+     *
+     * @param pool Pool
+     */
+    std::pair<std::string, int> getPoolInfo(ABT_pool pool) const;
+
+    /**
+     * @brief Return the current JSON configuration.
+     */
+    std::string getCurrentConfig() const;
 
   private:
     std::shared_ptr<MargoContextImpl> self;

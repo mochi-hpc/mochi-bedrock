@@ -102,6 +102,11 @@ class SSGContext {
      */
     hg_addr_t resolveAddress(const std::string& address) const;
 
+    /**
+     * @brief Return the current JSON configuration.
+     */
+    std::string getCurrentConfig() const;
+
   private:
     std::shared_ptr<SSGContextImpl> self;
 

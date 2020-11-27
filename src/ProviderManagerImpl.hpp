@@ -8,6 +8,7 @@
 
 #include "MargoContextImpl.hpp"
 #include "bedrock/RequestResult.hpp"
+#include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/ProviderWrapper.hpp"
 #include "bedrock/ProviderManager.hpp"
 
@@ -19,17 +20,42 @@
 
 namespace bedrock {
 
+using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
+
+class ProviderEntry : public ProviderWrapper {
+    public:
+    std::shared_ptr<MargoContextImpl> margo_ctx;
+    ABT_pool pool;
+    // TODO add tracking of dependencies
+
+    json makeConfig() const {
+        auto c = json::object();
+        c["name"] = name;
+        c["type"] = type;
+        c["provider_id"] = provider_id;
+        c["pool"] = MargoContext(margo_ctx).getPoolInfo(pool).first;
+        c["config"] = json::parse(factory->getProviderConfig(handle));
+        c["dependencies"] = json::object();
+        /* TODO
+        auto&d = c["dependencies"];
+        for(auto& p : dependencies) {
+            c[p.first] = p
+        }
+        */
+        return c;
+    }
+};
 
 class ProviderManagerImpl
 : public tl::provider<ProviderManagerImpl>,
   public std::enable_shared_from_this<ProviderManagerImpl> {
 
   public:
-    std::vector<ProviderWrapper> m_providers;
-    tl::mutex                    m_providers_mtx;
-    tl::condition_variable       m_providers_cv;
+    std::vector<ProviderEntry>     m_providers;
+    mutable tl::mutex              m_providers_mtx;
+    mutable tl::condition_variable m_providers_cv;
 
     std::shared_ptr<MargoContextImpl> m_margo_context;
 
@@ -68,6 +94,17 @@ class ProviderManagerImpl
         }
         return it;
     }
+
+    json makeConfig() const {
+        auto config = json::array();
+        std::lock_guard<tl::mutex> lock(m_providers_mtx);
+        for(auto& p : m_providers) {
+            config.push_back(p.makeConfig());
+        }
+        return config;
+    }
+
+    private:
 
     void lookupProviderRPC(const tl::request& req, const std::string& spec,
                            double timeout) {

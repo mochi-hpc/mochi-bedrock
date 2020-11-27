@@ -94,18 +94,20 @@ void ProviderManager::registerProvider(
                 descriptor.type, descriptor.provider_id);
         }
 
-        ProviderWrapper wrapper;
-        wrapper.name        = descriptor.name;
-        wrapper.type        = descriptor.type;
-        wrapper.provider_id = descriptor.provider_id;
-        wrapper.factory     = service_factory;
-
         auto margoCtx = MargoContext(self->m_margo_context);
+
+        ProviderEntry entry;
+        entry.name        = descriptor.name;
+        entry.type        = descriptor.type;
+        entry.provider_id = descriptor.provider_id;
+        entry.factory     = service_factory;
+        entry.margo_ctx   = self->m_margo_context;
+        entry.pool        = margoCtx.getPool(pool_name);
 
         FactoryArgs args;
         args.name         = descriptor.name;
         args.mid          = margoCtx.getMargoInstance();
-        args.pool         = margoCtx.getPool(pool_name);
+        args.pool         = entry.pool;
         args.config       = config;
         args.provider_id  = descriptor.provider_id;
         args.dependencies = dependencies;
@@ -116,9 +118,9 @@ void ProviderManager::registerProvider(
 
         spdlog::trace("Registering provider {} of type {} with provider id {}",
                       descriptor.name, descriptor.type, descriptor.provider_id);
-        wrapper.handle = service_factory->registerProvider(args);
+        entry.handle = service_factory->registerProvider(args);
 
-        self->m_providers.push_back(wrapper);
+        self->m_providers.push_back(entry);
     }
     self->m_providers_cv.notify_all();
 }
@@ -231,6 +233,10 @@ void ProviderManager::addProviderListFromJSON(
     for (const auto& provider : config) {
         addProviderFromJSON(provider.dump(), dependencyFinder);
     }
+}
+
+std::string ProviderManager::getCurrentConfig() const {
+    return self->makeConfig().dump();
 }
 
 } // namespace bedrock

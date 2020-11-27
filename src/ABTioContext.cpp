@@ -15,26 +15,11 @@ namespace bedrock {
 
 using nlohmann::json;
 
-ABTioContext::ABTioContext(
-    const std::vector<std::pair<std::string, abt_io_instance_id>>& abt_io_ids)
-: self(std::make_shared<ABTioContextImpl>()) {
-    for (auto& p : abt_io_ids) {
-        auto it
-            = std::find_if(self->m_abt_io_ids.begin(), self->m_abt_io_ids.end(),
-                           [&p](const auto& q) { return q.first == p.first; });
-        if (it != self->m_abt_io_ids.end()) {
-            throw Exception("Duplicate name \"{}\" in ABT-IO definitions",
-                            p.first);
-        }
-        self->m_abt_io_ids.push_back(p);
-    }
-}
-
 ABTioContext::ABTioContext(const MargoContext& margoCtx,
                            const std::string&  configString)
 : self(std::make_shared<ABTioContextImpl>()) {
-    self->m_json_config = json::parse(configString);
-    auto& config        = self->m_json_config;
+    self->m_margo_context = margoCtx;
+    auto config = json::parse(configString);
     if (config.is_null()) return;
     if (!config.is_array()) {
         throw Exception("\"abt_io\" entry should be an array type");
@@ -95,19 +80,24 @@ ABTioContext::ABTioContext(const MargoContext& margoCtx,
         i += 1;
     }
     // instantiate ABT-IO instances
-    std::vector<std::pair<std::string, abt_io_instance_id>> abt_io_ids;
+    std::vector<ABTioEntry> abt_io_entries;
     for (unsigned i = 0; i < names.size(); i++) {
         abt_io_instance_id abt_io = abt_io_init_pool(pools[i]);
         if (abt_io == ABT_IO_INSTANCE_NULL) {
-            for (unsigned j = 0; j < abt_io_ids.size(); j++) {
-                abt_io_finalize(abt_io_ids[j].second);
+            for (unsigned j = 0; j < abt_io_entries.size(); j++) {
+                abt_io_finalize(abt_io_entries[j].abt_io_id);
             }
             throw Exception("Could not initialized abt-io instance {}", i);
         }
-        abt_io_ids.emplace_back(names[i], abt_io);
+        ABTioEntry entry;
+        entry.name = names[i];
+        entry.pool = pools[i];
+        entry.abt_io_id = abt_io;
+        entry.margo_ctx = self->m_margo_context;
+        abt_io_entries.push_back(std::move(entry));
     }
     // setup self
-    self->m_abt_io_ids = std::move(abt_io_ids);
+    self->m_instances = std::move(abt_io_entries);
 }
 
 ABTioContext::ABTioContext(const ABTioContext&) = default;
@@ -124,37 +114,41 @@ ABTioContext::operator bool() const { return static_cast<bool>(self); }
 
 abt_io_instance_id
 ABTioContext::getABTioInstance(const std::string& name) const {
-    auto it = std::find_if(self->m_abt_io_ids.begin(), self->m_abt_io_ids.end(),
-                           [&name](const auto& p) { return p.first == name; });
-    if (it == self->m_abt_io_ids.end())
+    auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
+                           [&name](const auto& p) { return p.name == name; });
+    if (it == self->m_instances.end())
         return ABT_IO_INSTANCE_NULL;
     else
-        return it->second;
+        return it->abt_io_id;
 }
 
 abt_io_instance_id ABTioContext::getABTioInstance(int index) const {
-    if (index < 0 || index >= (int)self->m_abt_io_ids.size())
+    if (index < 0 || index >= (int)self->m_instances.size())
         return ABT_IO_INSTANCE_NULL;
-    return self->m_abt_io_ids[index].second;
+    return self->m_instances[index].abt_io_id;
 }
 
 const std::string& ABTioContext::getABTioInstanceName(int index) const {
     static const std::string empty = "";
-    if (index < 0 || index >= (int)self->m_abt_io_ids.size()) return empty;
-    return self->m_abt_io_ids[index].first;
+    if (index < 0 || index >= (int)self->m_instances.size()) return empty;
+    return self->m_instances[index].name;
 }
 
 int ABTioContext::getABTioInstanceIndex(const std::string& name) const {
-    auto it = std::find_if(self->m_abt_io_ids.begin(), self->m_abt_io_ids.end(),
-                           [&name](const auto& p) { return p.first == name; });
-    if (it == self->m_abt_io_ids.end())
+    auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
+                           [&name](const auto& p) { return p.name == name; });
+    if (it == self->m_instances.end())
         return -1;
     else
-        return std::distance(self->m_abt_io_ids.begin(), it);
+        return std::distance(self->m_instances.begin(), it);
 }
 
 size_t ABTioContext::numABTioInstances() const {
-    return self->m_abt_io_ids.size();
+    return self->m_instances.size();
+}
+
+std::string ABTioContext::getCurrentConfig() const {
+    return self->makeConfig().dump();
 }
 
 } // namespace bedrock

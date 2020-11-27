@@ -16,8 +16,8 @@ namespace bedrock {
 
 using nlohmann::json;
 
-static std::unordered_map<std::string, std::shared_ptr<AbstractServiceFactory>>
-    s_modules;
+static std::unordered_map<std::string, std::string> s_libraries;
+static std::unordered_map<std::string, std::shared_ptr<AbstractServiceFactory>> s_modules;
 
 bool ModuleContext::registerModule(const std::string&    moduleName,
                                    const bedrock_module& module) {
@@ -30,6 +30,7 @@ bool ModuleContext::registerFactory(
     const std::shared_ptr<AbstractServiceFactory>& factory) {
     if (s_modules.find(moduleName) != s_modules.end()) return false;
     s_modules[moduleName] = std::move(factory);
+    s_libraries[moduleName] = "";
     return true;
 }
 
@@ -52,6 +53,7 @@ bool ModuleContext::loadModule(const std::string& moduleName,
     std::shared_ptr<AbstractServiceFactory> factory
         = std::make_shared<DynLibServiceFactory>(moduleName, handle);
     s_modules[moduleName] = std::move(factory);
+    s_libraries[moduleName] = library;
     return true;
 }
 
@@ -88,6 +90,18 @@ ModuleContext::getServiceFactory(const std::string& moduleName) {
         return nullptr;
     else
         return it->second.get();
+}
+
+std::string ModuleContext::getCurrentConfig() {
+    std::string config = "{";
+    unsigned i = 0;
+    for(const auto& m : s_libraries) {
+        config += "\"" + m.first + "\":\"" + m.second + "\"";
+        i += 1;
+        if(i < s_libraries.size()) config += ",";
+    }
+    config += "}";
+    return config;
 }
 
 } // namespace bedrock
