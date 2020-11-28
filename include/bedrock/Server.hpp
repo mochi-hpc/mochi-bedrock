@@ -31,9 +31,9 @@ class Server {
      * @brief Constructor.
      *
      * @param address Address of the server.
-     * @param configfile Path to a configuration file.
+     * @param config JSON configuration.
      */
-    Server(const std::string& address, const std::string& configfile = "");
+    Server(const std::string& address, const std::string& config = "");
 
     /**
      * @brief Copy-constructor is deleted.

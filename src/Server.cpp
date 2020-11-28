@@ -24,21 +24,12 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-Server::Server(const std::string& address, const std::string& configfile)
+Server::Server(const std::string& address, const std::string& configString)
 : self(std::make_unique<ServerImpl>()) {
 
     // Read JSON config file
-    spdlog::trace("Parsing configuration file {}", configfile);
-    json config;
-    if (!configfile.empty()) {
-        std::ifstream ifs(configfile);
-        if (!ifs.good()) {
-            self.reset();
-            throw Exception("Could not access configuration file "s
-                            + configfile);
-        }
-        ifs >> config;
-    }
+    spdlog::trace("Parsing JSON configuration");
+    json config = json::parse(configString);
     spdlog::trace("Parsing done");
 
     // Extract margo section from the config
