@@ -28,7 +28,7 @@ class ProviderEntry : public ProviderWrapper {
   public:
     std::shared_ptr<MargoManagerImpl> margo_ctx;
     ABT_pool                          pool;
-    // TODO add tracking of dependencies
+    ResolvedDependencyMap             dependencies;
 
     json makeConfig() const {
         auto c            = json::object();
@@ -38,12 +38,18 @@ class ProviderEntry : public ProviderWrapper {
         c["pool"]         = MargoManager(margo_ctx).getPoolInfo(pool).first;
         c["config"]       = json::parse(factory->getProviderConfig(handle));
         c["dependencies"] = json::object();
-        /* TODO
-        auto&d = c["dependencies"];
-        for(auto& p : dependencies) {
-            c[p.first] = p
+        auto& d           = c["dependencies"];
+        for (auto& p : dependencies) {
+            auto& dep_name  = p.first;
+            auto& dep_array = p.second;
+            if (dep_array.size() == 0) continue;
+            if (!(dep_array[0].flags & BEDROCK_ARRAY)) {
+                d[dep_name] = dep_array[0].spec;
+            } else {
+                d[dep_name] = json::array();
+                for (auto& x : dep_array) { d[dep_name].push_back(x.spec); }
+            }
         }
-        */
         return c;
     }
 };

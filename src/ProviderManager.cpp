@@ -61,8 +61,7 @@ std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
 
 void ProviderManager::registerProvider(
     const ProviderDescriptor& descriptor, const std::string& pool_name,
-    const std::string&                                         config,
-    const std::unordered_map<std::string, std::vector<void*>>& dependencies) {
+    const std::string& config, const ResolvedDependencyMap& dependencies) {
     if (descriptor.name.empty()) {
         throw Exception("Provider name cannot be empty");
     }
@@ -97,12 +96,13 @@ void ProviderManager::registerProvider(
         auto margoCtx = MargoManager(self->m_margo_context);
 
         ProviderEntry entry;
-        entry.name        = descriptor.name;
-        entry.type        = descriptor.type;
-        entry.provider_id = descriptor.provider_id;
-        entry.factory     = service_factory;
-        entry.margo_ctx   = self->m_margo_context;
-        entry.pool        = margoCtx.getPool(pool_name);
+        entry.name         = descriptor.name;
+        entry.type         = descriptor.type;
+        entry.provider_id  = descriptor.provider_id;
+        entry.factory      = service_factory;
+        entry.margo_ctx    = self->m_margo_context;
+        entry.pool         = margoCtx.getPool(pool_name);
+        entry.dependencies = dependencies;
 
         FactoryArgs args;
         args.name         = descriptor.name;
@@ -177,7 +177,7 @@ void ProviderManager::addProviderFromJSON(
 
     auto deps_from_config = config.value("dependencies", json::object());
 
-    std::unordered_map<std::string, std::vector<void*>>   dependencies;
+    ResolvedDependencyMap                                 resolved_dependencies;
     std::unordered_map<std::string, std::vector<VoidPtr>> dependency_wrappers;
 
     for (const auto& dependency : service_factory->getDependencies()) {
@@ -189,9 +189,18 @@ void ProviderManager::addProviderFromJSON(
                     throw Exception("Dependency {} should be a string",
                                     dependency.name);
                 }
-                auto ptr = dependencyFinder.find(dependency.type,
-                                                 dep_config.get<std::string>());
-                dependencies[dependency.name].push_back(ptr.handle);
+                std::string        resolved_spec;
+                auto               ptr = dependencyFinder.find(dependency.type,
+                                                 dep_config.get<std::string>(),
+                                                 &resolved_spec);
+                ResolvedDependency resolved_dependency;
+                resolved_dependency.name   = dependency.name;
+                resolved_dependency.type   = dependency.type;
+                resolved_dependency.flags  = dependency.flags;
+                resolved_dependency.spec   = resolved_spec;
+                resolved_dependency.handle = ptr.handle;
+                resolved_dependencies[dependency.name].push_back(
+                    resolved_dependency);
                 dependency_wrappers[dependency.name].push_back(std::move(ptr));
             } else {
                 if (!dep_config.is_array()) {
@@ -205,9 +214,18 @@ void ProviderManager::addProviderFromJSON(
                             "Item in dependency array {} should be a string",
                             dependency.name);
                     }
-                    auto ptr = dependencyFinder.find(dependency.type,
-                                                     elem.get<std::string>());
-                    dependencies[dependency.name].push_back(ptr.handle);
+                    std::string resolved_spec;
+                    auto        ptr = dependencyFinder.find(dependency.type,
+                                                     elem.get<std::string>(),
+                                                     &resolved_spec);
+                    ResolvedDependency resolved_dependency;
+                    resolved_dependency.name   = dependency.name;
+                    resolved_dependency.type   = dependency.type;
+                    resolved_dependency.flags  = dependency.flags;
+                    resolved_dependency.spec   = resolved_spec;
+                    resolved_dependency.handle = ptr.handle;
+                    resolved_dependencies[dependency.name].push_back(
+                        resolved_dependency);
                     dependency_wrappers[dependency.name].push_back(
                         std::move(ptr));
                 }
@@ -218,7 +236,8 @@ void ProviderManager::addProviderFromJSON(
         }
     }
 
-    registerProvider(descriptor, pool_name, provider_config, dependencies);
+    registerProvider(descriptor, pool_name, provider_config,
+                     resolved_dependencies);
 }
 
 void ProviderManager::addProviderListFromJSON(

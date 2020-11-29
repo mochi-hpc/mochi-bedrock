@@ -47,13 +47,14 @@ static bool isPositiveNumber(const std::string& str) {
     return true;
 }
 
-VoidPtr DependencyFinder::find(const std::string& type,
-                               const std::string& spec) const {
+VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
+                               std::string* resolved) const {
     if (type == "pool") { // Argobots pool
         ABT_pool p = MargoManager(self->m_margo_context).getPool(spec);
         if (p == ABT_POOL_NULL) {
             throw Exception("Could not find pool with name \"{}\"", spec);
         }
+        if (resolved) { *resolved = spec; }
         return VoidPtr(p);
     } else if (type == "abt_io") { // ABTIO instance
         abt_io_instance_id abt_id
@@ -62,12 +63,14 @@ VoidPtr DependencyFinder::find(const std::string& type,
             throw Exception("Could not find ABT-IO instance with name \"{}\"",
                             spec);
         }
+        if (resolved) { *resolved = spec; }
         return VoidPtr(abt_id);
     } else if (type == "ssg") { // SSG group
         ssg_group_id_t gid = SSGManager(self->m_ssg_context).getGroup(spec);
         if (gid == SSG_GROUP_ID_INVALID) {
             throw Exception("Could not find SSG group with name \"{}\"", spec);
         }
+        if (resolved) { *resolved = spec; }
         return VoidPtr(reinterpret_cast<void*>(gid));
     } else { // Provider or provider handle
 
@@ -95,6 +98,7 @@ VoidPtr DependencyFinder::find(const std::string& type,
                     if (type != identifier) {
                         throw Exception("Invalid client type in \"{}\"", spec);
                     }
+                    if (resolved) { *resolved = spec; }
                     return getClient(type);
                 } else if (isPositiveNumber(
                                specifier)) { // dependency to a provider
@@ -105,24 +109,31 @@ VoidPtr DependencyFinder::find(const std::string& type,
                             "Invalid provider type in \"{}\" (expected {})",
                             spec, type);
                     }
+                    if (resolved) { *resolved = spec; }
                     return findProvider(type, provider_id);
                 } else { // dependency to a provider specified by name
-                    return findProvider(type, identifier);
+                    uint16_t provider_id;
+                    auto     ptr = findProvider(type, identifier, &provider_id);
+                    if (resolved) {
+                        *resolved = type + ":" + std::to_string(provider_id);
+                    }
+                    return std::move(ptr);
                 }
             } else { // dependency to a provider handle
-                if (specifier
-                        .empty()) { // dependency specified as name@location
-                    return makeProviderHandle(type, identifier, locator);
-                } else if (isPositiveNumber(
-                               specifier)) { // dependency specified as
-                                             // type:id@location
+                if (specifier.empty()) {
+                    // dependency specified as name@location
+                    return makeProviderHandle(type, identifier, locator,
+                                              resolved);
+                } else if (isPositiveNumber(specifier)) {
+                    // dependency specified as type:id@location
                     uint16_t provider_id = atoi(specifier.c_str());
                     if (type != identifier) {
                         throw Exception(
                             "Invalid provider type in \"{}\" (expected {})",
                             spec, type);
                     }
-                    return makeProviderHandle(type, provider_id, locator);
+                    return makeProviderHandle(type, provider_id, locator,
+                                              resolved);
                 } else { // invalid
                     throw Exception(
                         "Ill-formated dependency specification \"{}\"", spec);
@@ -151,7 +162,8 @@ VoidPtr DependencyFinder::findProvider(const std::string& type,
 }
 
 VoidPtr DependencyFinder::findProvider(const std::string& type,
-                                       const std::string& name) const {
+                                       const std::string& name,
+                                       uint16_t*          provider_id) const {
     ProviderWrapper provider;
     bool            exists = ProviderManager(self->m_provider_manager)
                       .lookupProvider(name, &provider);
@@ -162,6 +174,7 @@ VoidPtr DependencyFinder::findProvider(const std::string& type,
         throw Exception("Invalid type {} for dependency \"{}\" (expected {})",
                         provider.type, name, type);
     }
+    if (provider_id) *provider_id = provider.provider_id;
     return VoidPtr(provider.handle);
 }
 
@@ -185,7 +198,8 @@ VoidPtr DependencyFinder::getClient(const std::string& type) const {
 
 VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                                              uint16_t           provider_id,
-                                             const std::string& locator) const {
+                                             const std::string& locator,
+                                             std::string* resolved) const {
     auto      mid             = self->m_margo_context->m_mid;
     auto      client          = getClient(type);
     auto      service_factory = ModuleContext::getServiceFactory(type);
@@ -249,6 +263,13 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
         }
     }
 
+    if (resolved) {
+        char      addr_str[256];
+        hg_size_t addr_str_size = 256;
+        margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
+        *resolved = type + ":" + std::to_string(provider_id) + "@" + addr_str;
+    }
+
     void* ph = service_factory->createProviderHandle(client.handle, addr,
                                                      provider_id);
     margo_addr_free(mid, addr);
@@ -259,7 +280,8 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
 
 VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                                              const std::string& name,
-                                             const std::string& locator) const {
+                                             const std::string& locator,
+                                             std::string* resolved) const {
     auto               mid             = self->m_margo_context->m_mid;
     auto               client          = getClient(type);
     auto               service_factory = ModuleContext::getServiceFactory(type);
@@ -318,6 +340,14 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
             margo_addr_free(mid, addr);
             throw;
         }
+    }
+
+    if (resolved) {
+        char      addr_str[256];
+        hg_size_t addr_str_size = 256;
+        margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
+        *resolved = type + ":" + std::to_string(descriptor.provider_id) + "@"
+                  + addr_str;
     }
 
     void* ph = service_factory->createProviderHandle(client.handle, addr,

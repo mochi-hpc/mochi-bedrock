@@ -84,12 +84,14 @@ class DependencyFinder {
      * NAME       := <qualified identifier>
      * ID         := <provider id>
      *
-     * @param type Type of dependency.
-     * @param spec Specification string.
+     * @param [in] type Type of dependency.
+     * @param [in] spec Specification string.
+     * @param [out] Resolved specification.
      *
      * @return handle to dependency
      */
-    VoidPtr find(const std::string& type, const std::string& spec) const;
+    VoidPtr find(const std::string& type, const std::string& spec,
+                 std::string* resolved = nullptr) const;
 
     /**
      * @brief Find a local provider based on a type and provider id.
@@ -106,13 +108,14 @@ class DependencyFinder {
      * @brief Find a local provider based on a name.
      * Throws an exception if not found.
      *
-     * @param type Type of provider
-     * @param name Provider name
+     * @param [in] type Type of provider
+     * @param [in] name Provider name
+     * @param [out] provider_id Provider id found
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr findProvider(const std::string& type,
-                         const std::string& name) const;
+    VoidPtr findProvider(const std::string& type, const std::string& name,
+                         uint16_t* provider_id = nullptr) const;
 
     /**
      * @brief Get a client of a given type. The returned
@@ -149,7 +152,8 @@ class DependencyFinder {
      * @return An abstract pointer to the dependency.
      */
     VoidPtr makeProviderHandle(const std::string& type, uint16_t provider_id,
-                               const std::string& locator) const;
+                               const std::string& locator,
+                               std::string*       resolved = nullptr) const;
 
     /**
      * @brief Make a provider handle to a specified provider.
@@ -166,7 +170,8 @@ class DependencyFinder {
      * @return An abstract pointer to the dependency.
      */
     VoidPtr makeProviderHandle(const std::string& type, const std::string& name,
-                               const std::string& locator) const;
+                               const std::string& locator,
+                               std::string*       resolved = nullptr) const;
 
   private:
     std::shared_ptr<DependencyFinderImpl> self;

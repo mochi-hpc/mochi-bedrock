@@ -22,21 +22,6 @@ class __BedrockAbstractServiceFactoryRegistration;
 namespace bedrock {
 
 /**
- * @brief This structure is passed to a factory's registerProvider function
- * to provide the factory with relevant information to initialize the provider.
- * The C equivalent of this structure is the bedrock_args_t handle.
- */
-struct FactoryArgs {
-    std::string       name;        // name of the provider
-    margo_instance_id mid;         // margo instance
-    uint16_t          provider_id; // provider id
-    ABT_pool          pool;        // Argobots pool
-    std::string       config;      // JSON configuration
-    std::unordered_map<std::string, std::vector<void*>>
-        dependencies; // dependencies
-};
-
-/**
  * @brief The Dependency structure is the C++ counterpart of the
  * bedrock_dependency structure in C.
  */
@@ -44,6 +29,28 @@ struct Dependency {
     std::string name;
     std::string type;
     int32_t     flags;
+};
+
+struct ResolvedDependency : public Dependency {
+    std::string spec;
+    void*       handle;
+};
+
+typedef std::unordered_map<std::string, std::vector<ResolvedDependency>>
+    ResolvedDependencyMap;
+
+/**
+ * @brief This structure is passed to a factory's registerProvider function
+ * to provide the factory with relevant information to initialize the provider.
+ * The C equivalent of this structure is the bedrock_args_t handle.
+ */
+struct FactoryArgs {
+    std::string           name;         // name of the provider
+    margo_instance_id     mid;          // margo instance
+    uint16_t              provider_id;  // provider id
+    ABT_pool              pool;         // Argobots pool
+    std::string           config;       // JSON configuration
+    ResolvedDependencyMap dependencies; // dependencies
 };
 
 /**

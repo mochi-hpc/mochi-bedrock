@@ -39,7 +39,7 @@ void* bedrock_args_get_dependency(bedrock_args_t args, const char* name,
     auto it = a->dependencies.find(name);
     if (it == a->dependencies.end()) { return nullptr; }
     if (index >= it->second.size()) return nullptr;
-    return it->second[index];
+    return it->second[index].handle;
 }
 
 size_t bedrock_args_get_num_dependencies(bedrock_args_t args,
