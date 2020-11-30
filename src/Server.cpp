@@ -114,6 +114,9 @@ Server::Server(const std::string& address, const std::string& configString) {
     providerManager.addProviderListFromJSON(providerManagerConfig,
                                             dependencyFinder);
     spdlog::trace("Providers initialized");
+
+    spdlog::info("Bedrock daemon now running at {}",
+                 static_cast<std::string>(margoMgr.getThalliumEngine().self()));
 }
 
 Server::~Server() = default;

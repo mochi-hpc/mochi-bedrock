@@ -1,6 +1,6 @@
 /*
  * (C) 2020 The University of Chicago
- * 
+ *
  * See COPYRIGHT in top-level directory.
  */
 #include <bedrock/Client.hpp>
@@ -12,7 +12,6 @@ namespace tl = thallium;
 
 static std::string g_address;
 static std::string g_protocol;
-static std::string g_Service;
 static unsigned    g_provider_id;
 static std::string g_log_level = "info";
 
@@ -30,15 +29,14 @@ int main(int argc, char** argv) {
         // Initialize a Client
         bedrock::Client client(engine);
 
-        // Open the Database "mydatabase" from provider 0
-        bedrock::ServiceHandle Service =
-            client.makeServiceHandle(g_address, g_provider_id,
-                    bedrock::UUID::from_string(g_Service.c_str()));
+        // Get a service handle
+        bedrock::ServiceHandle service =
+            client.makeServiceHandle(g_address, g_provider_id);
 
-        Service.sayHello();
+        std::string config;
+        service.getConfig(&config);
 
-        int32_t result;
-        Service.computeSum(32, 54, &result);
+        std::cout << config << std::endl;
 
     } catch(const bedrock::Exception& ex) {
         std::cerr << ex.what() << std::endl;
@@ -53,16 +51,13 @@ void parse_command_line(int argc, char** argv) {
         TCLAP::CmdLine cmd("Bedrock client", ' ', "0.1");
         TCLAP::ValueArg<std::string> addressArg("a","address","Address or server", true,"","string");
         TCLAP::ValueArg<unsigned>    providerArg("p", "provider", "Provider id to contact (default 0)", false, 0, "int");
-        TCLAP::ValueArg<std::string> ServiceArg("r","Service","Service id", true, bedrock::UUID().to_string(),"string");
         TCLAP::ValueArg<std::string> logLevel("v","verbose", "Log level (trace, debug, info, warning, error, critical, off)", false, "info", "string");
         cmd.add(addressArg);
         cmd.add(providerArg);
-        cmd.add(ServiceArg);
         cmd.add(logLevel);
         cmd.parse(argc, argv);
         g_address = addressArg.getValue();
         g_provider_id = providerArg.getValue();
-        g_Service = ServiceArg.getValue();
         g_log_level = logLevel.getValue();
         g_protocol = g_address.substr(0, g_address.find(":"));
     } catch(TCLAP::ArgException &e) {

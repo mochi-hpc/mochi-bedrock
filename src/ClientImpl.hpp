@@ -7,8 +7,6 @@
 #define __BEDROCK_CLIENT_IMPL_H
 
 #include <thallium.hpp>
-#include <thallium/serialization/stl/unordered_set.hpp>
-#include <thallium/serialization/stl/unordered_map.hpp>
 #include <thallium/serialization/stl/string.hpp>
 
 namespace bedrock {
@@ -19,15 +17,10 @@ class ClientImpl {
 
   public:
     tl::engine           m_engine;
-    tl::remote_procedure m_check_Service;
-    tl::remote_procedure m_say_hello;
-    tl::remote_procedure m_compute_sum;
+    tl::remote_procedure m_get_config;
 
     ClientImpl(const tl::engine& engine)
-    : m_engine(engine),
-      m_check_Service(m_engine.define("bedrock_check_Service")),
-      m_say_hello(m_engine.define("bedrock_say_hello").disable_response()),
-      m_compute_sum(m_engine.define("bedrock_compute_sum")) {}
+    : m_engine(engine), m_get_config(m_engine.define("bedrock_get_config")) {}
 
     ClientImpl(margo_instance_id mid) : ClientImpl(tl::engine(mid)) {}
 

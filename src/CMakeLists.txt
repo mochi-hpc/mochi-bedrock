@@ -41,16 +41,16 @@ set_target_properties (bedrock-server
     SOVERSION ${BEDROCK_VERSION_MAJOR})
 
 # client library
-#add_library (bedrock-client ${client-src-files})
-#target_link_libraries (bedrock-client thallium)
-#target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
-#target_include_directories (bedrock-client BEFORE PUBLIC
-#    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
-#target_include_directories (bedrock-client BEFORE PUBLIC
-#    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
-#set_target_properties (bedrock-client
-#    PROPERTIES VERSION ${BEDROCK_VERSION}
-#    SOVERSION ${BEDROCK_VERSION_MAJOR})
+add_library (bedrock-client ${client-src-files})
+target_link_libraries (bedrock-client thallium)
+target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
+target_include_directories (bedrock-client BEFORE PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
+target_include_directories (bedrock-client BEFORE PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+set_target_properties (bedrock-client
+    PROPERTIES VERSION ${BEDROCK_VERSION}
+    SOVERSION ${BEDROCK_VERSION_MAJOR})
 
 # installation stuff (packaging and install commands)
 write_basic_package_version_file(
@@ -69,15 +69,15 @@ configure_package_config_file(bedrock-config.cmake.in
 # some bits for the pkg-config file
 set (DEST_DIR "${CMAKE_INSTALL_PREFIX}")
 set (SERVER_PRIVATE_LIBS "-lbedrock-server")
-#set (CLIENT_PRIVATE_LIBS "-lbedrock-client")
+set (CLIENT_PRIVATE_LIBS "-lbedrock-client")
 configure_file ("bedrock-server.pc.in" "bedrock-server.pc" @ONLY)
-#configure_file ("bedrock-client.pc.in" "bedrock-client.pc" @ONLY)
+configure_file ("bedrock-client.pc.in" "bedrock-client.pc" @ONLY)
 
 # configure config.h
 configure_file ("config.h.in" "config.h" @ONLY)
 
 # "make install" rules
-install (TARGETS bedrock-server # bedrock-admin bedrock-client
+install (TARGETS bedrock-server bedrock-client
          EXPORT bedrock-targets
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib)
@@ -94,5 +94,5 @@ install (DIRECTORY ../include/bedrock
          DESTINATION include
          FILES_MATCHING PATTERN "*.h")
 install (FILES "${CMAKE_CURRENT_BINARY_DIR}/bedrock-server.pc"
-#               "${CMAKE_CURRENT_BINARY_DIR}/bedrock-client.pc"
+               "${CMAKE_CURRENT_BINARY_DIR}/bedrock-client.pc"
          DESTINATION "lib/pkgconfig/")

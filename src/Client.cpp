@@ -42,22 +42,12 @@ const tl::engine& Client::engine() const { return self->m_engine; }
 Client::operator bool() const { return static_cast<bool>(self); }
 
 ServiceHandle Client::makeServiceHandle(const std::string& address,
-                                        uint16_t           provider_id,
-                                        const UUID&        Service_id,
-                                        bool               check) const {
-    auto                endpoint = self->m_engine.lookup(address);
-    auto                ph       = tl::provider_handle(endpoint, provider_id);
-    RequestResult<bool> result;
-    result.success() = true;
-    if (check) { result = self->m_check_Service.on(ph)(Service_id); }
-    if (result.success()) {
-        auto Service_impl = std::make_shared<ServiceHandleImpl>(
-            self, std::move(ph), Service_id);
-        return ServiceHandle(Service_impl);
-    } else {
-        throw Exception(result.error());
-        return ServiceHandle(nullptr);
-    }
+                                        uint16_t           provider_id) const {
+    auto endpoint = self->m_engine.lookup(address);
+    auto ph       = tl::provider_handle(endpoint, provider_id);
+    auto service_impl
+        = std::make_shared<ServiceHandleImpl>(self, std::move(ph));
+    return ServiceHandle(service_impl);
 }
 
 } // namespace bedrock

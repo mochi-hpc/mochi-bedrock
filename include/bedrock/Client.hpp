@@ -7,7 +7,6 @@
 #define __BEDROCK_CLIENT_HPP
 
 #include <bedrock/ServiceHandle.hpp>
-#include <bedrock/UUID.hpp>
 #include <thallium.hpp>
 #include <memory>
 
@@ -81,15 +80,12 @@ class Client {
      *
      * @param address Address of the provider holding the database.
      * @param provider_id Provider id.
-     * @param Service_id Service UUID.
      * @param check Checks if the Database exists by issuing an RPC.
      *
      * @return a ServiceHandle instance.
      */
     ServiceHandle makeServiceHandle(const std::string& address,
-                                    uint16_t           provider_id,
-                                    const UUID&        Service_id,
-                                    bool               check = true) const;
+                                    uint16_t           provider_id) const;
 
     /**
      * @brief Checks that the Client instance is valid.
