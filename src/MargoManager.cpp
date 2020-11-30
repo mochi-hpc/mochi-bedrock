@@ -57,6 +57,17 @@ std::string MargoManager::getCurrentConfig() const {
     return self->makeConfig().dump();
 }
 
+ABT_pool MargoManager::getDefaultHandlerPool() const {
+    ABT_pool p;
+    int      ret = margo_get_handler_pool(self->m_mid, &p);
+    if (ret != 0) {
+        throw Exception(
+            "Could not get handler pool (margo_get_handler_pool returned {})",
+            ret);
+    }
+    return p;
+}
+
 ABT_pool MargoManager::getPool(int index) const {
     ABT_pool pool = ABT_POOL_NULL;
     margo_get_pool_by_index(self->m_mid, index, &pool);

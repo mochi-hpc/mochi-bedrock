@@ -29,8 +29,6 @@ int main(int argc, char** argv) {
         else if (!g_config_file.empty())
             config = getConfigFromFile(g_config_file);
         bedrock::Server server(g_address, config);
-        spdlog::trace("Done initializing server, config is as follows:\n{}",
-                      server.getCurrentConfig());
         server.waitForFinalize();
     } catch (const std::exception& e) { spdlog::critical(e.what()); }
     return 0;

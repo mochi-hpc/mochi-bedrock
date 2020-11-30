@@ -24,8 +24,7 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-Server::Server(const std::string& address, const std::string& configString)
-: self(std::make_unique<ServerImpl>()) {
+Server::Server(const std::string& address, const std::string& configString) {
 
     // Read JSON config file
     spdlog::trace("Parsing JSON configuration");
@@ -39,8 +38,7 @@ Server::Server(const std::string& address, const std::string& configString)
     setupMargoLogging();
 
     // Initialize margo context
-    auto margoCtx         = MargoManager(address, margoConfig);
-    self->m_margo_manager = margoCtx;
+    auto margoMgr = MargoManager(address, margoConfig);
     spdlog::trace("MargoManager initialized");
 
     // Extract bedrock section from the config
@@ -52,13 +50,13 @@ Server::Server(const std::string& address, const std::string& configString)
     double dependency_timeout
         = bedrockConfig.value("dependency_resolution_timeout", 30.0);
     uint16_t bedrock_provider_id = bedrockConfig.value("provider_id", 0);
-    ABT_pool bedrock_pool        = ABT_POOL_NULL;
+    ABT_pool bedrock_pool        = margoMgr.getDefaultHandlerPool();
     if (bedrockConfig.contains("pool")) {
         auto bedrockPoolRef = bedrockConfig["pool"];
         if (bedrockPoolRef.is_string()) {
-            bedrock_pool = margoCtx.getPool(bedrockPoolRef.get<std::string>());
+            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<std::string>());
         } else if (bedrockPoolRef.is_number_integer()) {
-            bedrock_pool = margoCtx.getPool(bedrockPoolRef.get<int>());
+            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<int>());
         } else {
             throw Exception("Invalid type in Bedrock's \"pool\" entry");
         }
@@ -69,18 +67,24 @@ Server::Server(const std::string& address, const std::string& configString)
         }
     }
 
+    // Create self
+    self = std::make_unique<ServerImpl>(margoMgr.getThalliumEngine(),
+                                        bedrock_provider_id,
+                                        tl::pool(bedrock_pool));
+    self->m_margo_manager = margoMgr;
+
     // Initializing the provider manager
     spdlog::trace("Initializing ProviderManager");
     auto providerManager
-        = ProviderManager(margoCtx, bedrock_provider_id, bedrock_pool);
+        = ProviderManager(margoMgr, bedrock_provider_id, bedrock_pool);
     self->m_provider_manager = providerManager;
     spdlog::trace("ProviderManager initialized");
 
     // Initialize abt-io context
     spdlog::trace("Initializing ABTioManager");
     auto abtioConfig      = config["abt_io"].dump();
-    auto abtioCtx         = ABTioManager(margoCtx, abtioConfig);
-    self->m_abtio_manager = abtioCtx;
+    auto abtioMgr         = ABTioManager(margoMgr, abtioConfig);
+    self->m_abtio_manager = abtioMgr;
     spdlog::trace("ABTioManager initialized");
 
     // Initialize the module context
@@ -92,14 +96,14 @@ Server::Server(const std::string& address, const std::string& configString)
     // Initializing SSG context
     spdlog::trace("Initializing SSGManager");
     auto ssgConfig      = config["ssg"].dump();
-    auto ssgCtx         = SSGManager(margoCtx, ssgConfig);
-    self->m_ssg_manager = ssgCtx;
+    auto ssgMgr         = SSGManager(margoMgr, ssgConfig);
+    self->m_ssg_manager = ssgMgr;
     spdlog::trace("SSGManager initialized");
 
     // Initializing dependency finder
     spdlog::trace("Initializing DependencyFinder");
     auto dependencyFinder
-        = DependencyFinder(margoCtx, abtioCtx, ssgCtx, providerManager);
+        = DependencyFinder(margoMgr, abtioMgr, ssgMgr, providerManager);
     self->m_dependency_finder            = dependencyFinder;
     self->m_dependency_finder->m_timeout = dependency_timeout;
     spdlog::trace("DependencyFinder initialized");

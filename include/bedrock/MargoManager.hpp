@@ -22,6 +22,7 @@ class SSGData;
 class ABTioManager;
 class ABTioEntry;
 class ProviderEntry;
+class ServerImpl;
 
 /**
  * @brief The MargoManager class is encapsulates a margo_instance_id.
@@ -36,6 +37,7 @@ class MargoManager {
     friend class ABTioEntry;
     friend class ABTioManager;
     friend class ProviderEntry;
+    friend class ServerImpl;
 
   public:
     /**
@@ -97,6 +99,11 @@ class MargoManager {
      * @return reference to the thallium engine.
      */
     const tl::engine& getThalliumEngine() const;
+
+    /**
+     * @brief Get the default handle pool from Margo.
+     */
+    ABT_pool getDefaultHandlerPool() const;
 
     /**
      * @brief Get the pool corresponding to a particular index.
