@@ -49,6 +49,7 @@ static bool isPositiveNumber(const std::string& str) {
 
 VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                                std::string* resolved) const {
+    spdlog::trace("DependencyFinder search for {} of type {}", spec, type);
     if (type == "pool") { // Argobots pool
         ABT_pool p = MargoManager(self->m_margo_context).getPool(spec);
         if (p == ABT_POOL_NULL) {
@@ -200,6 +201,8 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                                              uint16_t           provider_id,
                                              const std::string& locator,
                                              std::string* resolved) const {
+    spdlog::trace("Making provider handle of type {} with id {} and locator {}",
+                  type, provider_id, locator);
     auto      mid             = self->m_margo_context->m_mid;
     auto      client          = getClient(type);
     auto      service_factory = ModuleContext::getServiceFactory(type);
@@ -230,7 +233,6 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
     } else {
 
         if (locator.rfind("ssg://", 0) == 0) {
-
             hg_addr_t ssg_addr
                 = SSGManager(self->m_ssg_context).resolveAddress(locator);
             hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
@@ -287,6 +289,8 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
     auto               service_factory = ModuleContext::getServiceFactory(type);
     hg_addr_t          addr            = HG_ADDR_NULL;
     ProviderDescriptor descriptor;
+    spdlog::trace("Making provider handle to provider {} of type {} at {}",
+                  name, type, locator);
 
     if (locator == "local") {
 
@@ -311,7 +315,6 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
     } else {
 
         if (locator.rfind("ssg://", 0) == 0) {
-
             hg_addr_t ssg_addr
                 = SSGManager(self->m_ssg_context).resolveAddress(locator);
             hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);

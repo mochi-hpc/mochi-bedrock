@@ -355,7 +355,8 @@ hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
         auto member_id_or_rank = atol(match.str(3).c_str());
         auto gid               = getGroup(group_name);
         if (gid == SSG_GROUP_ID_INVALID) {
-            throw Exception("Could not resolve \"{}\" to a valid SSG group");
+            throw Exception("Could not resolve \"{}\" to a valid SSG group",
+                            group_name);
         }
         ssg_member_id_t member_id;
         if (!is_member_id) {
