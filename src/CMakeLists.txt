@@ -1,8 +1,6 @@
 # set source files
 set (server-src-files
      Server.cpp
-#     Provider.cpp
-#     Backend.cpp
      ABTioManager.cpp
      MargoManager.cpp
      ModuleContext.cpp
