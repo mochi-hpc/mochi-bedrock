@@ -28,7 +28,12 @@ Server::Server(const std::string& address, const std::string& configString) {
 
     // Read JSON config file
     spdlog::trace("Parsing JSON configuration");
-    json config = json::parse(configString);
+    json config;
+    if (!configString.empty()) {
+        config = json::parse(configString);
+    } else {
+        config = json::object();
+    }
     spdlog::trace("Parsing done");
 
     // Extract margo section from the config
