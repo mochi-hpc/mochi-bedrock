@@ -30,7 +30,7 @@ class ABTioEntry {
         config["name"]   = name;
         config["pool"]   = MargoManager(margo_ctx).getPoolInfo(pool).first;
         auto c           = abt_io_get_config(abt_io_id);
-        config["config"] = std::string(c);
+        config["config"] = c ? json::parse(c) : json::object();
         free(c);
         return config;
     }
