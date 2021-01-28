@@ -26,6 +26,7 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     }
     std::vector<std::string> names;
     std::vector<ABT_pool>    pools;
+    std::vector<std::string> configs;
     int                      i = 0;
     for (auto& abt_io_config : config) {
         if (!abt_io_config.is_object()) {
@@ -74,6 +75,16 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
                 "\"pool\" field in ABT-IO description should be string or "
                 "integer");
         }
+        // get the config of this ABT-IO instance
+        auto config_json_it = abt_io_config.find("config");
+        if (config_json_it == abt_io_config.end()) {
+            configs.push_back("{}");
+        } else if (!config_json_it->is_object()) {
+            throw Exception(
+                "\"config\" field in ABT-IO description should be an object");
+        } else {
+            configs.push_back(config_json_it->dump());
+        }
         // put the pool and name in vectors
         names.push_back(name);
         pools.push_back(pool);
@@ -82,7 +93,10 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     // instantiate ABT-IO instances
     std::vector<ABTioEntry> abt_io_entries;
     for (unsigned i = 0; i < names.size(); i++) {
-        abt_io_instance_id abt_io = abt_io_init_pool(pools[i]);
+        abt_io_init_info abt_io_info;
+        abt_io_info.json_config   = configs[i].c_str();
+        abt_io_info.progress_pool = pools[i];
+        abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
         if (abt_io == ABT_IO_INSTANCE_NULL) {
             for (unsigned j = 0; j < abt_io_entries.size(); j++) {
                 abt_io_finalize(abt_io_entries[j].abt_io_id);
