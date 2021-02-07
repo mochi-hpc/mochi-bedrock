@@ -118,7 +118,7 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                     if (resolved) {
                         *resolved = type + ":" + std::to_string(provider_id);
                     }
-                    return std::move(ptr);
+                    return ptr;
                 }
             } else { // dependency to a provider handle
                 if (specifier.empty()) {

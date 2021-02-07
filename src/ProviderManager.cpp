@@ -11,6 +11,7 @@
 
 #include "ProviderManagerImpl.hpp"
 
+#include <thallium/serialization/stl/vector.hpp>
 #include <thallium/serialization/stl/string.hpp>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>

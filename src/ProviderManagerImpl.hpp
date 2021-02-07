@@ -12,6 +12,7 @@
 #include "bedrock/ProviderWrapper.hpp"
 #include "bedrock/ProviderManager.hpp"
 
+#include <thallium/serialization/stl/vector.hpp>
 #include <thallium.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
