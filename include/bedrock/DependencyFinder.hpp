@@ -10,6 +10,7 @@
 #include <bedrock/ABTioManager.hpp>
 #include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
+#include <bedrock/ClientManager.hpp>
 #include <bedrock/VoidPtr.hpp>
 #include <string>
 #include <memory>
@@ -35,9 +36,11 @@ class DependencyFinder {
      * @param abtio ABT-IO context
      * @param ssg SSG context
      * @param pmanager Provider manager
+     * @param cmanager Client manager
      */
     DependencyFinder(const MargoManager& margo, const ABTioManager& abtio,
-                     const SSGManager& ssg, const ProviderManager& pmanager);
+                     const SSGManager& ssg, const ProviderManager& pmanager,
+                     const ClientManager& cmanager);
 
     /**
      * @brief Copy-constructor.
@@ -118,14 +121,20 @@ class DependencyFinder {
                          uint16_t* provider_id = nullptr) const;
 
     /**
-     * @brief Get a client of a given type. The returned
+     * @brief Find client with a given name. The returned
      * handle will remain valid until the program terminates.
+     * If the name is empty, this function will try to find
+     * a client of the specified type.
      *
      * @param type Type of client.
+     * @param name Name of the client.
+     * @param create_if_not_found Create the client if not found.
+     * @param found_name name of the client found or create.
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr getClient(const std::string& type) const;
+    VoidPtr findClient(const std::string& type, const std::string& name,
+                       std::string* found_name = nullptr) const;
 
     /**
      * @brief Get an admin of a given type. The returned

@@ -120,11 +120,11 @@ class AbstractServiceFactory {
     /**
      * @brief Register a client for the service.
      *
-     * @param mid Margo instance.
+     * @param args Arguments.
      *
      * @return A client cast into a void*.
      */
-    virtual void* initClient(margo_instance_id mid) = 0;
+    virtual void* initClient(const FactoryArgs& args) = 0;
 
     /**
      * @brief Deregister a client.
@@ -132,6 +132,13 @@ class AbstractServiceFactory {
      * @param client Client.
      */
     virtual void finalizeClient(void* client) = 0;
+
+    /**
+     * @brief Get the configuration of a client.
+     *
+     * @return the string configuration.
+     */
+    virtual std::string getClientConfig(void* client) = 0;
 
     /**
      * @brief Create a provider handle from the client, and address,
@@ -157,7 +164,12 @@ class AbstractServiceFactory {
     /**
      * @brief Return the dependencies of a provider.
      */
-    virtual const std::vector<Dependency>& getDependencies() = 0;
+    virtual const std::vector<Dependency>& getProviderDependencies() = 0;
+
+    /**
+     * @brief Return the dependencies of a client.
+     */
+    virtual const std::vector<Dependency>& getClientDependencies() = 0;
 };
 
 } // namespace bedrock

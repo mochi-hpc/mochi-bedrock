@@ -13,6 +13,7 @@
 extern "C" {
 #endif
 
+#define BEDROCK_OPTIONAL 0x0
 #define BEDROCK_REQUIRED 0x1
 #define BEDROCK_ARRAY    0x2
 
@@ -83,12 +84,12 @@ typedef int (*bedrock_deregister_provider_fn)(bedrock_module_provider_t);
 /**
  * @brief Type of function called to register a client.
  *
- * @param [in] margo_instance_id Margo instance id.
+ * @param [in] bedrock_args_t Arguments for the client..
  * @param [out] bedrock_module_client_t Resulting client.
  *
  * @return BEDROCK_SUCCESS or other error code.
  */
-typedef int (*bedrock_init_client_fn)(margo_instance_id mid,
+typedef int (*bedrock_init_client_fn)(bedrock_args_t args,
                                       bedrock_module_client_t*);
 
 /**
@@ -136,10 +137,20 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
 typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
 
 /**
+ * @brief Type of function called to get the configuration of a client.
+ * The returned string, if not NULL, should be freed by the caller.
+ *
+ * @param bedrock_module_client_t Client.
+ *
+ * @return null-terminated configuration string.
+ */
+typedef char* (*bedrock_client_get_config_fn)(bedrock_module_client_t);
+
+/**
  * @brief A global instance of the bedrock_module structure must be provided
  * in a shared library to make up a Bedrock module.
- * The dependencies array should be terminated by a
- * BEDROCK_NO_MORE_DEPENDENCIES.
+ * The provider_dependencies and client_dependencies arrays should be terminated
+ * by a BEDROCK_NO_MORE_DEPENDENCIES.
  */
 struct bedrock_module {
     bedrock_register_provider_fn       register_provider;
@@ -147,9 +158,11 @@ struct bedrock_module {
     bedrock_provider_get_config_fn     get_provider_config;
     bedrock_init_client_fn             init_client;
     bedrock_finalize_client_fn         finalize_client;
+    bedrock_client_get_config_fn       get_client_config;
     bedrock_create_provider_handle_fn  create_provider_handle;
     bedrock_destroy_provider_handle_fn destroy_provider_handle;
-    struct bedrock_dependency*         dependencies;
+    struct bedrock_dependency*         provider_dependencies;
+    struct bedrock_dependency*         client_dependencies;
 };
 
 /**

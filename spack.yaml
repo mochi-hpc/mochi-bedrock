@@ -2,7 +2,7 @@ spack:
   specs:
   - cmake
   - pkg-config
-  - mochi-margo@master
+  - mochi-margo
   - mochi-thallium
   - mochi-abt-io
   - mochi-ssg@master

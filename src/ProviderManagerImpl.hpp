@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_PROVIDER_IMPL_H
-#define __BEDROCK_PROVIDER_IMPL_H
+#ifndef __BEDROCK_PROVIDER_MANAGER_IMPL_H
+#define __BEDROCK_PROVIDER_MANAGER_IMPL_H
 
 #include "MargoManagerImpl.hpp"
 #include "bedrock/RequestResult.hpp"

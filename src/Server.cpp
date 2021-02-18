@@ -9,6 +9,7 @@
 #include "bedrock/ABTioManager.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/ProviderManager.hpp"
+#include "bedrock/ClientManager.hpp"
 #include "bedrock/DependencyFinder.hpp"
 #include "bedrock/SSGManager.hpp"
 #include "MargoLogging.hpp"
@@ -85,6 +86,13 @@ Server::Server(const std::string& address, const std::string& configString) {
     self->m_provider_manager = providerManager;
     spdlog::trace("ProviderManager initialized");
 
+    // Initializing the client manager
+    spdlog::trace("Initializing ClientManager");
+    auto clientManager
+        = ClientManager(margoMgr, bedrock_provider_id, bedrock_pool);
+    self->m_client_manager = clientManager;
+    spdlog::trace("ClientManager initialized");
+
     // Initialize abt-io context
     spdlog::trace("Initializing ABTioManager");
     auto abtioConfig      = config["abt_io"].dump();
@@ -107,11 +115,16 @@ Server::Server(const std::string& address, const std::string& configString) {
 
     // Initializing dependency finder
     spdlog::trace("Initializing DependencyFinder");
-    auto dependencyFinder
-        = DependencyFinder(margoMgr, abtioMgr, ssgMgr, providerManager);
-    self->m_dependency_finder            = dependencyFinder;
+    auto dependencyFinder     = DependencyFinder(margoMgr, abtioMgr, ssgMgr,
+                                             providerManager, clientManager);
+    self->m_dependency_finder = dependencyFinder;
     self->m_dependency_finder->m_timeout = dependency_timeout;
     spdlog::trace("DependencyFinder initialized");
+
+    // Creating clients
+    spdlog::trace("Initializing clients");
+    auto clientManagerConfig = config["clients"].dump();
+    clientManager.addClientListFromJSON(clientManagerConfig, dependencyFinder);
 
     // Starting up providers
     spdlog::trace("Initializing providers");

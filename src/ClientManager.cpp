@@ -3,13 +3,13 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/ProviderManager.hpp"
+#include "bedrock/ClientManager.hpp"
 #include "bedrock/Exception.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/DependencyFinder.hpp"
 
-#include "ProviderManagerImpl.hpp"
+#include "ClientManagerImpl.hpp"
 
 #include <thallium/serialization/stl/string.hpp>
 #include <spdlog/spdlog.h>
@@ -23,164 +23,184 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-ProviderManager::ProviderManager(const MargoManager& margo,
-                                 uint16_t provider_id, ABT_pool pool)
-: self(std::make_shared<ProviderManagerImpl>(margo.getThalliumEngine(),
-                                             provider_id, tl::pool(pool))) {
+ClientManager::ClientManager(const MargoManager& margo, uint16_t provider_id,
+                             ABT_pool pool)
+: self(std::make_shared<ClientManagerImpl>(margo.getThalliumEngine(),
+                                           provider_id, tl::pool(pool))) {
     self->m_margo_context = margo;
 }
 
-ProviderManager::ProviderManager(const ProviderManager&) = default;
+ClientManager::ClientManager(const ClientManager&) = default;
 
-ProviderManager::ProviderManager(ProviderManager&&) = default;
+ClientManager::ClientManager(ClientManager&&) = default;
 
-ProviderManager& ProviderManager::operator=(const ProviderManager&) = default;
+ClientManager& ClientManager::operator=(const ClientManager&) = default;
 
-ProviderManager& ProviderManager::operator=(ProviderManager&&) = default;
+ClientManager& ClientManager::operator=(ClientManager&&) = default;
 
-ProviderManager::~ProviderManager() = default;
+ClientManager::~ClientManager() = default;
 
-ProviderManager::operator bool() const { return static_cast<bool>(self); }
+ClientManager::operator bool() const { return static_cast<bool>(self); }
 
-bool ProviderManager::lookupProvider(const std::string& spec,
-                                     ProviderWrapper*   wrapper) const {
-    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-    auto                       it = self->resolveSpec(spec);
-    if (it == self->m_providers.end()) { return false; }
+bool ClientManager::lookupClient(const std::string& name,
+                                 ClientWrapper*     wrapper) const {
+    std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
+    auto                       it = self->resolveSpec(name);
+    if (it == self->m_clients.end()) { return false; }
     if (wrapper) { *wrapper = *it; }
     return true;
 }
 
-std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
-    std::lock_guard<tl::mutex>      lock(self->m_providers_mtx);
-    std::vector<ProviderDescriptor> result;
-    result.reserve(self->m_providers.size());
-    for (const auto& w : self->m_providers) { result.push_back(w); }
+void ClientManager::lookupOrCreateAnonymous(const std::string& type,
+                                            ClientWrapper*     wrapper) {
+    {
+        std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
+        for (const auto& client : self->m_clients) {
+            if (client.type == type) {
+                if (wrapper) { *wrapper = client; }
+                return;
+            }
+        }
+        // no client of this type found, try creating one with name
+        // __type_client__ first we need to check whether we have the module for
+        // such a client
+        auto service_factory = ModuleContext::getServiceFactory(type);
+        if (!service_factory) {
+            throw Exception(
+                "Could not find service factory for client type \"{}\"", type);
+        }
+        // find out if such a client has required dependencies
+        for (const auto& dependency :
+             service_factory->getClientDependencies()) {
+            if (dependency.flags & BEDROCK_REQUIRED)
+                throw Exception(
+                    "Could not create default client of type \"{}\" because"
+                    " it requires dependency \"{}\"",
+                    type, dependency.name);
+        }
+    }
+
+    // we can create the client
+    ClientDescriptor descriptor;
+    descriptor.name = "__"s + type + "_client__";
+    descriptor.type = type;
+    ResolvedDependencyMap dependencies;
+
+    createClient(descriptor, "{}", dependencies);
+    // get the client
+    if (wrapper) {
+        auto it  = self->resolveSpec(descriptor.name);
+        *wrapper = *it;
+    }
+}
+
+std::vector<ClientDescriptor> ClientManager::listClients() const {
+    std::lock_guard<tl::mutex>    lock(self->m_clients_mtx);
+    std::vector<ClientDescriptor> result;
+    result.reserve(self->m_clients.size());
+    for (const auto& w : self->m_clients) { result.push_back(w); }
     return result;
 }
 
-void ProviderManager::registerProvider(
-    const ProviderDescriptor& descriptor, const std::string& pool_name,
-    const std::string& config, const ResolvedDependencyMap& dependencies) {
+void ClientManager::createClient(const ClientDescriptor&      descriptor,
+                                 const std::string&           config,
+                                 const ResolvedDependencyMap& dependencies) {
     if (descriptor.name.empty()) {
-        throw Exception("Provider name cannot be empty");
+        throw Exception("Client name cannot be empty");
     }
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
-        throw Exception(
-            "Could not find service factory for provider type \"{}\"",
-            descriptor.type);
+        throw Exception("Could not find service factory for client type \"{}\"",
+                        descriptor.type);
     }
-    spdlog::trace("Found provider \"{}\" to be of type \"{}\"", descriptor.name,
+    spdlog::trace("Found client \"{}\" to be of type \"{}\"", descriptor.name,
                   descriptor.type);
 
     {
-        std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+        std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         auto                       it = self->resolveSpec(descriptor.name);
-        if (it != self->m_providers.end()) {
+        if (it != self->m_clients.end()) {
             throw Exception(
-                "Could not register provider: a provider with the name \"{}\""
+                "Could not register client: a client with the name \"{}\""
                 " is already registered",
                 descriptor.name);
         }
 
-        it = self->resolveSpec(descriptor.type, descriptor.provider_id);
-        if (it != self->m_providers.end()) {
-            throw Exception(
-                "Could not register provider: a provider with the type \"{}\""
-                " and provider id {} is already registered",
-                descriptor.type, descriptor.provider_id);
-        }
-
         auto margoCtx = MargoManager(self->m_margo_context);
 
-        ProviderEntry entry;
+        ClientEntry entry;
         entry.name         = descriptor.name;
         entry.type         = descriptor.type;
-        entry.provider_id  = descriptor.provider_id;
         entry.factory      = service_factory;
         entry.margo_ctx    = self->m_margo_context;
-        entry.pool         = margoCtx.getPool(pool_name);
         entry.dependencies = dependencies;
 
         FactoryArgs args;
         args.name         = descriptor.name;
         args.mid          = margoCtx.getMargoInstance();
-        args.pool         = entry.pool;
+        args.pool         = ABT_POOL_NULL;
         args.config       = config;
-        args.provider_id  = descriptor.provider_id;
+        args.provider_id  = 0;
         args.dependencies = dependencies;
 
-        if (args.pool == ABT_POOL_NULL || args.pool == nullptr) {
-            throw Exception("Could not find pool \"{}\"", pool_name);
-        }
+        spdlog::trace("Registering client {} of type {}", descriptor.name,
+                      descriptor.type);
+        entry.handle = service_factory->initClient(args);
 
-        spdlog::trace("Registering provider {} of type {} with provider id {}",
-                      descriptor.name, descriptor.type, descriptor.provider_id);
-        entry.handle = service_factory->registerProvider(args);
-
-        self->m_providers.push_back(entry);
+        self->m_clients.push_back(entry);
     }
-    self->m_providers_cv.notify_all();
+    self->m_clients_cv.notify_all();
 }
 
-void ProviderManager::deregisterProvider(const std::string& spec) {
-    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-    auto                       it = self->resolveSpec(spec);
-    if (it == self->m_providers.end()) {
-        throw Exception("Could not find provider for spec \"{}\"", spec);
+void ClientManager::destroyClient(const std::string& name) {
+    std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
+    auto                       it = self->resolveSpec(name);
+    if (it == self->m_clients.end()) {
+        throw Exception("Could not find client with name \"{}\"", name);
     }
-    auto& provider = *it;
-    spdlog::trace("Deregistering provider {}", provider.name);
-    provider.factory->deregisterProvider(provider.handle);
+    auto& client = *it;
+    spdlog::trace("Destroying client {}", client.name);
+    client.factory->finalizeClient(client.handle);
 }
 
-void ProviderManager::addProviderFromJSON(
+void ClientManager::addClientFromJSON(
     const std::string& jsonString, const DependencyFinder& dependencyFinder) {
     auto config = json::parse(jsonString);
     if (!config.is_object()) {
         throw Exception(
             "Invalid JSON configuration passed to "
-            "ProviderManager::addProviderFromJSON (should be an object)");
+            "ClientManager::addClientFromJSON (should be an object)");
     }
 
-    ProviderDescriptor descriptor;
+    ClientDescriptor descriptor;
 
-    descriptor.name        = config.value("name", "");
-    descriptor.provider_id = config.value("provider_id", (uint16_t)0);
+    descriptor.name = config.value("name", "");
 
     auto type_it = config.find("type");
     if (type_it == config.end()) {
-        throw Exception("No type provided for provider in JSON configuration");
+        throw Exception("No type provided for client in JSON configuration");
     }
     descriptor.type = type_it->get<std::string>();
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
-        throw Exception(
-            "Could not find service factory for provider type \"{}\"",
-            descriptor.type);
+        throw Exception("Could not find service factory for client type \"{}\"",
+                        descriptor.type);
     }
 
-    auto provider_config    = "{}"s;
-    auto provider_config_it = config.find("config");
-    if (provider_config_it != config.end()) {
-        provider_config = provider_config_it->dump();
+    auto client_config    = "{}"s;
+    auto client_config_it = config.find("config");
+    if (client_config_it != config.end()) {
+        client_config = client_config_it->dump();
     }
-
-    auto pool_it = config.find("pool");
-    if (pool_it == config.end()) {
-        throw Exception("No pool specified for provider in JSON configuration");
-    }
-    auto pool_name = pool_it->get<std::string>();
 
     auto deps_from_config = config.value("dependencies", json::object());
 
     ResolvedDependencyMap                                 resolved_dependencies;
     std::unordered_map<std::string, std::vector<VoidPtr>> dependency_wrappers;
 
-    for (const auto& dependency : service_factory->getProviderDependencies()) {
+    for (const auto& dependency : service_factory->getClientDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
@@ -236,25 +256,24 @@ void ProviderManager::addProviderFromJSON(
         }
     }
 
-    registerProvider(descriptor, pool_name, provider_config,
-                     resolved_dependencies);
+    createClient(descriptor, client_config, resolved_dependencies);
 }
 
-void ProviderManager::addProviderListFromJSON(
+void ClientManager::addClientListFromJSON(
     const std::string& jsonString, const DependencyFinder& dependencyFinder) {
     auto config = json::parse(jsonString);
     if (config.is_null()) { return; }
     if (!config.is_array()) {
         throw Exception(
             "Invalid JSON configuration passed to "
-            "ProviderManager::addProviderListFromJSON (expected array)");
+            "ClientManager::addClientListFromJSON (expected array)");
     }
-    for (const auto& provider : config) {
-        addProviderFromJSON(provider.dump(), dependencyFinder);
+    for (const auto& client : config) {
+        addClientFromJSON(client.dump(), dependencyFinder);
     }
 }
 
-std::string ProviderManager::getCurrentConfig() const {
+std::string ClientManager::getCurrentConfig() const {
     return self->makeConfig().dump();
 }
 

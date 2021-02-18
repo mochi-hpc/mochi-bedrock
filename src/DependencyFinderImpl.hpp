@@ -10,6 +10,7 @@
 #include "ABTioManagerImpl.hpp"
 #include "SSGManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
+#include "ClientManagerImpl.hpp"
 #include "bedrock/VoidPtr.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/ProviderWrapper.hpp"
@@ -27,13 +28,13 @@ class DependencyFinderImpl {
     using client_type = std::string;
 
   public:
-    tl::engine                               m_engine;
-    std::shared_ptr<MargoManagerImpl>        m_margo_context;
-    std::shared_ptr<ABTioManagerImpl>        m_abtio_context;
-    std::shared_ptr<SSGManagerImpl>          m_ssg_context;
-    std::shared_ptr<ProviderManagerImpl>     m_provider_manager;
-    std::unordered_map<client_type, VoidPtr> m_cached_clients;
-    double                                   m_timeout = 30.0;
+    tl::engine                           m_engine;
+    std::shared_ptr<MargoManagerImpl>    m_margo_context;
+    std::shared_ptr<ABTioManagerImpl>    m_abtio_context;
+    std::shared_ptr<SSGManagerImpl>      m_ssg_context;
+    std::shared_ptr<ProviderManagerImpl> m_provider_manager;
+    std::shared_ptr<ClientManagerImpl>   m_client_manager;
+    double                               m_timeout = 30.0;
 
     tl::remote_procedure m_lookup_provider;
 

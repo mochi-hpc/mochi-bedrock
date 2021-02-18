@@ -19,12 +19,14 @@ namespace bedrock {
 DependencyFinder::DependencyFinder(const MargoManager&    margo,
                                    const ABTioManager&    abtio,
                                    const SSGManager&      ssg,
-                                   const ProviderManager& pmanager)
+                                   const ProviderManager& pmanager,
+                                   const ClientManager&   cmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio;
     self->m_ssg_context      = ssg;
     self->m_provider_manager = pmanager;
+    self->m_client_manager   = cmanager;
 }
 
 DependencyFinder::DependencyFinder(const DependencyFinder&) = default;
@@ -76,7 +78,7 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
     } else { // Provider or provider handle
 
         std::regex re(
-            "([a-zA-Z_][a-zA-Z0-9_]*)(?::([0-9]+|client))?(?:@(.+))?");
+            "([a-zA-Z_][a-zA-Z0-9_]*)(?::(client|[0-9]+))?(?:@(.+))?");
         std::smatch match;
         if (std::regex_search(spec, match, re)) {
             if (match.str(0) != spec) {
@@ -90,17 +92,11 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
 
             if (locator.empty()) { // local dependency to a provider or a client
                                    // or admin
-                if (specifier == "client") { // dependency to a client
-                    if (!locator.empty()) {
-                        throw Exception(
-                            "Ill-formated dependency specification \"{}\"",
-                            spec);
-                    }
-                    if (type != identifier) {
-                        throw Exception("Invalid client type in \"{}\"", spec);
-                    }
-                    if (resolved) { *resolved = spec; }
-                    return getClient(type);
+                if (specifier == "client") { // requesting a client
+                    std::string client_name_found;
+                    auto        ptr = findClient(type, "", &client_name_found);
+                    if (resolved) { *resolved = client_name_found; }
+                    return std::move(ptr);
                 } else if (isPositiveNumber(
                                specifier)) { // dependency to a provider
                                              // specified by type:id
@@ -112,13 +108,30 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                     }
                     if (resolved) { *resolved = spec; }
                     return findProvider(type, provider_id);
-                } else { // dependency to a provider specified by name
-                    uint16_t provider_id;
-                    auto     ptr = findProvider(type, identifier, &provider_id);
-                    if (resolved) {
-                        *resolved = type + ":" + std::to_string(provider_id);
+                } else { // dependency to a provider specified by name, or a
+                         // client
+                    try {
+                        try {
+                            auto ptr = findClient(type, identifier);
+                            if (resolved) { *resolved = identifier; }
+                            return std::move(ptr);
+                        } catch (const Exception&) {
+                            // didn't fine a client, try a provider
+                            uint16_t provider_id;
+                            auto     ptr
+                                = findProvider(type, identifier, &provider_id);
+                            if (resolved) {
+                                *resolved
+                                    = type + ":" + std::to_string(provider_id);
+                            }
+                            return std::move(ptr);
+                        }
+                    } catch (const Exception&) {
+                        throw Exception(
+                            "Could not find client or provider with "
+                            "specification \"{}\"",
+                            spec);
                     }
-                    return std::move(ptr);
                 }
             } else { // dependency to a provider handle
                 if (specifier.empty()) {
@@ -179,22 +192,26 @@ VoidPtr DependencyFinder::findProvider(const std::string& type,
     return VoidPtr(provider.handle);
 }
 
-VoidPtr DependencyFinder::getClient(const std::string& type) const {
-    auto it = self->m_cached_clients.find(type);
-    if (it != self->m_cached_clients.end()) {
-        return VoidPtr(it->second.handle);
+VoidPtr DependencyFinder::findClient(const std::string& type,
+                                     const std::string& name,
+                                     std::string*       found_name) const {
+    ClientWrapper client;
+    if (!name.empty()) {
+        bool exists
+            = ClientManager(self->m_client_manager).lookupClient(name, &client);
+        if (!exists) {
+            throw Exception("Could not find client named \"{}\"", name);
+        } else if (type != client.type) {
+            throw Exception(
+                "Invalid type {} for dependency \"{}\" (expected {})",
+                client.type, name, type);
+        }
+    } else {
+        ClientManager(self->m_client_manager)
+            .lookupOrCreateAnonymous(type, &client);
     }
-    auto service_factory = ModuleContext::getServiceFactory(type);
-    if (!service_factory) {
-        throw Exception(
-            "Could not create client for unknown service type \"{}\"", type);
-    }
-    void* client = service_factory->initClient(self->m_margo_context->m_mid);
-    self->m_cached_clients.emplace(type,
-                                   VoidPtr(client, [service_factory](void* c) {
-                                       service_factory->finalizeClient(c);
-                                   }));
-    return VoidPtr(client);
+    if (found_name) *found_name = client.name;
+    return VoidPtr(client.handle);
 }
 
 VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
@@ -204,7 +221,7 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
     spdlog::trace("Making provider handle of type {} with id {} and locator {}",
                   type, provider_id, locator);
     auto      mid             = self->m_margo_context->m_mid;
-    auto      client          = getClient(type);
+    auto      client          = findClient(type, "");
     auto      service_factory = ModuleContext::getServiceFactory(type);
     hg_addr_t addr            = HG_ADDR_NULL;
 
@@ -285,7 +302,7 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
                                              const std::string& locator,
                                              std::string* resolved) const {
     auto               mid             = self->m_margo_context->m_mid;
-    auto               client          = getClient(type);
+    auto               client          = findClient(type, "");
     auto               service_factory = ModuleContext::getServiceFactory(type);
     hg_addr_t          addr            = HG_ADDR_NULL;
     ProviderDescriptor descriptor;

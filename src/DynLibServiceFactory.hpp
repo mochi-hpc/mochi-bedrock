@@ -32,15 +32,27 @@ class DynLibServiceFactory : public AbstractServiceFactory {
             throw Exception("Could not load {} module: {}", moduleName, error);
         }
         init_module(&m_module);
-        if (m_module.dependencies == nullptr) return;
-        int i = 0;
-        while (m_module.dependencies[i].name != nullptr) {
-            Dependency d;
-            d.name  = m_module.dependencies[i].name;
-            d.type  = m_module.dependencies[i].type;
-            d.flags = m_module.dependencies[i].flags;
-            m_dependencies.push_back(d);
-            i++;
+        if (m_module.provider_dependencies) {
+            int i = 0;
+            while (m_module.provider_dependencies[i].name != nullptr) {
+                Dependency d;
+                d.name  = m_module.provider_dependencies[i].name;
+                d.type  = m_module.provider_dependencies[i].type;
+                d.flags = m_module.provider_dependencies[i].flags;
+                m_provider_dependencies.push_back(d);
+                i++;
+            }
+        }
+        if (m_module.client_dependencies) {
+            int i = 0;
+            while (m_module.client_dependencies[i].name != nullptr) {
+                Dependency d;
+                d.name  = m_module.client_dependencies[i].name;
+                d.type  = m_module.client_dependencies[i].type;
+                d.flags = m_module.client_dependencies[i].flags;
+                m_client_dependencies.push_back(d);
+                i++;
+            }
         }
     }
 
@@ -80,16 +92,19 @@ class DynLibServiceFactory : public AbstractServiceFactory {
     }
 
     std::string getProviderConfig(void* provider) override {
+        if (!m_module.get_provider_config) return std::string("{}");
         auto config = m_module.get_provider_config(provider);
-        if (!config) return std::string();
+        if (!config) return std::string("{}");
         auto config_str = std::string(config);
         free(config);
         return config_str;
     }
 
-    void* initClient(margo_instance_id mid) override {
+    void* initClient(const FactoryArgs& args) override {
         void* client = nullptr;
-        int   ret    = m_module.init_client(mid, &client);
+        int   ret    = m_module.init_client(
+            reinterpret_cast<bedrock_args_t>(const_cast<FactoryArgs*>(&args)),
+            &client);
         if (ret != BEDROCK_SUCCESS) {
             throw Exception("Module register_client function returned {}", ret);
         }
@@ -101,6 +116,15 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         if (ret != BEDROCK_SUCCESS) {
             throw Exception("Module finalize_client function returned {}", ret);
         }
+    }
+
+    std::string getClientConfig(void* client) override {
+        if (!m_module.get_client_config) return std::string("{}");
+        auto config = m_module.get_client_config(client);
+        if (!config) return std::string("{}");
+        auto config_str = std::string(config);
+        free(config);
+        return config_str;
     }
 
     void* createProviderHandle(void* client, hg_addr_t address,
@@ -123,14 +147,19 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         }
     }
 
-    const std::vector<Dependency>& getDependencies() override {
-        return m_dependencies;
+    const std::vector<Dependency>& getProviderDependencies() override {
+        return m_provider_dependencies;
+    }
+
+    const std::vector<Dependency>& getClientDependencies() override {
+        return m_client_dependencies;
     }
 
   private:
     void*                   m_handle = nullptr;
     bedrock_module          m_module;
-    std::vector<Dependency> m_dependencies;
+    std::vector<Dependency> m_provider_dependencies;
+    std::vector<Dependency> m_client_dependencies;
 };
 
 } // namespace bedrock

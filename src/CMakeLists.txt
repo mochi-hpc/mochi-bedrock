@@ -6,6 +6,7 @@ set (server-src-files
      ModuleContext.cpp
      SSGManager.cpp
      ProviderManager.cpp
+     ClientManager.cpp
      DependencyFinder.cpp
      Module.cpp
      MargoLogging.cpp)

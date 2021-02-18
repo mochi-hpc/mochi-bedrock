@@ -59,6 +59,16 @@
         "module_a" : "examples/libexample-module-a.so",
         "module_b" : "examples/libexample-module-b.so"
     },
+    "clients" : [
+        {
+            "name" : "ClientA",
+            "type" : "module_a",
+            "config" : {},
+            "dependencies" : {
+                "some_group" : "mygroup"
+            }
+        }
+    ],
     "providers" : [
         {
             "name" : "ProviderA",
@@ -78,7 +88,7 @@
                 "ssg_group" : "mygroup",
                 "a_provider" : "ProviderA",
                 "a_local" : [ "ProviderA@local" ],
-                "a_client" : "module_a:client"
+                "a_client" : "ClientA"
             }
         }
     ]

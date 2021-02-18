@@ -41,9 +41,10 @@ static char* module_a_get_provider_config(
 }
 
 static int module_a_init_client(
-        margo_instance_id mid,
+        bedrock_args_t args,
         bedrock_module_client_t* client)
 {
+    margo_instance_id mid = bedrock_args_get_margo_instance(args);
     *client = strdup("module_a:client");
     printf("Registered a client from module A\n");
     printf(" -> mid = %p\n", (void*)mid);
@@ -56,6 +57,12 @@ static int module_a_finalize_client(
     free(client);
     printf("Finalized a client from module A\n");
     return BEDROCK_SUCCESS;
+}
+
+static char* module_a_get_client_config(
+        bedrock_module_provider_t provider) {
+    (void)provider;
+    return strdup("{}");
 }
 
 static int module_a_create_provider_handle(
@@ -80,15 +87,22 @@ static int module_a_destroy_provider_handle(
     return BEDROCK_SUCCESS;
 }
 
+static struct bedrock_dependency client_dependencies[] = {
+    { "some_group", "ssg", BEDROCK_OPTIONAL },
+    BEDROCK_NO_MORE_DEPENDENCIES
+};
+
 static struct bedrock_module module_a = {
     .register_provider       = module_a_register_provider,
     .deregister_provider     = module_a_deregister_provider,
     .get_provider_config     = module_a_get_provider_config,
     .init_client             = module_a_init_client,
     .finalize_client         = module_a_finalize_client,
+    .get_client_config       = module_a_get_client_config,
     .create_provider_handle  = module_a_create_provider_handle,
     .destroy_provider_handle = module_a_destroy_provider_handle,
-    .dependencies            = NULL
+    .provider_dependencies   = NULL,
+    .client_dependencies     = client_dependencies
 };
 
 BEDROCK_REGISTER_MODULE(module_a, module_a)
