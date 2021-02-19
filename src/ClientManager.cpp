@@ -12,6 +12,7 @@
 #include "ClientManagerImpl.hpp"
 
 #include <thallium/serialization/stl/string.hpp>
+#include <thallium/serialization/stl/vector.hpp>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 #include <cctype>
