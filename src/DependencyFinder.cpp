@@ -78,17 +78,28 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
     } else { // Provider or provider handle
 
         std::regex re(
-            "([a-zA-Z_][a-zA-Z0-9_]*)(?::(client|[0-9]+))?(?:@(.+))?");
+            "(?:([a-zA-Z_][a-zA-Z0-9_]*)\\->)?" // client name (name->)
+            "([a-zA-Z_][a-zA-Z0-9_]*)"          // identifier (name or type)
+            "(?::(client|[0-9]+))?" // specifier ("client" or provider id)
+            "(?:@(.+))?");          // locator (@address)
         std::smatch match;
         if (std::regex_search(spec, match, re)) {
             if (match.str(0) != spec) {
                 throw Exception("Ill-formated dependency specification \"{}\"",
                                 spec);
             }
-            auto identifier = match.str(1); // name or type
+            auto client_name = match.str(1);
+            auto identifier  = match.str(2); // name or type
             auto specifier
-                = match.str(2);          // provider id, or "client" or "admin"
-            auto locator = match.str(3); // address or "local"
+                = match.str(3);          // provider id, or "client" or "admin"
+            auto locator = match.str(4); // address or "local"
+
+            if (locator.empty() && !client_name.empty()) {
+                throw Exception(
+                    "Client name (\"{}\") specified in dependency that is not "
+                    "a provider handle",
+                    client_name);
+            }
 
             if (locator.empty()) { // local dependency to a provider or a client
                                    // or admin
@@ -136,8 +147,8 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
             } else { // dependency to a provider handle
                 if (specifier.empty()) {
                     // dependency specified as name@location
-                    return makeProviderHandle(type, identifier, locator,
-                                              resolved);
+                    return makeProviderHandle(client_name, type, identifier,
+                                              locator, resolved);
                 } else if (isPositiveNumber(specifier)) {
                     // dependency specified as type:id@location
                     uint16_t provider_id = atoi(specifier.c_str());
@@ -146,8 +157,8 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                             "Invalid provider type in \"{}\" (expected {})",
                             spec, type);
                     }
-                    return makeProviderHandle(type, provider_id, locator,
-                                              resolved);
+                    return makeProviderHandle(client_name, type, provider_id,
+                                              locator, resolved);
                 } else { // invalid
                     throw Exception(
                         "Ill-formated dependency specification \"{}\"", spec);
@@ -214,16 +225,18 @@ VoidPtr DependencyFinder::findClient(const std::string& type,
     return VoidPtr(client.handle);
 }
 
-VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
+VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
+                                             const std::string& type,
                                              uint16_t           provider_id,
                                              const std::string& locator,
                                              std::string* resolved) const {
     spdlog::trace("Making provider handle of type {} with id {} and locator {}",
                   type, provider_id, locator);
-    auto      mid             = self->m_margo_context->m_mid;
-    auto      client          = findClient(type, "");
-    auto      service_factory = ModuleContext::getServiceFactory(type);
-    hg_addr_t addr            = HG_ADDR_NULL;
+    std::string found_client_name;
+    auto        mid    = self->m_margo_context->m_mid;
+    auto        client = findClient(type, client_name, &found_client_name);
+    auto        service_factory = ModuleContext::getServiceFactory(type);
+    hg_addr_t   addr            = HG_ADDR_NULL;
 
     if (locator == "local") {
 
@@ -286,7 +299,8 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
         char      addr_str[256];
         hg_size_t addr_str_size = 256;
         margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
-        *resolved = type + ":" + std::to_string(provider_id) + "@" + addr_str;
+        *resolved = found_client_name + "->" + type + ":"
+                  + std::to_string(provider_id) + "@" + addr_str;
     }
 
     void* ph = service_factory->createProviderHandle(client.handle, addr,
@@ -297,14 +311,16 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
     });
 }
 
-VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
+VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
+                                             const std::string& type,
                                              const std::string& name,
                                              const std::string& locator,
                                              std::string* resolved) const {
-    auto               mid             = self->m_margo_context->m_mid;
-    auto               client          = findClient(type, "");
-    auto               service_factory = ModuleContext::getServiceFactory(type);
-    hg_addr_t          addr            = HG_ADDR_NULL;
+    std::string found_client_name;
+    auto        mid    = self->m_margo_context->m_mid;
+    auto        client = findClient(type, client_name, &found_client_name);
+    auto        service_factory = ModuleContext::getServiceFactory(type);
+    hg_addr_t   addr            = HG_ADDR_NULL;
     ProviderDescriptor descriptor;
     spdlog::trace("Making provider handle to provider {} of type {} at {}",
                   name, type, locator);
@@ -366,8 +382,8 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& type,
         char      addr_str[256];
         hg_size_t addr_str_size = 256;
         margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
-        *resolved = type + ":" + std::to_string(descriptor.provider_id) + "@"
-                  + addr_str;
+        *resolved = found_client_name + "->" + type + ":"
+                  + std::to_string(descriptor.provider_id) + "@" + addr_str;
     }
 
     void* ph = service_factory->createProviderHandle(client.handle, addr,

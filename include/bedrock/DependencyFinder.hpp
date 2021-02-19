@@ -154,13 +154,17 @@ class DependencyFinder {
      * handle, so the caller is responsible for copying it if
      * necessary.
      *
+     * @param client_name Name of the client to use (or "" for any client of the
+     * right type)
      * @param type Type of service.
      * @param provider_id Provider id
      * @param locator Location (e.g. "local" or mercury or ssg addresses)
+     * @param resolved Output resolved specification
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr makeProviderHandle(const std::string& type, uint16_t provider_id,
+    VoidPtr makeProviderHandle(const std::string& client_name,
+                               const std::string& type, uint16_t provider_id,
                                const std::string& locator,
                                std::string*       resolved = nullptr) const;
 
@@ -172,13 +176,17 @@ class DependencyFinder {
      * handle, so the caller is responsible for copying it if
      * necessary.
      *
+     * @param client_name Name of the client to use (or "" for any client of the
+     * right type)
      * @param type Type of service.
-     * @param provider_id Provider id
+     * @param name Name of the provider
      * @param locator Location (e.g. "local" or mercury or ssg addresses)
+     * @param resolved Output resolved specification
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr makeProviderHandle(const std::string& type, const std::string& name,
+    VoidPtr makeProviderHandle(const std::string& client_name,
+                               const std::string& type, const std::string& name,
                                const std::string& locator,
                                std::string*       resolved = nullptr) const;
 

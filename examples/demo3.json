@@ -87,7 +87,7 @@
             "dependencies" : {
                 "ssg_group" : "mygroup",
                 "a_provider" : "ProviderA",
-                "a_local" : [ "ProviderA@local" ],
+                "a_local" : [ "ClientA->ProviderA@local" ],
                 "a_client" : "ClientA"
             }
         }
