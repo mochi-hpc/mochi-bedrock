@@ -3,16 +3,21 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_RESOURCE_HANDLE_HPP
-#define __BEDROCK_RESOURCE_HANDLE_HPP
+#ifndef __BEDROCK_SERVICE_HANDLE_HPP
+#define __BEDROCK_SERVICE_HANDLE_HPP
 
-#include <thallium.hpp>
-#include <memory>
-#include <unordered_set>
-#include <nlohmann/json.hpp>
 #include <bedrock/Client.hpp>
 #include <bedrock/Exception.hpp>
 #include <bedrock/AsyncRequest.hpp>
+#include <bedrock/DependencyMap.hpp>
+
+#include <thallium.hpp>
+#include <nlohmann/json.hpp>
+
+#include <memory>
+#include <unordered_set>
+#include <vector>
+#include <unordered_map>
 
 namespace bedrock {
 
@@ -64,6 +69,33 @@ class ServiceHandle {
      * @brief Returns the client this database has been opened with.
      */
     Client client() const;
+
+    /**
+     * @brief Ask the remote service daemon to load a module library.
+     *
+     * @param name Name of the module.
+     * @param path Library path.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void loadModule(const std::string& name, const std::string& path,
+                    AsyncRequest* req = nullptr) const;
+
+    /**
+     * @brief Starts a new provider on the target service daemon.
+     *
+     * @param name Name of the new provider.
+     * @param type Type of the new provider.
+     * @param provider_id Provider id.
+     * @param pool Pool for the provider to use.
+     * @param config Configuration (JSON-formatted).
+     * @param dependencies Dependencies for the provider.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void startProvider(const std::string& name, const std::string& type,
+                       uint16_t provider_id, const std::string& pool = "",
+                       const std::string&   config       = "{}",
+                       const DependencyMap& dependencies = DependencyMap(),
+                       AsyncRequest*        req          = nullptr) const;
 
     /**
      * @brief Get the JSON configuration of a service process.

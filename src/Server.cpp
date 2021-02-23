@@ -129,8 +129,9 @@ Server::Server(const std::string& address, const std::string& configString) {
     // Starting up providers
     spdlog::trace("Initializing providers");
     auto providerManagerConfig = config["providers"].dump();
-    providerManager.addProviderListFromJSON(providerManagerConfig,
-                                            dependencyFinder);
+    ProviderManager(self->m_provider_manager)
+        .setDependencyFinder(dependencyFinder);
+    providerManager.addProviderListFromJSON(providerManagerConfig);
     spdlog::trace("Providers initialized");
 
     spdlog::info("Bedrock daemon now running at {}",

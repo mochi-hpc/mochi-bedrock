@@ -43,6 +43,10 @@ ProviderManager::~ProviderManager() = default;
 
 ProviderManager::operator bool() const { return static_cast<bool>(self); }
 
+void ProviderManager::setDependencyFinder(const DependencyFinder& finder) {
+    self->m_dependency_finder = finder;
+}
+
 bool ProviderManager::lookupProvider(const std::string& spec,
                                      ProviderWrapper*   wrapper) const {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
@@ -137,9 +141,12 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
     provider.factory->deregisterProvider(provider.handle);
 }
 
-void ProviderManager::addProviderFromJSON(
-    const std::string& jsonString, const DependencyFinder& dependencyFinder) {
-    auto config = json::parse(jsonString);
+void ProviderManager::addProviderFromJSON(const std::string& jsonString) {
+    if (!self->m_dependency_finder) {
+        throw Exception("No DependencyFinder set in ProviderManager");
+    }
+    auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
+    auto config           = json::parse(jsonString);
     if (!config.is_object()) {
         throw Exception(
             "Invalid JSON configuration passed to "
@@ -170,11 +177,15 @@ void ProviderManager::addProviderFromJSON(
         provider_config = provider_config_it->dump();
     }
 
-    auto pool_it = config.find("pool");
-    if (pool_it == config.end()) {
-        throw Exception("No pool specified for provider in JSON configuration");
+    auto        margoCtx = MargoManager(self->m_margo_context);
+    auto        pool_it  = config.find("pool");
+    std::string pool_name;
+    if (pool_it != config.end()) {
+        pool_name = pool_it->get<std::string>();
+    } else {
+        pool_name
+            = margoCtx.getPoolInfo(margoCtx.getDefaultHandlerPool()).first;
     }
-    auto pool_name = pool_it->get<std::string>();
 
     auto deps_from_config = config.value("dependencies", json::object());
 
@@ -186,6 +197,23 @@ void ProviderManager::addProviderFromJSON(
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
             if (!(dependency.flags & BEDROCK_ARRAY)) {
+                if (dep_config.is_array()) {
+                    if (dep_config.size() == 0
+                        && dependency.flags & BEDROCK_REQUIRED) {
+                        throw Exception(
+                            "Missing dependency {} in configuration (empty "
+                            "array found)",
+                            dependency.name);
+                    } else if (dep_config.size() > 1) {
+                        throw Exception(
+                            "Dependency {} is not an array, yet multiple "
+                            "values were found",
+                            dependency.name);
+                    } else {
+                        dep_config = dep_config[0];
+                    }
+                }
+
                 if (!dep_config.is_string()) {
                     throw Exception("Dependency {} should be a string",
                                     dependency.name);
@@ -241,8 +269,7 @@ void ProviderManager::addProviderFromJSON(
                      resolved_dependencies);
 }
 
-void ProviderManager::addProviderListFromJSON(
-    const std::string& jsonString, const DependencyFinder& dependencyFinder) {
+void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
     auto config = json::parse(jsonString);
     if (config.is_null()) { return; }
     if (!config.is_array()) {
@@ -251,7 +278,7 @@ void ProviderManager::addProviderListFromJSON(
             "ProviderManager::addProviderListFromJSON (expected array)");
     }
     for (const auto& provider : config) {
-        addProviderFromJSON(provider.dump(), dependencyFinder);
+        addProviderFromJSON(provider.dump());
     }
 }
 

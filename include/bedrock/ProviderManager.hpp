@@ -71,6 +71,13 @@ class ProviderManager {
     operator bool() const;
 
     /**
+     * @brief Set the DependencyFinder object to use to resolve dependencies.
+     *
+     * @param finder DependencyFinder
+     */
+    void setDependencyFinder(const DependencyFinder& finder);
+
+    /**
      * @brief Look up whether a provider with a given specification exists.
      * The specification must be in the form "<provider-name>" (e.g.
      * "myprovider") or "<provider-type>:<provider-id>" (e.g. "bake:42"). This
@@ -129,19 +136,15 @@ class ProviderManager {
      *  }
      *
      * @param jsonString JSON string.
-     * @param finder DependencyFinder to resolve the dependencies found.
      */
-    void addProviderFromJSON(const std::string&      jsonString,
-                             const DependencyFinder& finder);
+    void addProviderFromJSON(const std::string& jsonString);
 
     /**
      * @brief Add a list of providers represented by a JSON string.
      *
      * @param jsonString JSON string.
-     * @param finder DependencyFinder.
      */
-    void addProviderListFromJSON(const std::string&      jsonString,
-                                 const DependencyFinder& finder);
+    void addProviderListFromJSON(const std::string& jsonString);
 
     /**
      * @brief Return the current JSON configuration.

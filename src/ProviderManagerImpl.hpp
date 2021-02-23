@@ -7,12 +7,16 @@
 #define __BEDROCK_PROVIDER_MANAGER_IMPL_H
 
 #include "MargoManagerImpl.hpp"
+#include "bedrock/DependencyFinder.hpp"
+#include "bedrock/DependencyMap.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/ProviderWrapper.hpp"
-#include "bedrock/ProviderManager.hpp"
+#include "bedrock/Exception.hpp"
 
 #include <thallium/serialization/stl/vector.hpp>
+#include <thallium/serialization/stl/unordered_map.hpp>
+#include <thallium/serialization/stl/string.hpp>
 #include <thallium.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -60,14 +64,17 @@ class ProviderManagerImpl
   public std::enable_shared_from_this<ProviderManagerImpl> {
 
   public:
-    std::vector<ProviderEntry>     m_providers;
-    mutable tl::mutex              m_providers_mtx;
-    mutable tl::condition_variable m_providers_cv;
+    std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
+    std::vector<ProviderEntry>            m_providers;
+    mutable tl::mutex                     m_providers_mtx;
+    mutable tl::condition_variable        m_providers_cv;
 
     std::shared_ptr<MargoManagerImpl> m_margo_context;
 
     tl::remote_procedure m_lookup_provider;
     tl::remote_procedure m_list_providers;
+    tl::remote_procedure m_load_module;
+    tl::remote_procedure m_start_provider;
 
     ProviderManagerImpl(const tl::engine& engine, uint16_t provider_id,
                         const tl::pool& pool)
@@ -75,7 +82,11 @@ class ProviderManagerImpl
       m_lookup_provider(define("bedrock_lookup_provider",
                                &ProviderManagerImpl::lookupProviderRPC, pool)),
       m_list_providers(define("bedrock_list_providers",
-                              &ProviderManagerImpl::listProvidersRPC, pool)) {}
+                              &ProviderManagerImpl::listProvidersRPC, pool)),
+      m_load_module(define("bedrock_load_module",
+                           &ProviderManagerImpl::loadModuleRPC, pool)),
+      m_start_provider(define("bedrock_start_provider",
+                              &ProviderManagerImpl::startProviderRPC, pool)) {}
 
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),
@@ -139,6 +150,42 @@ class ProviderManagerImpl
         auto manager = ProviderManager(shared_from_this());
         RequestResult<std::vector<ProviderDescriptor>> result;
         result.value() = manager.listProviders();
+        req.respond(result);
+    }
+
+    void loadModuleRPC(const tl::request& req, const std::string& name,
+                       const std::string& path) {
+        RequestResult<bool> result;
+        try {
+            ModuleContext::loadModule(name, path);
+            result.success() = true;
+            result.value()   = true;
+        } catch (const Exception& e) {
+            result.success() = false;
+            result.error()   = e.what();
+        }
+        req.respond(result);
+    }
+
+    void startProviderRPC(const tl::request& req, const std::string& name,
+                          const std::string& type, uint16_t provider_id,
+                          const std::string& pool, const std::string& config,
+                          const DependencyMap& dependencies) {
+        RequestResult<bool> result;
+        auto                manager = ProviderManager(shared_from_this());
+        try {
+            auto c           = json::object();
+            c["name"]        = name;
+            c["type"]        = type;
+            c["provider_id"] = provider_id;
+            if (!pool.empty()) c["pool"] = pool;
+            if (!config.empty()) c["config"] = json::parse(config);
+            c["dependencies"] = dependencies;
+            manager.addProviderFromJSON(c.dump());
+        } catch (std::exception& ex) {
+            result.success() = false;
+            result.error()   = ex.what();
+        }
         req.respond(result);
     }
 };
