@@ -14,6 +14,7 @@ static std::string g_address;
 static std::string g_log_level;
 static std::string g_config_file;
 static bool        g_use_stdin;
+static std::string g_output_file;
 
 static void        parseCommandLine(int argc, char** argv);
 static std::string getConfigFromStdIn();
@@ -29,6 +30,10 @@ int main(int argc, char** argv) {
         else if (!g_config_file.empty())
             config = getConfigFromFile(g_config_file);
         bedrock::Server server(g_address, config);
+        if (!g_output_file.empty()) {
+            std::ofstream output_file(g_output_file);
+            output_file << server.getCurrentConfig();
+        }
         server.waitForFinalize();
     } catch (const std::exception& e) { spdlog::critical(e.what()); }
     return 0;
@@ -48,16 +53,20 @@ static void parseCommandLine(int argc, char** argv) {
             false, "info", "level");
         TCLAP::ValueArg<std::string> configFile(
             "c", "config", "JSON configuration file", false, "", "config-file");
+        TCLAP::ValueArg<std::string> outConfigFile(
+            "o", "output-config", "JSON file to write after deployment", false, "", "config-file");
         TCLAP::SwitchArg stdinSwitch(
             "", "stdin", "Read JSON configuration from standard input", false);
         cmd.add(address);
         cmd.add(logLevel);
         cmd.add(configFile);
+        cmd.add(outConfigFile);
         cmd.add(stdinSwitch);
         cmd.parse(argc, argv);
         g_address     = address.getValue();
         g_log_level   = logLevel.getValue();
         g_config_file = configFile.getValue();
+        g_output_file = outConfigFile.getValue();
         g_use_stdin   = stdinSwitch.getValue();
         if (g_use_stdin && !g_config_file.empty()) {
             std::cerr << "error: both config file and --stdin were provided"

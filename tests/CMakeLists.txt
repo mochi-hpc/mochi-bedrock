@@ -12,8 +12,6 @@ include_directories(../include)
 #add_executable(ServiceTest ServiceTest.cpp)
 #target_link_libraries(ServiceTest bedrock-test)
 
-add_executable(Regex Regex.cpp)
-
 #add_test(NAME AdminTest COMMAND ./AdminTest AdminTest.xml)
 #add_test(NAME ClientTest COMMAND ./ClientTest ClientTest.xml)
 #add_test(NAME ServiceTest COMMAND ./ServiceTest ServiceTest.xml)
