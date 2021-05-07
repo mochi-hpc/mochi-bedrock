@@ -9,6 +9,7 @@ add_definitions (-g -Wextra -Wall -Wpedantic)
 
 option (ENABLE_TESTS    "Build tests" OFF)
 option (ENABLE_EXAMPLES "Build examples" OFF)
+option (ENABLE_MPI      "Enable MPI support" OFF)
 
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
@@ -42,10 +43,15 @@ find_package (TCLAP REQUIRED)
 # search for spdlog
 find_package(spdlog REQUIRED)
 
+if (${ENABLE_MPI})
+    find_package (MPI REQUIRED)
+    add_definitions (-DENABLE_MPI)
+endif()
+
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
-set (BEDROCK_VERSION_MINOR 1)
-set (BEDROCK_VERSION_PATCH 0)
+set (BEDROCK_VERSION_MINOR 2)
+set (BEDROCK_VERSION_PATCH 2)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 
