@@ -1,4 +1,5 @@
 #include <bedrock/Client.hpp>
+#include <ssg.h>
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
 #include <nlohmann/json.hpp>
@@ -21,7 +22,7 @@ static uint16_t                 g_provider_id;
 static bool                     g_pretty;
 
 static void        parseCommandLine(int argc, char** argv);
-static void        resolveSSGAddresses();
+static void        resolveSSGAddresses(thallium::engine& engine);
 static std::string lookupBedrockConfig(const bedrock::Client& client,
                                        const std::string&     address);
 
@@ -29,8 +30,8 @@ int main(int argc, char** argv) {
     parseCommandLine(argc, argv);
     spdlog::set_level(spdlog::level::from_str(g_log_level));
     try {
-        thallium::engine engine(g_protocol, THALLIUM_CLIENT_MODE);
-        resolveSSGAddresses();
+        auto engine = thallium::engine(g_protocol, THALLIUM_CLIENT_MODE);
+        resolveSSGAddresses(engine);
         bedrock::Client          client(engine);
         std::vector<std::string> configs(g_addresses.size());
         std::vector<thallium::managed<thallium::thread>> ults;
@@ -100,10 +101,44 @@ static void parseCommandLine(int argc, char** argv) {
     }
 }
 
-static void resolveSSGAddresses() {
+static void resolveSSGAddresses(thallium::engine& engine) {
     if (g_ssg_file.empty()) return;
-    throw std::runtime_error(
-        "SSG support is not implemented yet in bedrock-query");
+    margo_instance_id mid = engine.get_margo_instance();
+    int ret = ssg_init();
+    if (ret != SSG_SUCCESS) {
+        spdlog::critical("Could not initialize SSG");
+        exit(-1);
+    }
+    int num_addrs = SSG_ALL_MEMBERS;
+    ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
+    ret = ssg_group_id_load(g_ssg_file.c_str(), &num_addrs, &gid);
+    if (ret != SSG_SUCCESS) {
+        spdlog::critical("Could not load SSG file {}", g_ssg_file);
+        exit(-1);
+    }
+    ret = ssg_group_observe(mid, gid);
+    if (ret != SSG_SUCCESS) {
+        spdlog::critical("Could not observe SSG group");
+        exit(-1);
+    }
+    size_t group_size = ssg_get_group_size(gid);
+    for(unsigned i = 0; i < group_size; i++) {
+        ssg_member_id_t member_id = ssg_get_group_member_id_from_rank(gid, i);
+        if (member_id == SSG_MEMBER_ID_INVALID) {
+            spdlog::critical("ssg_get_group_member_id_from_rank (rank={}) returned "
+                    "invalid member id", i);
+            exit(-1);
+        }
+        hg_addr_t addr = ssg_get_group_member_addr(gid, member_id);
+        if (addr == HG_ADDR_NULL) {
+            spdlog::critical("Could not get address from SSG member {} (rank {})", member_id, i);
+            exit(-1);
+        }
+        g_addresses.emplace_back(
+                static_cast<std::string>(thallium::endpoint(engine, addr, false)));
+    }
+    ssg_group_unobserve(gid);
+    ssg_finalize();
 }
 
 static std::string lookupBedrockConfig(const bedrock::Client& client,
