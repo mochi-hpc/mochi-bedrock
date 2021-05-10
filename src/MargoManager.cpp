@@ -29,6 +29,7 @@ MargoManager::MargoManager(const std::string& address,
     self->m_mid = margo_init_ext(address.c_str(), MARGO_SERVER_MODE, &args);
     if (self->m_mid == MARGO_INSTANCE_NULL)
         throw Exception("Could not initialize Margo");
+    margo_enable_remote_shutdown(self->m_mid);
     self->m_engine = tl::engine(self->m_mid);
     setupMargoLoggingForInstance(self->m_mid);
 }
