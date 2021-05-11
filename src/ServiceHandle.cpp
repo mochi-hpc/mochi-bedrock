@@ -120,4 +120,33 @@ void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {
     }
 }
 
+void ServiceHandle::queryConfig(const std::string& script, std::string* result, AsyncRequest* req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_query_config;
+    auto& ph  = self->m_ph;
+    if (req == nullptr) { // synchronous call
+        RequestResult<std::string> response = rpc.on(ph)(script);
+        if (response.success()) {
+            if (result) *result = std::move(response.value());
+        } else {
+            throw Exception(response.error());
+        }
+    } else { // asynchronous call
+        auto async_response = rpc.on(ph).async(script);
+        auto async_request_impl
+            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
+        async_request_impl->m_wait_callback
+            = [result](AsyncRequestImpl& async_request_impl) {
+                  RequestResult<std::string> response
+                      = async_request_impl.m_async_response.wait();
+                  if (response.success()) {
+                      if (result) *result = std::move(response.value());
+                  } else {
+                      throw Exception(response.error());
+                  }
+              };
+        *req = AsyncRequest(std::move(async_request_impl));
+    }
+}
+
 } // namespace bedrock

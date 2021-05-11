@@ -18,6 +18,8 @@ static std::string              g_protocol;
 static std::vector<std::string> g_addresses;
 static std::string              g_log_level;
 static std::string              g_ssg_file;
+static std::string              g_jx9_file;
+static std::string              g_jx9_script_content;
 static uint16_t                 g_provider_id;
 static bool                     g_pretty;
 
@@ -25,20 +27,38 @@ static void        parseCommandLine(int argc, char** argv);
 static void        resolveSSGAddresses(thallium::engine& engine);
 static std::string lookupBedrockConfig(const bedrock::Client& client,
                                        const std::string&     address);
+static std::string queryBedrock(const bedrock::Client& client,
+                                const std::string&     address);
 
 int main(int argc, char** argv) {
     parseCommandLine(argc, argv);
     spdlog::set_level(spdlog::level::from_str(g_log_level));
+
+    if (!g_jx9_file.empty()) {
+        try {
+            std::ifstream t(g_jx9_file.c_str());
+            std::string str((std::istreambuf_iterator<char>(t)),
+                            std::istreambuf_iterator<char>());
+            g_jx9_script_content = std::move(str);
+        } catch(...) {
+            spdlog::critical("Could not read jx9 file {}", g_jx9_file);
+        }
+    }
+
     try {
         auto engine = thallium::engine(g_protocol, THALLIUM_CLIENT_MODE);
         resolveSSGAddresses(engine);
+
         bedrock::Client          client(engine);
+
         std::vector<std::string> configs(g_addresses.size());
         std::vector<thallium::managed<thallium::thread>> ults;
         for (unsigned i = 0; i < g_addresses.size(); i++) {
             ults.push_back(
                 thallium::xstream::self().make_thread([i, &client, &configs]() {
-                    configs[i] = lookupBedrockConfig(client, g_addresses[i]);
+                    configs[i] = g_jx9_file.empty() ?
+                        lookupBedrockConfig(client, g_addresses[i])
+                        : queryBedrock(client, g_addresses[i]);
                 }));
         }
         for (auto& ult : ults) { ult->join(); }
@@ -77,6 +97,10 @@ static void parseCommandLine(int argc, char** argv) {
             "s", "ssg-file",
             "SSG file from which to read addresses of Bedrock daemons", false,
             "", "filename");
+        TCLAP::ValueArg<std::string> jx9File(
+            "j", "jx9-file",
+            "Jx9 file to send to processes and execute", false,
+            "", "filename");
         TCLAP::MultiArg<std::string> addresses(
             "a", "addresses", "Address of a Bedrock daemon", false, "address");
         TCLAP::SwitchArg prettyJSON("p", "pretty", "Print human-readable JSON",
@@ -87,6 +111,7 @@ static void parseCommandLine(int argc, char** argv) {
         cmd.add(providerID);
         cmd.add(addresses);
         cmd.add(prettyJSON);
+        cmd.add(jx9File);
         cmd.parse(argc, argv);
         g_addresses   = addresses.getValue();
         g_log_level   = logLevel.getValue();
@@ -94,6 +119,7 @@ static void parseCommandLine(int argc, char** argv) {
         g_protocol    = protocol.getValue();
         g_provider_id = providerID.getValue();
         g_pretty      = prettyJSON.getValue();
+        g_jx9_file    = jx9File.getValue();
     } catch (TCLAP::ArgException& e) {
         std::cerr << "error: " << e.error() << " for arg " << e.argId()
                   << std::endl;
@@ -146,5 +172,13 @@ static std::string lookupBedrockConfig(const bedrock::Client& client,
     auto serviceHandle = client.makeServiceHandle(address, g_provider_id);
     std::string config;
     serviceHandle.getConfig(&config);
+    return config;
+}
+
+static std::string queryBedrock(const bedrock::Client& client,
+                                const std::string&     address) {
+    auto serviceHandle = client.makeServiceHandle(address, g_provider_id);
+    std::string config;
+    serviceHandle.queryConfig(g_jx9_script_content, &config);
     return config;
 }

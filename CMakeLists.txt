@@ -1,11 +1,11 @@
-# (C) 2020 The University of Chicago 
+# (C) 2020 The University of Chicago
 # See COPYRIGHT in top-level directory.
 cmake_minimum_required (VERSION 3.8)
 project (bedrock C CXX)
 set (CMAKE_CXX_STANDARD 14)
 enable_testing ()
 
-add_definitions (-g -Wextra -Wall -Wpedantic)
+add_definitions (-g)
 
 option (ENABLE_TESTS    "Build tests" OFF)
 option (ENABLE_EXAMPLES "Build examples" OFF)
@@ -51,7 +51,7 @@ endif()
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
 set (BEDROCK_VERSION_MINOR 2)
-set (BEDROCK_VERSION_PATCH 2)
+set (BEDROCK_VERSION_PATCH 3)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 
