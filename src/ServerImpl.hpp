@@ -74,7 +74,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
     void queryConfigRPC(const tl::request& req, const std::string& script) {
         RequestResult<std::string> result;
         try {
-            std::vector<std::string> args = { makeConfig().dump() };
+            std::unordered_map<std::string, std::string> args;
+            args["__config__"] = makeConfig().dump();
             result.value() = Jx9Manager(m_jx9_manager)
                 .executeQuery(script, args);
             result.success() = true;

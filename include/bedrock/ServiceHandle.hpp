@@ -107,7 +107,7 @@ class ServiceHandle {
 
     /**
      * @brief Send a Jx9 script to be executed by the server.
-     * In the Jx9 script, $argv[0] represents the server's configuration.
+     * In the Jx9 script, $__config__ represents the server's configuration.
      * The value of result will be set to the value returned by the script.
      *
      * @param script Jx9 script.

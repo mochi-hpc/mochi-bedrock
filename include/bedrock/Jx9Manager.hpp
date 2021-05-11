@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <memory>
 
 namespace bedrock {
@@ -68,12 +69,13 @@ class Jx9Manager {
      * an Exception.
      *
      * @param script Content of the script to execute.
-     * @param args Arguments to set for argv[0], argv[1], etc.
+     * @param variables variables to add to the jx9 VM.
      *
      * @return The serialized returned value of the script.
      */
-    std::string executeQuery(const std::string& script,
-                             const std::vector<std::string>& args) const;
+    std::string executeQuery(
+        const std::string& script,
+        const std::unordered_map<std::string, std::string>& variables) const;
 
   private:
     std::shared_ptr<Jx9ManagerImpl> self;
