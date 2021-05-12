@@ -106,6 +106,17 @@ class ServiceHandle {
     void getConfig(std::string* config, AsyncRequest* req = nullptr) const;
 
     /**
+     * @brief Send a Jx9 script to be executed by the server.
+     * In the Jx9 script, $__config__ represents the server's configuration.
+     * The value of result will be set to the value returned by the script.
+     *
+     * @param script Jx9 script.
+     * @param result Result from the script.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void queryConfig(const std::string& script, std::string* result, AsyncRequest* req = nullptr) const;
+
+    /**
      * @brief Checks if the ServiceHandle instance is valid.
      */
     operator bool() const;

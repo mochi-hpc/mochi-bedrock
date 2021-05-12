@@ -12,6 +12,8 @@
 #include "ClientManagerImpl.hpp"
 #include "DependencyFinderImpl.hpp"
 #include "SSGManagerImpl.hpp"
+#include "Jx9ManagerImpl.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include <thallium/serialization/stl/string.hpp>
@@ -33,15 +35,19 @@ class ServerImpl : public tl::provider<ServerImpl> {
     std::shared_ptr<ClientManagerImpl>    m_client_manager;
     std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
     std::shared_ptr<SSGManagerImpl>       m_ssg_manager;
+    std::shared_ptr<Jx9ManagerImpl>       m_jx9_manager;
     tl::pool                              m_pool;
 
     tl::remote_procedure m_get_config_rpc;
+    tl::remote_procedure m_query_config_rpc;
 
     ServerImpl(const tl::engine& engine, uint16_t provider_id,
                const tl::pool& pool)
     : tl::provider<ServerImpl>(engine, provider_id), m_pool(pool),
       m_get_config_rpc(
-          define("bedrock_get_config", &ServerImpl::getConfigRPC, pool)) {}
+          define("bedrock_get_config", &ServerImpl::getConfigRPC, pool))
+    , m_query_config_rpc(
+          define("bedrock_query_config", &ServerImpl::queryConfigRPC, pool)) {}
 
     json makeConfig() const {
         auto config         = json::object();
@@ -62,6 +68,21 @@ class ServerImpl : public tl::provider<ServerImpl> {
     void getConfigRPC(const tl::request& req) {
         RequestResult<std::string> result;
         result.value() = makeConfig().dump();
+        req.respond(result);
+    }
+
+    void queryConfigRPC(const tl::request& req, const std::string& script) {
+        RequestResult<std::string> result;
+        try {
+            std::unordered_map<std::string, std::string> args;
+            args["__config__"] = makeConfig().dump();
+            result.value() = Jx9Manager(m_jx9_manager)
+                .executeQuery(script, args);
+            result.success() = true;
+        } catch(const Exception& ex) {
+            result.value() = ex.what();
+            result.success() = false;
+        }
         req.respond(result);
     }
 };

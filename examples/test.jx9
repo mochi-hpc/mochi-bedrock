@@ -1,0 +1,8 @@
+// Print statement go to the daemon's standard output
+print "Hello World from Jx9";
+
+// The $__config__ variable contains the process's config
+$pools = $__config__.margo.argobots.pools;
+
+// What's returned by the script is sent back to the client
+return { name: "Matthieu", age: 32 };

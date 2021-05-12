@@ -12,6 +12,7 @@
 #include "bedrock/ClientManager.hpp"
 #include "bedrock/DependencyFinder.hpp"
 #include "bedrock/SSGManager.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -78,6 +79,12 @@ Server::Server(const std::string& address, const std::string& configString) {
                                         bedrock_provider_id,
                                         tl::pool(bedrock_pool));
     self->m_margo_manager = margoMgr;
+
+    // Initializing the jx9 manaher
+    spdlog::trace("Initializing Jx9Manager");
+    auto jx9Manager = Jx9Manager();
+    self->m_jx9_manager = jx9Manager;
+    spdlog::trace("Jx9Manager initialized");
 
     // Initializing the provider manager
     spdlog::trace("Initializing ProviderManager");

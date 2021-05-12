@@ -9,12 +9,19 @@ set (server-src-files
      ClientManager.cpp
      DependencyFinder.cpp
      Module.cpp
-     MargoLogging.cpp)
+     MargoLogging.cpp
+     Jx9Manager.cpp)
 
 set (client-src-files
      Client.cpp
      ServiceHandle.cpp
      AsyncRequest.cpp)
+
+set (jx9-src-files
+     jx9/jx9.c)
+
+# jx9 library
+add_library (jx9 STATIC ${jx9-src-files})
 
 # load package helper for generating cmake CONFIG packages
 include (CMakePackageConfigHelpers)
@@ -27,7 +34,10 @@ set (bedrock-vers "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}")
 
 # server library
 add_library (bedrock-server ${server-src-files})
+target_compile_options(bedrock-server PUBLIC -Wall -Wextra)
 target_link_libraries (bedrock-server
+    PRIVATE jx9
+    PUBLIC
     thallium
     PkgConfig::ABTIO
     PkgConfig::SSG
@@ -43,6 +53,7 @@ set_target_properties (bedrock-server
 
 # client library
 add_library (bedrock-client ${client-src-files})
+target_compile_options(bedrock-client PUBLIC -Wall -Wextra)
 target_link_libraries (bedrock-client thallium)
 target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-client BEFORE PUBLIC
