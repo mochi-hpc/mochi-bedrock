@@ -37,10 +37,10 @@ int main(int argc, char** argv) {
     if (!g_jx9_file.empty()) {
         try {
             std::ifstream t(g_jx9_file.c_str());
-            std::string str((std::istreambuf_iterator<char>(t)),
+            std::string   str((std::istreambuf_iterator<char>(t)),
                             std::istreambuf_iterator<char>());
             g_jx9_script_content = std::move(str);
-        } catch(...) {
+        } catch (...) {
             spdlog::critical("Could not read jx9 file {}", g_jx9_file);
         }
     }
@@ -49,16 +49,16 @@ int main(int argc, char** argv) {
         auto engine = thallium::engine(g_protocol, THALLIUM_CLIENT_MODE);
         resolveSSGAddresses(engine);
 
-        bedrock::Client          client(engine);
+        bedrock::Client client(engine);
 
         std::vector<std::string> configs(g_addresses.size());
         std::vector<thallium::managed<thallium::thread>> ults;
         for (unsigned i = 0; i < g_addresses.size(); i++) {
             ults.push_back(
                 thallium::xstream::self().make_thread([i, &client, &configs]() {
-                    configs[i] = g_jx9_file.empty() ?
-                        lookupBedrockConfig(client, g_addresses[i])
-                        : queryBedrock(client, g_addresses[i]);
+                    configs[i] = g_jx9_file.empty()
+                                   ? lookupBedrockConfig(client, g_addresses[i])
+                                   : queryBedrock(client, g_addresses[i]);
                 }));
         }
         for (auto& ult : ults) { ult->join(); }
@@ -98,8 +98,7 @@ static void parseCommandLine(int argc, char** argv) {
             "SSG file from which to read addresses of Bedrock daemons", false,
             "", "filename");
         TCLAP::ValueArg<std::string> jx9File(
-            "j", "jx9-file",
-            "Jx9 file to send to processes and execute", false,
+            "j", "jx9-file", "Jx9 file to send to processes and execute", false,
             "", "filename");
         TCLAP::MultiArg<std::string> addresses(
             "a", "addresses", "Address of a Bedrock daemon", false, "address");

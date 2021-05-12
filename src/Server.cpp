@@ -82,7 +82,7 @@ Server::Server(const std::string& address, const std::string& configString) {
 
     // Initializing the jx9 manaher
     spdlog::trace("Initializing Jx9Manager");
-    auto jx9Manager = Jx9Manager();
+    auto jx9Manager     = Jx9Manager();
     self->m_jx9_manager = jx9Manager;
     spdlog::trace("Jx9Manager initialized");
 

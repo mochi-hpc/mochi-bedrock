@@ -114,7 +114,8 @@ class ServiceHandle {
      * @param result Result from the script.
      * @param req Asynchronous request to wait on, if provided.
      */
-    void queryConfig(const std::string& script, std::string* result, AsyncRequest* req = nullptr) const;
+    void queryConfig(const std::string& script, std::string* result,
+                     AsyncRequest* req = nullptr) const;
 
     /**
      * @brief Checks if the ServiceHandle instance is valid.

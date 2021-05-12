@@ -45,8 +45,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
                const tl::pool& pool)
     : tl::provider<ServerImpl>(engine, provider_id), m_pool(pool),
       m_get_config_rpc(
-          define("bedrock_get_config", &ServerImpl::getConfigRPC, pool))
-    , m_query_config_rpc(
+          define("bedrock_get_config", &ServerImpl::getConfigRPC, pool)),
+      m_query_config_rpc(
           define("bedrock_query_config", &ServerImpl::queryConfigRPC, pool)) {}
 
     json makeConfig() const {
@@ -76,11 +76,11 @@ class ServerImpl : public tl::provider<ServerImpl> {
         try {
             std::unordered_map<std::string, std::string> args;
             args["__config__"] = makeConfig().dump();
-            result.value() = Jx9Manager(m_jx9_manager)
-                .executeQuery(script, args);
+            result.value()
+                = Jx9Manager(m_jx9_manager).executeQuery(script, args);
             result.success() = true;
-        } catch(const Exception& ex) {
-            result.value() = ex.what();
+        } catch (const Exception& ex) {
+            result.value()   = ex.what();
             result.success() = false;
         }
         req.respond(result);

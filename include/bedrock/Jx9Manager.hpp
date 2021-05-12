@@ -74,7 +74,7 @@ class Jx9Manager {
      * @return The serialized returned value of the script.
      */
     std::string executeQuery(
-        const std::string& script,
+        const std::string&                                  script,
         const std::unordered_map<std::string, std::string>& variables) const;
 
   private:

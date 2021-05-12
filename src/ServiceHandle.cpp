@@ -120,7 +120,8 @@ void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {
     }
 }
 
-void ServiceHandle::queryConfig(const std::string& script, std::string* result, AsyncRequest* req) const {
+void ServiceHandle::queryConfig(const std::string& script, std::string* result,
+                                AsyncRequest* req) const {
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_query_config;
     auto& ph  = self->m_ph;
