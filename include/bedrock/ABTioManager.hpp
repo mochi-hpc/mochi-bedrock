@@ -15,6 +15,7 @@ namespace bedrock {
 namespace tl = thallium;
 
 class Server;
+class ServerImpl;
 class MargoManager;
 class DependencyFinder;
 class ABTioManagerImpl;
@@ -25,6 +26,7 @@ class ABTioManagerImpl;
 class ABTioManager {
 
     friend class Server;
+    friend class ServerImpl;
     friend class DependencyFinder;
 
   public:
@@ -104,6 +106,17 @@ class ABTioManager {
      * @brief Returns the number of abt-io instances stored.
      */
     size_t numABTioInstances() const;
+
+    /**
+     * @brief Adds an ABT-IO instance.
+     *
+     * @param name Name of the instance.
+     * @param pool Name of the pool to use.
+     * @param config JSON-formatted configuration.
+     */
+    void addABTioInstance(const std::string& name,
+                          const std::string& pool,
+                          const std::string& config);
 
     /**
      * @brief Return the current JSON configuration.

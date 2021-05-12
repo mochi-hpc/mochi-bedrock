@@ -145,7 +145,7 @@ static void extractConfigParameters(const json&         config,
 SSGManager::SSGManager(const MargoManager& margo,
                        const std::string&  configString)
 : self(std::make_shared<SSGManagerImpl>()) {
-    self->m_margo_context = margo;
+    self->m_margo_manager = margo;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
 
@@ -213,9 +213,9 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                                        const std::string& bootstrap_method,
                                        const std::string& group_file) {
     ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
-    auto           mid        = self->m_margo_context->m_mid;
+    auto           mid        = self->m_margo_manager->m_mid;
     auto           group_data = std::make_unique<SSGData>();
-    group_data->margo_ctx     = self->m_margo_context;
+    group_data->margo_ctx     = self->m_margo_manager;
     group_data->name          = name;
     group_data->config        = *config;
     group_data->pool          = pool;
@@ -289,7 +289,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
             s_initialized_mpi = true;
         }
         gid = ssg_group_create_mpi(
-            self->m_margo_context->m_mid, name.c_str(), MPI_COMM_WORLD,
+            self->m_margo_manager->m_mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(config),
             SSGManager::membershipUpdate, group_data.get());
 #else
@@ -305,7 +305,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                             ret);
         }
         gid = ssg_group_create_pmix(
-            self->m_margo_context->m_mid, name.c_str(), proc,
+            self->m_margo_manager->m_mid, name.c_str(), proc,
             const_cast<ssg_group_config_t*>(config),
             SSGManager::membershipUpdate, group_data.get());
 #else
@@ -336,6 +336,37 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
     group_data->gid = gid;
     self->m_ssg_groups.push_back(std::move(group_data));
     return gid;
+}
+
+ssg_group_id_t SSGManager::createGroupFromConfig(const std::string& configString) {
+    auto config           = json::parse(configString);
+    if (!config.is_object()) {
+        throw Exception("SSG group config should be an object");
+    }
+
+    std::vector<std::string> existing_names;
+    for(const auto& g : self->m_ssg_groups) {
+        existing_names.push_back(g->name);
+    }
+
+    auto margo = MargoManager(self->m_margo_manager);
+    validateGroupConfig(config, existing_names, margo);
+
+    if (s_num_ssg_init == 0) {
+        int ret = ssg_init();
+        if (ret != SSG_SUCCESS) {
+            throw Exception("Could not initialize SSG (ssg_init returned {})",
+                            ret);
+        }
+    }
+    s_num_ssg_init += 1;
+
+    std::string        name, bootstrap, group_file;
+    ssg_group_config_t group_config;
+    ABT_pool           pool;
+    extractConfigParameters(config, margo, name, bootstrap, group_config,
+                            group_file, pool);
+    return createGroup(name, &group_config, pool, bootstrap, group_file);
 }
 
 void SSGManager::membershipUpdate(void* group_data, ssg_member_id_t member_id,

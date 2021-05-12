@@ -39,7 +39,7 @@ class ABTioEntry {
 class ABTioManagerImpl {
 
   public:
-    std::shared_ptr<MargoManagerImpl> m_margo_context;
+    std::shared_ptr<MargoManagerImpl> m_margo_manager;
     std::vector<ABTioEntry>           m_instances;
 
     json makeConfig() const {

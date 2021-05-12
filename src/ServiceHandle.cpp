@@ -91,6 +91,87 @@ void ServiceHandle::startProvider(const std::string& name,
     }
 }
 
+void ServiceHandle::createClient(const std::string&   name,
+                                 const std::string&   type,
+                                 const std::string&   config,
+                                 const DependencyMap& dependencies,
+                                 AsyncRequest*        req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_create_client;
+    auto& ph  = self->m_ph;
+    if (req == nullptr) { // synchronous call
+        RequestResult<bool> response
+            = rpc.on(ph)(name, type, config, dependencies);
+        if (!response.success()) { throw Exception(response.error()); }
+    } else { // asynchronous call
+        auto async_response = rpc.on(ph).async(name, type,
+                                               config, dependencies);
+        auto async_request_impl
+            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
+        async_request_impl->m_wait_callback
+            = [](AsyncRequestImpl& async_request_impl) {
+                  RequestResult<std::string> response
+                      = async_request_impl.m_async_response.wait();
+                  if (!response.success()) {
+                      throw Exception(response.error());
+                  }
+              };
+        *req = AsyncRequest(std::move(async_request_impl));
+    }
+}
+
+void ServiceHandle::createABTioInstance(const std::string&   name,
+                                        const std::string&   pool,
+                                        const std::string&   config,
+                                        AsyncRequest*        req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_create_abtio;
+    auto& ph  = self->m_ph;
+    if (req == nullptr) { // synchronous call
+        RequestResult<bool> response
+            = rpc.on(ph)(name, pool, config);
+        if (!response.success()) { throw Exception(response.error()); }
+    } else { // asynchronous call
+        auto async_response = rpc.on(ph).async(name, pool, config);
+        auto async_request_impl
+            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
+        async_request_impl->m_wait_callback
+            = [](AsyncRequestImpl& async_request_impl) {
+                  RequestResult<std::string> response
+                      = async_request_impl.m_async_response.wait();
+                  if (!response.success()) {
+                      throw Exception(response.error());
+                  }
+              };
+        *req = AsyncRequest(std::move(async_request_impl));
+    }
+}
+
+void ServiceHandle::addSSGgroup(const std::string& config,
+                                AsyncRequest*        req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_add_ssg_group;
+    auto& ph  = self->m_ph;
+    if (req == nullptr) { // synchronous call
+        RequestResult<bool> response
+            = rpc.on(ph)(config);
+        if (!response.success()) { throw Exception(response.error()); }
+    } else { // asynchronous call
+        auto async_response = rpc.on(ph).async(config);
+        auto async_request_impl
+            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
+        async_request_impl->m_wait_callback
+            = [](AsyncRequestImpl& async_request_impl) {
+                  RequestResult<std::string> response
+                      = async_request_impl.m_async_response.wait();
+                  if (!response.success()) {
+                      throw Exception(response.error());
+                  }
+              };
+        *req = AsyncRequest(std::move(async_request_impl));
+    }
+}
+
 void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_get_config;
