@@ -18,7 +18,7 @@ using nlohmann::json;
 ABTioManager::ABTioManager(const MargoManager& margoCtx,
                            const std::string&  configString)
 : self(std::make_shared<ABTioManagerImpl>()) {
-    self->m_margo_context = margoCtx;
+    self->m_margo_manager = margoCtx;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
     if (!config.is_array()) {
@@ -107,7 +107,7 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
         entry.name      = names[i];
         entry.pool      = pools[i];
         entry.abt_io_id = abt_io;
-        entry.margo_ctx = self->m_margo_context;
+        entry.margo_ctx = self->m_margo_manager;
         abt_io_entries.push_back(std::move(entry));
     }
     // setup self
@@ -159,6 +159,53 @@ int ABTioManager::getABTioInstanceIndex(const std::string& name) const {
 
 size_t ABTioManager::numABTioInstances() const {
     return self->m_instances.size();
+}
+
+void ABTioManager::addABTioInstance(const std::string& name,
+                                    const std::string& pool_name,
+                                    const std::string& config) {
+    ABT_pool pool;
+    json abt_io_config;
+    // parse configuration
+    try {
+        abt_io_config = json::parse(config);
+    } catch(...) {
+        throw Exception("Could not parse ABT-IO JSON configuration "
+                "for instance {}", name);
+    }
+    // check if the name doesn't already exist
+    auto it = std::find_if(self->m_instances.begin(),
+                           self->m_instances.end(),
+                           [&name](const auto& instance) {
+                                return instance.name == name;
+                           });
+    if (it != self->m_instances.end()) {
+        throw Exception("Name \"{}\" already used by another ABT-IO instance");
+    }
+    // find pool
+    pool = MargoManager(self->m_margo_manager).getPool(pool_name);
+    if (pool == ABT_POOL_NULL) {
+        throw Exception("Could not find pool \"{}\" in MargoManager", pool_name);
+    }
+    // get the config of this ABT-IO instance
+    if (!abt_io_config.is_object()) {
+        throw Exception(
+                "\"config\" field in ABT-IO description should be an object");
+    }
+    // all good, can instanciate
+    abt_io_init_info abt_io_info;
+    abt_io_info.json_config   = config.c_str();
+    abt_io_info.progress_pool = pool;
+    abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
+    if (abt_io == ABT_IO_INSTANCE_NULL) {
+        throw Exception("Could not initialized abt-io instance {}", name);
+    }
+    ABTioEntry entry;
+    entry.name      = name;
+    entry.pool      = pool;
+    entry.abt_io_id = abt_io;
+    entry.margo_ctx = self->m_margo_manager;
+    self->m_instances.push_back(std::move(entry));
 }
 
 std::string ABTioManager::getCurrentConfig() const {

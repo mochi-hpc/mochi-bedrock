@@ -14,6 +14,7 @@
 namespace bedrock {
 
 class Server;
+class ServerImpl;
 class DependencyFinder;
 class SSGManagerImpl;
 
@@ -23,6 +24,7 @@ class SSGManagerImpl;
 class SSGManager {
 
     friend class Server;
+    friend class ServerImpl;
     friend class DependencyFinder;
 
   public:
@@ -63,6 +65,15 @@ class SSGManager {
      * @brief Checks whether the SSGManager instance is valid.
      */
     operator bool() const;
+
+    /**
+     * @brief Create a group from a full configuration.
+     *
+     * @param config JSON-formatted configuration.
+     *
+     * @return The created group id.
+     */
+    ssg_group_id_t createGroupFromConfig(const std::string& config);
 
     /**
      * @brief Create a group and add it to the SSG context.

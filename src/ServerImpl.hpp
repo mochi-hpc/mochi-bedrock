@@ -40,6 +40,9 @@ class ServerImpl : public tl::provider<ServerImpl> {
 
     tl::remote_procedure m_get_config_rpc;
     tl::remote_procedure m_query_config_rpc;
+    tl::remote_procedure m_create_client_rpc;
+    tl::remote_procedure m_create_abtio_rpc;
+    tl::remote_procedure m_add_ssg_group_rpc;
 
     ServerImpl(const tl::engine& engine, uint16_t provider_id,
                const tl::pool& pool)
@@ -47,7 +50,13 @@ class ServerImpl : public tl::provider<ServerImpl> {
       m_get_config_rpc(
           define("bedrock_get_config", &ServerImpl::getConfigRPC, pool)),
       m_query_config_rpc(
-          define("bedrock_query_config", &ServerImpl::queryConfigRPC, pool)) {}
+          define("bedrock_query_config", &ServerImpl::queryConfigRPC, pool)),
+      m_create_client_rpc(
+          define("bedrock_create_client", &ServerImpl::createClientRPC, pool)),
+      m_create_abtio_rpc(
+          define("bedrock_create_abtio", &ServerImpl::createABTioRPC, pool)),
+      m_add_ssg_group_rpc(
+          define("bedrock_add_ssg_group", &ServerImpl::addSSGgroupRPC, pool)) {}
 
     json makeConfig() const {
         auto config         = json::object();
@@ -80,6 +89,71 @@ class ServerImpl : public tl::provider<ServerImpl> {
                 = Jx9Manager(m_jx9_manager).executeQuery(script, args);
             result.success() = true;
         } catch (const Exception& ex) {
+            result.value()   = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void createClientRPC(const tl::request& req, const std::string& name,
+                         const std::string& type, const std::string& config,
+                         const DependencyMap& dependencies) {
+        RequestResult<bool> result;
+        json jsonconfig;
+        try {
+            if (!config.empty())
+                jsonconfig = json::parse(config);
+            else
+                jsonconfig = json::object();
+        } catch(...) {
+            result.value() = "Invalid JSON configuration for client";
+            result.success() = false;
+            req.respond(result);
+            return;
+        }
+        json fullconfig = json::object();
+        fullconfig["name"] = name;
+        fullconfig["type"] = type;
+        fullconfig["config"] = jsonconfig;
+        auto& depconfig = fullconfig["dependencies"];
+        for(auto& p : dependencies) {
+            auto& name = p.first;
+            auto& list = p.second;
+            auto dep = json::array();
+            for (auto& v : list) {
+                dep.push_back(v);
+            }
+            depconfig[name] = dep;
+        }
+        try {
+            ClientManager(m_client_manager).addClientFromJSON(fullconfig.dump(),
+                    DependencyFinder(m_dependency_finder));
+        } catch (const Exception& ex) {
+            result.value()   = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void createABTioRPC(const tl::request& req, const std::string& name,
+                        const std::string& pool, const std::string& config) {
+        RequestResult<bool> result;
+        result.success() = true;
+        try {
+            ABTioManager(m_abtio_manager).addABTioInstance(name, pool, config);
+        } catch(const Exception& ex) {
+            result.value()   = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void addSSGgroupRPC(const tl::request& req, const std::string& config) {
+        RequestResult<bool> result;
+        result.success() = true;
+        try {
+            SSGManager(m_ssg_manager).createGroupFromConfig(config);
+        } catch(const Exception& ex) {
             result.value()   = ex.what();
             result.success() = false;
         }

@@ -16,6 +16,7 @@ namespace bedrock {
 
 class ClientManagerImpl;
 class Server;
+class ServerImpl;
 class DependencyFinder;
 
 /**
@@ -28,6 +29,7 @@ class ClientManager {
     friend class Server;
     friend class DependencyFinder;
     friend class ClientManagerImpl;
+    friend class ServerImpl;
 
   public:
     /**

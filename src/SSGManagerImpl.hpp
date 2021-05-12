@@ -61,7 +61,7 @@ class SSGData {
 class SSGManagerImpl {
 
   public:
-    std::shared_ptr<MargoManagerImpl>     m_margo_context;
+    std::shared_ptr<MargoManagerImpl>     m_margo_manager;
     std::vector<std::unique_ptr<SSGData>> m_ssg_groups;
     // note: we need a vector of unique_ptr because
     // membership callbacks are being passed the internal pointer
