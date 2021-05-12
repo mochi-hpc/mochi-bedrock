@@ -22,6 +22,7 @@ set (jx9-src-files
 
 # jx9 library
 add_library (jx9 STATIC ${jx9-src-files})
+set_property(TARGET jx9 PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # load package helper for generating cmake CONFIG packages
 include (CMakePackageConfigHelpers)
