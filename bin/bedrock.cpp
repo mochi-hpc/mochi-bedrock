@@ -54,7 +54,8 @@ static void parseCommandLine(int argc, char** argv) {
         TCLAP::ValueArg<std::string> configFile(
             "c", "config", "JSON configuration file", false, "", "config-file");
         TCLAP::ValueArg<std::string> outConfigFile(
-            "o", "output-config", "JSON file to write after deployment", false, "", "config-file");
+            "o", "output-config", "JSON file to write after deployment", false,
+            "", "config-file");
         TCLAP::SwitchArg stdinSwitch(
             "", "stdin", "Read JSON configuration from standard input", false);
         cmd.add(address);

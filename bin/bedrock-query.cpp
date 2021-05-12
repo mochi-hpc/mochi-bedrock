@@ -104,13 +104,13 @@ static void parseCommandLine(int argc, char** argv) {
 static void resolveSSGAddresses(thallium::engine& engine) {
     if (g_ssg_file.empty()) return;
     margo_instance_id mid = engine.get_margo_instance();
-    int ret = ssg_init();
+    int               ret = ssg_init();
     if (ret != SSG_SUCCESS) {
         spdlog::critical("Could not initialize SSG");
         exit(-1);
     }
-    int num_addrs = SSG_ALL_MEMBERS;
-    ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
+    int            num_addrs = SSG_ALL_MEMBERS;
+    ssg_group_id_t gid       = SSG_GROUP_ID_INVALID;
     ret = ssg_group_id_load(g_ssg_file.c_str(), &num_addrs, &gid);
     if (ret != SSG_SUCCESS) {
         spdlog::critical("Could not load SSG file {}", g_ssg_file);
@@ -122,20 +122,24 @@ static void resolveSSGAddresses(thallium::engine& engine) {
         exit(-1);
     }
     size_t group_size = ssg_get_group_size(gid);
-    for(unsigned i = 0; i < group_size; i++) {
+    for (unsigned i = 0; i < group_size; i++) {
         ssg_member_id_t member_id = ssg_get_group_member_id_from_rank(gid, i);
         if (member_id == SSG_MEMBER_ID_INVALID) {
-            spdlog::critical("ssg_get_group_member_id_from_rank (rank={}) returned "
-                    "invalid member id", i);
+            spdlog::critical(
+                "ssg_get_group_member_id_from_rank (rank={}) returned "
+                "invalid member id",
+                i);
             exit(-1);
         }
         hg_addr_t addr = ssg_get_group_member_addr(gid, member_id);
         if (addr == HG_ADDR_NULL) {
-            spdlog::critical("Could not get address from SSG member {} (rank {})", member_id, i);
+            spdlog::critical(
+                "Could not get address from SSG member {} (rank {})", member_id,
+                i);
             exit(-1);
         }
         g_addresses.emplace_back(
-                static_cast<std::string>(thallium::endpoint(engine, addr, false)));
+            static_cast<std::string>(thallium::endpoint(engine, addr, false)));
     }
     ssg_group_unobserve(gid);
     ssg_finalize();
