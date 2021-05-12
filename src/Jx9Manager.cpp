@@ -101,7 +101,6 @@ std::string Jx9Manager::executeQuery(
     auto result = std::string(ret_string, ret_string_len);
     jx9_vm_release(vm);
 
-    spdlog::debug("Jx9 sending back {}", result);
     return result;
 }
 
