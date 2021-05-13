@@ -41,7 +41,7 @@ class SSGData {
         swim["period_length_ms"]        = config.swim_period_length_ms;
         swim["suspect_timeout_periods"] = config.swim_suspect_timeout_periods;
         swim["subgroup_member_count"]   = config.swim_subgroup_member_count;
-        swim["disabled"]                = config.swim_disabled;
+        swim["disabled"]                = config.swim_disabled ? true : false;
         return c;
     }
 
