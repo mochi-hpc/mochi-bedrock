@@ -338,14 +338,15 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
     return gid;
 }
 
-ssg_group_id_t SSGManager::createGroupFromConfig(const std::string& configString) {
-    auto config           = json::parse(configString);
+ssg_group_id_t
+SSGManager::createGroupFromConfig(const std::string& configString) {
+    auto config = json::parse(configString);
     if (!config.is_object()) {
         throw Exception("SSG group config should be an object");
     }
 
     std::vector<std::string> existing_names;
-    for(const auto& g : self->m_ssg_groups) {
+    for (const auto& g : self->m_ssg_groups) {
         existing_names.push_back(g->name);
     }
 

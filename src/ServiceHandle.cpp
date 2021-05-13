@@ -104,8 +104,8 @@ void ServiceHandle::createClient(const std::string&   name,
             = rpc.on(ph)(name, type, config, dependencies);
         if (!response.success()) { throw Exception(response.error()); }
     } else { // asynchronous call
-        auto async_response = rpc.on(ph).async(name, type,
-                                               config, dependencies);
+        auto async_response
+            = rpc.on(ph).async(name, type, config, dependencies);
         auto async_request_impl
             = std::make_shared<AsyncRequestImpl>(std::move(async_response));
         async_request_impl->m_wait_callback
@@ -120,16 +120,15 @@ void ServiceHandle::createClient(const std::string&   name,
     }
 }
 
-void ServiceHandle::createABTioInstance(const std::string&   name,
-                                        const std::string&   pool,
-                                        const std::string&   config,
-                                        AsyncRequest*        req) const {
+void ServiceHandle::createABTioInstance(const std::string& name,
+                                        const std::string& pool,
+                                        const std::string& config,
+                                        AsyncRequest*      req) const {
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_create_abtio;
     auto& ph  = self->m_ph;
     if (req == nullptr) { // synchronous call
-        RequestResult<bool> response
-            = rpc.on(ph)(name, pool, config);
+        RequestResult<bool> response = rpc.on(ph)(name, pool, config);
         if (!response.success()) { throw Exception(response.error()); }
     } else { // asynchronous call
         auto async_response = rpc.on(ph).async(name, pool, config);
@@ -148,13 +147,12 @@ void ServiceHandle::createABTioInstance(const std::string&   name,
 }
 
 void ServiceHandle::addSSGgroup(const std::string& config,
-                                AsyncRequest*        req) const {
+                                AsyncRequest*      req) const {
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_add_ssg_group;
     auto& ph  = self->m_ph;
     if (req == nullptr) { // synchronous call
-        RequestResult<bool> response
-            = rpc.on(ph)(config);
+        RequestResult<bool> response = rpc.on(ph)(config);
         if (!response.success()) { throw Exception(response.error()); }
     } else { // asynchronous call
         auto async_response = rpc.on(ph).async(config);

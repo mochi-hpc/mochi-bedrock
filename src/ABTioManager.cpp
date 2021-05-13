@@ -165,32 +165,33 @@ void ABTioManager::addABTioInstance(const std::string& name,
                                     const std::string& pool_name,
                                     const std::string& config) {
     ABT_pool pool;
-    json abt_io_config;
+    json     abt_io_config;
     // parse configuration
     try {
         abt_io_config = json::parse(config);
-    } catch(...) {
-        throw Exception("Could not parse ABT-IO JSON configuration "
-                "for instance {}", name);
+    } catch (...) {
+        throw Exception(
+            "Could not parse ABT-IO JSON configuration "
+            "for instance {}",
+            name);
     }
     // check if the name doesn't already exist
-    auto it = std::find_if(self->m_instances.begin(),
-                           self->m_instances.end(),
-                           [&name](const auto& instance) {
-                                return instance.name == name;
-                           });
+    auto it = std::find_if(
+        self->m_instances.begin(), self->m_instances.end(),
+        [&name](const auto& instance) { return instance.name == name; });
     if (it != self->m_instances.end()) {
         throw Exception("Name \"{}\" already used by another ABT-IO instance");
     }
     // find pool
     pool = MargoManager(self->m_margo_manager).getPool(pool_name);
     if (pool == ABT_POOL_NULL) {
-        throw Exception("Could not find pool \"{}\" in MargoManager", pool_name);
+        throw Exception("Could not find pool \"{}\" in MargoManager",
+                        pool_name);
     }
     // get the config of this ABT-IO instance
     if (!abt_io_config.is_object()) {
         throw Exception(
-                "\"config\" field in ABT-IO description should be an object");
+            "\"config\" field in ABT-IO description should be an object");
     }
     // all good, can instanciate
     abt_io_init_info abt_io_info;

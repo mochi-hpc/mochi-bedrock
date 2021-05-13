@@ -99,35 +99,34 @@ class ServerImpl : public tl::provider<ServerImpl> {
                          const std::string& type, const std::string& config,
                          const DependencyMap& dependencies) {
         RequestResult<bool> result;
-        json jsonconfig;
+        json                jsonconfig;
         try {
             if (!config.empty())
                 jsonconfig = json::parse(config);
             else
                 jsonconfig = json::object();
-        } catch(...) {
-            result.value() = "Invalid JSON configuration for client";
+        } catch (...) {
+            result.value()   = "Invalid JSON configuration for client";
             result.success() = false;
             req.respond(result);
             return;
         }
-        json fullconfig = json::object();
-        fullconfig["name"] = name;
-        fullconfig["type"] = type;
+        json fullconfig      = json::object();
+        fullconfig["name"]   = name;
+        fullconfig["type"]   = type;
         fullconfig["config"] = jsonconfig;
-        auto& depconfig = fullconfig["dependencies"];
-        for(auto& p : dependencies) {
+        auto& depconfig      = fullconfig["dependencies"];
+        for (auto& p : dependencies) {
             auto& name = p.first;
             auto& list = p.second;
-            auto dep = json::array();
-            for (auto& v : list) {
-                dep.push_back(v);
-            }
+            auto  dep  = json::array();
+            for (auto& v : list) { dep.push_back(v); }
             depconfig[name] = dep;
         }
         try {
-            ClientManager(m_client_manager).addClientFromJSON(fullconfig.dump(),
-                    DependencyFinder(m_dependency_finder));
+            ClientManager(m_client_manager)
+                .addClientFromJSON(fullconfig.dump(),
+                                   DependencyFinder(m_dependency_finder));
         } catch (const Exception& ex) {
             result.value()   = ex.what();
             result.success() = false;
@@ -141,7 +140,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
         result.success() = true;
         try {
             ABTioManager(m_abtio_manager).addABTioInstance(name, pool, config);
-        } catch(const Exception& ex) {
+        } catch (const Exception& ex) {
             result.value()   = ex.what();
             result.success() = false;
         }
@@ -153,7 +152,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
         result.success() = true;
         try {
             SSGManager(m_ssg_manager).createGroupFromConfig(config);
-        } catch(const Exception& ex) {
+        } catch (const Exception& ex) {
             result.value()   = ex.what();
             result.success() = false;
         }

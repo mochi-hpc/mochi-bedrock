@@ -114,8 +114,7 @@ class ABTioManager {
      * @param pool Name of the pool to use.
      * @param config JSON-formatted configuration.
      */
-    void addABTioInstance(const std::string& name,
-                          const std::string& pool,
+    void addABTioInstance(const std::string& name, const std::string& pool,
                           const std::string& config);
 
     /**
