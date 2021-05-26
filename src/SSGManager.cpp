@@ -212,6 +212,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                                        ABT_pool                  pool,
                                        const std::string& bootstrap_method,
                                        const std::string& group_file) {
+    int            ret;
     ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
     auto           mid        = self->m_margo_manager->m_mid;
     auto           group_data = std::make_unique<SSGData>();
@@ -252,9 +253,13 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
         std::vector<const char*> addresses = {addr_str.c_str()};
         margo_addr_free(mid, addr);
 
-        gid = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
+        ret = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
                                const_cast<ssg_group_config_t*>(config),
-                               SSGManager::membershipUpdate, group_data.get());
+                               SSGManager::membershipUpdate, group_data.get(),
+                               &gid);
+        if (ret != SSG_SUCCESS) {
+            throw Exception("ssg_group_create failed with error code {}", ret);
+        }
 
     } else if (bootstrap_method == "join") {
 
@@ -264,7 +269,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                 "specified");
         }
         int num_addrs = 32; // XXX make that configurable?
-        int ret       = ssg_group_id_load(group_file.c_str(), &num_addrs, &gid);
+        ret           = ssg_group_id_load(group_file.c_str(), &num_addrs, &gid);
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to load SSG group from file {}"
@@ -288,10 +293,16 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
             MPI_Init(NULL, NULL);
             s_initialized_mpi = true;
         }
-        gid = ssg_group_create_mpi(
+        ret = ssg_group_create_mpi(
             self->m_margo_manager->m_mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(config),
-            SSGManager::membershipUpdate, group_data.get());
+            SSGManager::membershipUpdate, group_data.get(), &gid);
+        if (ret != SSG_SUCCESS) {
+            throw Exception(
+                "Failed to create SSG group {} "
+                "(ssg_group_create_mpi returned {})",
+                name, ret);
+        }
 #else
         throw Exception("Bedrock was not compiled with MPI support");
 #endif
@@ -318,8 +329,9 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
     if (!group_file.empty()
         && (bootstrap_method == "init" || bootstrap_method == "mpi"
             || bootstrap_method == "pmix")) {
-        int rank = ssg_get_group_self_rank(gid);
-        if (rank == -1) {
+        int rank = -1;
+        ret      = ssg_get_group_self_rank(gid, &rank);
+        if (rank == -1 || ret != SSG_SUCCESS) {
             throw Exception("Could not get SSG group rank from group {}", name);
         }
         if (rank == 0) {
@@ -392,17 +404,18 @@ hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
         }
         ssg_member_id_t member_id;
         if (!is_member_id) {
-            member_id
-                = ssg_get_group_member_id_from_rank(gid, member_id_or_rank);
-            if (member_id == SSG_MEMBER_ID_INVALID) {
+            int ret = ssg_get_group_member_id_from_rank(gid, member_id_or_rank,
+                                                        &member_id);
+            if (member_id == SSG_MEMBER_ID_INVALID || ret != SSG_SUCCESS) {
                 throw Exception("Invalid rank {} in group {}",
                                 member_id_or_rank, group_name);
             }
         } else {
             member_id = member_id_or_rank;
         }
-        hg_addr_t addr = ssg_get_group_member_addr(gid, member_id);
-        if (addr == HG_ADDR_NULL) {
+        hg_addr_t addr = HG_ADDR_NULL;
+        int       ret  = ssg_get_group_member_addr(gid, member_id, &addr);
+        if (addr == HG_ADDR_NULL || ret != HG_SUCCESS) {
             throw Exception("Invalid member id {} in group {}", member_id,
                             group_name);
         }

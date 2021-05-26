@@ -146,18 +146,25 @@ static void resolveSSGAddresses(thallium::engine& engine) {
         spdlog::critical("Could not observe SSG group");
         exit(-1);
     }
-    size_t group_size = ssg_get_group_size(gid);
-    for (unsigned i = 0; i < group_size; i++) {
-        ssg_member_id_t member_id = ssg_get_group_member_id_from_rank(gid, i);
-        if (member_id == SSG_MEMBER_ID_INVALID) {
+    int group_size = 0;
+    ret            = ssg_get_group_size(gid, &group_size);
+    if (ret != SSG_SUCCESS) {
+        spdlog::critical("Could not get SSG group size");
+        exit(-1);
+    }
+    for (int i = 0; i < group_size; i++) {
+        ssg_member_id_t member_id = SSG_MEMBER_ID_INVALID;
+        ret = ssg_get_group_member_id_from_rank(gid, i, &member_id);
+        if (member_id == SSG_MEMBER_ID_INVALID || ret != SSG_SUCCESS) {
             spdlog::critical(
                 "ssg_get_group_member_id_from_rank (rank={}) returned "
                 "invalid member id",
                 i);
             exit(-1);
         }
-        hg_addr_t addr = ssg_get_group_member_addr(gid, member_id);
-        if (addr == HG_ADDR_NULL) {
+        hg_addr_t addr = HG_ADDR_NULL;
+        ret            = ssg_get_group_member_addr(gid, member_id, &addr);
+        if (addr == HG_ADDR_NULL || ret != SSG_SUCCESS) {
             spdlog::critical(
                 "Could not get address from SSG member {} (rank {})", member_id,
                 i);
