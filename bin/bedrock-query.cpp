@@ -35,14 +35,14 @@ int main(int argc, char** argv) {
     spdlog::set_level(spdlog::level::from_str(g_log_level));
 
     if (!g_jx9_file.empty()) {
-        try {
-            std::ifstream t(g_jx9_file.c_str());
-            std::string   str((std::istreambuf_iterator<char>(t)),
-                            std::istreambuf_iterator<char>());
-            g_jx9_script_content = std::move(str);
-        } catch (...) {
+        std::ifstream t(g_jx9_file.c_str());
+        if(not t.good()) {
             spdlog::critical("Could not read jx9 file {}", g_jx9_file);
+            exit(-1);
         }
+        std::string   str((std::istreambuf_iterator<char>(t)),
+                std::istreambuf_iterator<char>());
+        g_jx9_script_content = std::move(str);
     }
 
     try {
@@ -66,6 +66,8 @@ int main(int argc, char** argv) {
         std::stringstream ss;
         ss << "{";
         for (unsigned i = 0; i < g_addresses.size(); i++) {
+            if(configs[i].empty())
+                configs[i] = "null";
             ss << "\"" << g_addresses[i] << "\":" << configs[i];
             if (i != g_addresses.size() - 1) ss << ",";
         }
@@ -82,7 +84,7 @@ int main(int argc, char** argv) {
 static void parseCommandLine(int argc, char** argv) {
     try {
         TCLAP::CmdLine cmd("Query the configuration from Bedrock daemons", ' ',
-                           "0.1");
+                           "0.3");
         TCLAP::UnlabeledValueArg<std::string> protocol(
             "protocol", "Protocol (e.g. ofi+tcp)", true, "na+sm", "protocol");
         TCLAP::ValueArg<std::string> logLevel(
