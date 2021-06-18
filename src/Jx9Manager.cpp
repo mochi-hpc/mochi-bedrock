@@ -36,6 +36,8 @@ std::string Jx9Manager::executeQuery(
     std::lock_guard<tl::mutex> lock(self->m_mtx);
     int                        ret;
 
+    spdlog::trace("Jx9Manager about to execute the following program:\n{}", script);
+
     // compile script into a VM
     jx9_vm* vm;
     ret = jx9_compile(self->m_engine, script.c_str(), script.size(), &vm);
@@ -104,6 +106,8 @@ std::string Jx9Manager::executeQuery(
     const char* ret_string = jx9_value_to_string(ret_value, &ret_string_len);
     auto        result     = std::string(ret_string, ret_string_len);
     jx9_vm_release(vm);
+
+    spdlog::trace("Jx9 program returned the following value: {}", result);
 
     return result;
 }

@@ -42,7 +42,8 @@ target_link_libraries (bedrock-server
     thallium
     PkgConfig::ABTIO
     PkgConfig::SSG
-    nlohmann_json::nlohmann_json)
+    nlohmann_json::nlohmann_json
+    ${OPTIONAL_MPI})
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)

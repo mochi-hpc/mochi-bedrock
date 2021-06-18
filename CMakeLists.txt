@@ -46,6 +46,7 @@ find_package(spdlog REQUIRED)
 if (${ENABLE_MPI})
     find_package (MPI REQUIRED)
     add_definitions (-DENABLE_MPI)
+    set (OPTIONAL_MPI MPI::MPI_C)
 endif()
 
 # library version set here (e.g. for shared libs).
