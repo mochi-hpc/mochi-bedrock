@@ -4,6 +4,7 @@
  * See COPYRIGHT in top-level directory.
  */
 #include <bedrock/module.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int module_a_register_provider(

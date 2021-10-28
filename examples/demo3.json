@@ -52,7 +52,10 @@
         {
             "name" : "mygroup",
             "bootstrap" : "init",
-            "group_file" : "mygroup.ssg"
+            "group_file" : "mygroup.ssg",
+            "swim" : {
+                "disabled" : true
+            }
         }
     ],
     "libraries" : {
