@@ -90,6 +90,10 @@ static std::string getConfigFromStdIn() {
 
 static std::string getConfigFromFile(const std::string& filename) {
     std::ifstream t(filename.c_str());
+    if(!t.good()) {
+        std::cerr << "error: could not read configuration file " << filename << std::endl;
+        exit(-1);
+    }
     return std::string(std::istreambuf_iterator<char>(t),
                        std::istreambuf_iterator<char>());
 }

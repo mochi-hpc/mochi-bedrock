@@ -143,9 +143,9 @@ static void resolveSSGAddresses(thallium::engine& engine) {
         spdlog::critical("Could not load SSG file {}", g_ssg_file);
         exit(-1);
     }
-    ret = ssg_group_observe(mid, gid);
+    ret = ssg_group_refresh(mid, gid);
     if (ret != SSG_SUCCESS) {
-        spdlog::critical("Could not observe SSG group");
+        spdlog::critical("Could not refresh SSG group");
         exit(-1);
     }
     int group_size = 0;
@@ -175,7 +175,7 @@ static void resolveSSGAddresses(thallium::engine& engine) {
         g_addresses.emplace_back(
             static_cast<std::string>(thallium::endpoint(engine, addr, false)));
     }
-    ssg_group_unobserve(gid);
+    ssg_group_destroy(gid);
     ssg_finalize();
 }
 
