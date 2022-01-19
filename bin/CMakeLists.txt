@@ -9,3 +9,4 @@ target_link_libraries (bedrock-shutdown bedrock-client PkgConfig::SSG)
 
 install (TARGETS bedrock DESTINATION bin)
 install (TARGETS bedrock-query DESTINATION bin)
+install (TARGETS bedrock-shutdown DESTINATION bin)
