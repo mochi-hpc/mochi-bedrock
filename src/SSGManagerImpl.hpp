@@ -46,12 +46,20 @@ class SSGData {
     }
 
     ~SSGData() {
+        spdlog::trace("Leaving and destroying SSG group {}", name);
         if (gid) {
             int ret = ssg_group_leave(gid);
             if (ret != SSG_SUCCESS) {
                 spdlog::error(
                     "Could not leave SSG group \"{}\" "
                     "(ssg_group_leave returned {})",
+                    name, ret);
+            }
+            ret = ssg_group_destroy(gid);
+            if (ret != SSG_SUCCESS) {
+                spdlog::error(
+                    "Could not destroy SSG group \"{}\" "
+                    "(ssg_group_destroy returned {})",
                     name, ret);
             }
         }
@@ -73,6 +81,28 @@ class SSGManagerImpl {
         }
         return config;
     }
+
+    void clear() {
+        m_ssg_groups.resize(0);
+    }
+
+    ~SSGManagerImpl() {
+        spdlog::trace("Destroying SSGManager");
+        s_num_ssg_init -= 1;
+        if (s_num_ssg_init == 0) {
+            spdlog::trace("Finalizing SSG");
+            ssg_finalize();
+        }
+    }
+
+    static int s_num_ssg_init;
+#ifdef ENABLE_MPI
+    static bool s_initialized_mpi;
+#endif
+#ifdef ENABLE_PMIX
+    static bool s_initialized_pmix;
+#endif
+
 };
 
 } // namespace bedrock

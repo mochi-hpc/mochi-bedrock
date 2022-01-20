@@ -157,7 +157,14 @@ ProviderManager Server::getProviderManager() const {
 
 SSGManager Server::getSSGManager() const { return self->m_ssg_manager; }
 
+void Server::onPreFinalize(void* uargs) {
+    spdlog::trace("Calling Server's pre-finalize callback");
+    auto server = reinterpret_cast<Server*>(uargs);
+    server->self->m_ssg_manager->clear();
+}
+
 void Server::onFinalize(void* uargs) {
+    spdlog::trace("Calling Server's finalize callback");
     auto server = reinterpret_cast<Server*>(uargs);
     server->self.reset();
 }
@@ -169,6 +176,8 @@ std::string Server::getCurrentConfig() const {
 void Server::waitForFinalize() {
     margo_push_finalize_callback(self->m_margo_manager->m_mid,
                                  &Server::onFinalize, this);
+    margo_push_prefinalize_callback(self->m_margo_manager->m_mid,
+                                 &Server::onPreFinalize, this);
     margo_wait_for_finalize(self->m_margo_manager->m_mid);
 }
 

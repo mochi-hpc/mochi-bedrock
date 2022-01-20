@@ -94,6 +94,7 @@ class Server {
     std::unique_ptr<ServerImpl> self;
 
     static void onFinalize(void* uargs);
+    static void onPreFinalize(void* uargs);
 };
 
 } // namespace bedrock

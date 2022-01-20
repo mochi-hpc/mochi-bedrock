@@ -33,12 +33,12 @@ using namespace std::string_literals;
         throw Exception(_msg);                                       \
     }
 
-static int s_num_ssg_init = 0;
+int SSGManagerImpl::s_num_ssg_init = 0;
 #ifdef ENABLE_MPI
-static bool s_initialized_mpi = false;
+bool SSGManagerImpl::s_initialized_mpi = false;
 #endif
 #ifdef ENABLE_PMIX
-static bool s_initialized_pmix = false;
+bool SSGManagerImpl::s_initialized_pmix = false;
 #endif
 
 static void validateGroupConfig(json&                           config,
@@ -149,14 +149,14 @@ SSGManager::SSGManager(const MargoManager& margo,
     auto config           = json::parse(configString);
     if (config.is_null()) return;
 
-    if (s_num_ssg_init == 0) {
+    if (SSGManagerImpl::s_num_ssg_init == 0) {
         int ret = ssg_init();
         if (ret != SSG_SUCCESS) {
             throw Exception("Could not initialize SSG (ssg_init returned {})",
                             ret);
         }
     }
-    s_num_ssg_init += 1;
+    SSGManagerImpl::s_num_ssg_init += 1;
 
     auto addGroup = [this, &margo](const auto& config) {
         std::string        name, bootstrap, group_file;
@@ -188,13 +188,7 @@ SSGManager& SSGManager::operator=(const SSGManager&) = default;
 
 SSGManager& SSGManager::operator=(SSGManager&&) = default;
 
-SSGManager::~SSGManager() {
-    if (self.use_count() == 1) {
-        self->m_ssg_groups.resize(0);
-        s_num_ssg_init -= 1;
-        if (s_num_ssg_init == 0) ssg_finalize();
-    }
-}
+SSGManager::~SSGManager() = default;
 
 SSGManager::operator bool() const { return static_cast<bool>(self); }
 
@@ -291,7 +285,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
         MPI_Initialized(&flag);
         if (!flag) {
             MPI_Init(NULL, NULL);
-            s_initialized_mpi = true;
+            SSGManagerImpl::s_initialized_mpi = true;
         }
         ret = ssg_group_create_mpi(
             self->m_margo_manager->m_mid, name.c_str(), MPI_COMM_WORLD,
@@ -365,14 +359,14 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
     auto margo = MargoManager(self->m_margo_manager);
     validateGroupConfig(config, existing_names, margo);
 
-    if (s_num_ssg_init == 0) {
+    if (SSGManagerImpl::s_num_ssg_init == 0) {
         int ret = ssg_init();
         if (ret != SSG_SUCCESS) {
             throw Exception("Could not initialize SSG (ssg_init returned {})",
                             ret);
         }
     }
-    s_num_ssg_init += 1;
+    SSGManagerImpl::s_num_ssg_init += 1;
 
     std::string        name, bootstrap, group_file;
     ssg_group_config_t group_config;
