@@ -23,10 +23,10 @@ DependencyFinder::DependencyFinder(const MargoManager&    margo,
                                    const ClientManager&   cmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_margo_context    = margo;
-    self->m_abtio_context    = abtio;
-    self->m_ssg_context      = ssg;
-    self->m_provider_manager = pmanager;
-    self->m_client_manager   = cmanager;
+    self->m_abtio_context    = abtio.self;
+    self->m_ssg_context      = ssg.self;
+    self->m_provider_manager = pmanager.self;
+    self->m_client_manager   = cmanager.self;
 }
 
 DependencyFinder::DependencyFinder(const DependencyFinder&) = default;
@@ -60,8 +60,12 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
         if (resolved) { *resolved = spec; }
         return VoidPtr(p);
     } else if (type == "abt_io") { // ABTIO instance
+        auto abtio_manager_impl = self->m_abtio_context.lock();
+        if (!abtio_manager_impl) {
+            throw Exception("Could not resolve ABT-IO dependency: no ABTioManager found");
+        }
         abt_io_instance_id abt_id
-            = ABTioManager(self->m_abtio_context).getABTioInstance(spec);
+            = ABTioManager(abtio_manager_impl).getABTioInstance(spec);
         if (abt_id == ABT_IO_INSTANCE_NULL) {
             throw Exception("Could not find ABT-IO instance with name \"{}\"",
                             spec);
@@ -69,7 +73,11 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
         if (resolved) { *resolved = spec; }
         return VoidPtr(abt_id);
     } else if (type == "ssg") { // SSG group
-        ssg_group_id_t gid = SSGManager(self->m_ssg_context).getGroup(spec);
+        auto ssg_manager_impl = self->m_ssg_context.lock();
+        if(!ssg_manager_impl) {
+            throw Exception("Could not resolve SSG dependency: no SSGManager found");
+        }
+        ssg_group_id_t gid = SSGManager(ssg_manager_impl).getGroup(spec);
         if (gid == SSG_GROUP_ID_INVALID) {
             throw Exception("Could not find SSG group with name \"{}\"", spec);
         }
@@ -176,7 +184,11 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
 VoidPtr DependencyFinder::findProvider(const std::string& type,
                                        uint16_t           provider_id) const {
     ProviderWrapper provider;
-    bool            exists = ProviderManager(self->m_provider_manager)
+    auto provider_manager_impl = self->m_provider_manager.lock();
+    if (!provider_manager_impl) {
+        throw Exception("Could not resolve provider dependency: no ProviderManager found");
+    }
+    bool exists = ProviderManager(provider_manager_impl)
                       .lookupProvider(type + ":" + std::to_string(provider_id),
                                       &provider);
     if (!exists) {
@@ -190,7 +202,11 @@ VoidPtr DependencyFinder::findProvider(const std::string& type,
                                        const std::string& name,
                                        uint16_t*          provider_id) const {
     ProviderWrapper provider;
-    bool            exists = ProviderManager(self->m_provider_manager)
+    auto provider_manager_impl = self->m_provider_manager.lock();
+    if (!provider_manager_impl) {
+        throw Exception("Could not resolve provider dependency: no ProviderManager found");
+    }
+    bool exists = ProviderManager(provider_manager_impl)
                       .lookupProvider(name, &provider);
     if (!exists) {
         throw Exception("Could not find provider named \"{}\"", name);
@@ -207,9 +223,13 @@ VoidPtr DependencyFinder::findClient(const std::string& type,
                                      const std::string& name,
                                      std::string*       found_name) const {
     ClientWrapper client;
+    auto client_manager_impl = self->m_client_manager.lock();
+    if (!client_manager_impl) {
+        throw Exception("Could not resolve client dependency: no ClientManager found");
+    }
     if (!name.empty()) {
         bool exists
-            = ClientManager(self->m_client_manager).lookupClient(name, &client);
+            = ClientManager(client_manager_impl).lookupClient(name, &client);
         if (!exists) {
             throw Exception("Could not find client named \"{}\"", name);
         } else if (type != client.type) {
@@ -218,7 +238,7 @@ VoidPtr DependencyFinder::findClient(const std::string& type,
                 client.type, name, type);
         }
     } else {
-        ClientManager(self->m_client_manager)
+        ClientManager(client_manager_impl)
             .lookupOrCreateAnonymous(type, &client);
     }
     if (found_name) *found_name = client.name;
@@ -241,7 +261,12 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
     if (locator == "local") {
 
         ProviderWrapper wrapper;
-        if (!ProviderManager(self->m_provider_manager)
+        auto provider_manager_impl = self->m_provider_manager.lock();
+        if (!provider_manager_impl) {
+            throw Exception(
+                "Could not resolve provider handle: no ProviderManager found");
+        }
+        if (!ProviderManager(provider_manager_impl)
                  .lookupProvider(type + ":" + std::to_string(provider_id),
                                  &wrapper)) {
             throw Exception(
@@ -263,8 +288,13 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
     } else {
 
         if (locator.rfind("ssg://", 0) == 0) {
+            auto ssg_manager_impl = self->m_ssg_context.lock();
+            if (!ssg_manager_impl) {
+                throw Exception(
+                    "Could not resolve SSG address: no SSGManager found");
+            }
             hg_addr_t ssg_addr
-                = SSGManager(self->m_ssg_context).resolveAddress(locator);
+                = SSGManager(ssg_manager_impl).resolveAddress(locator);
             hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
             if (hret != HG_SUCCESS) {
                 throw Exception(
@@ -287,7 +317,11 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
         ProviderDescriptor descriptor;
         try {
             auto spec = type + ":" + std::to_string(provider_id);
-            auto pid  = self->m_provider_manager->get_provider_id();
+            auto provider_manager_impl = self->m_provider_manager.lock();
+            if (!provider_manager_impl) {
+                throw Exception("Could not lookup provider: no ProviderManager found");
+            }
+            auto pid  = provider_manager_impl->get_provider_id();
             self->lookupRemoteProvider(addr, pid, spec, &descriptor);
         } catch (...) {
             margo_addr_free(mid, addr);
@@ -328,7 +362,11 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
     if (locator == "local") {
 
         ProviderWrapper wrapper;
-        if (!ProviderManager(self->m_provider_manager)
+        auto provider_manager_impl = self->m_provider_manager.lock();
+        if (!provider_manager_impl) {
+            throw Exception("Could not make provider handle: no ProviderManager found");
+        }
+        if (!ProviderManager(provider_manager_impl)
                  .lookupProvider(name, &wrapper)) {
             throw Exception("Could not find local provider of name {}", name);
         }
@@ -348,8 +386,12 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
     } else {
 
         if (locator.rfind("ssg://", 0) == 0) {
+            auto ssg_manager_impl = self->m_ssg_context.lock();
+            if (!ssg_manager_impl) {
+                throw Exception("Could not resolve SSG address: no SSGManager found");
+            }
             hg_addr_t ssg_addr
-                = SSGManager(self->m_ssg_context).resolveAddress(locator);
+                = SSGManager(ssg_manager_impl).resolveAddress(locator);
             hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
             if (hret != HG_SUCCESS) {
                 throw Exception(
@@ -370,7 +412,11 @@ VoidPtr DependencyFinder::makeProviderHandle(const std::string& client_name,
         }
 
         try {
-            auto pid = self->m_provider_manager->get_provider_id();
+            auto provider_manager_impl = self->m_provider_manager.lock();
+            if (!provider_manager_impl) {
+                throw Exception("Could not get provider id: no ProviderManager found");
+            }
+            auto pid = provider_manager_impl->get_provider_id();
             self->lookupRemoteProvider(addr, pid, name, &descriptor);
         } catch (...) {
             margo_addr_free(mid, addr);

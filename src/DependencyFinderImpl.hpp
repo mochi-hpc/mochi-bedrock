@@ -28,19 +28,25 @@ class DependencyFinderImpl {
     using client_type = std::string;
 
   public:
-    tl::engine                           m_engine;
-    std::shared_ptr<MargoManagerImpl>    m_margo_context;
-    std::shared_ptr<ABTioManagerImpl>    m_abtio_context;
-    std::shared_ptr<SSGManagerImpl>      m_ssg_context;
-    std::shared_ptr<ProviderManagerImpl> m_provider_manager;
-    std::shared_ptr<ClientManagerImpl>   m_client_manager;
-    double                               m_timeout = 30.0;
+    tl::engine                         m_engine;
+    std::shared_ptr<MargoManagerImpl>  m_margo_context;
+    std::weak_ptr<ABTioManagerImpl>    m_abtio_context;
+    std::weak_ptr<SSGManagerImpl>      m_ssg_context;
+    std::weak_ptr<ProviderManagerImpl> m_provider_manager;
+    std::weak_ptr<ClientManagerImpl>   m_client_manager;
+    double                             m_timeout = 30.0;
 
     tl::remote_procedure m_lookup_provider;
 
     DependencyFinderImpl(const tl::engine& engine)
     : m_engine(engine),
-      m_lookup_provider(m_engine.define("bedrock_lookup_provider")) {}
+      m_lookup_provider(m_engine.define("bedrock_lookup_provider")) {
+        spdlog::trace("DependencyFinderImpl initialized");
+    }
+
+    ~DependencyFinderImpl() {
+        spdlog::trace("DependencyFinderImpl destroyed");
+    }
 
     void lookupRemoteProvider(hg_addr_t addr, uint16_t provider_id,
                               const std::string&  spec,

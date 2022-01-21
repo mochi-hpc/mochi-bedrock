@@ -23,9 +23,15 @@ class Jx9ManagerImpl {
     jx9*      m_engine = nullptr;
     tl::mutex m_mtx;
 
-    Jx9ManagerImpl() { jx9_init(&m_engine); }
+    Jx9ManagerImpl() {
+        spdlog::trace("Initializing Jx9 engine");
+        jx9_init(&m_engine);
+    }
 
-    ~Jx9ManagerImpl() { jx9_release(m_engine); }
+    ~Jx9ManagerImpl() {
+        spdlog::trace("Releasing Jx9 engine");
+        jx9_release(m_engine);
+    }
 
     Jx9ManagerImpl(const Jx9Manager&) = delete;
     Jx9ManagerImpl(Jx9Manager&&)      = delete;

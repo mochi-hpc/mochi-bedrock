@@ -86,7 +86,17 @@ class ProviderManagerImpl
       m_load_module(define("bedrock_load_module",
                            &ProviderManagerImpl::loadModuleRPC, pool)),
       m_start_provider(define("bedrock_start_provider",
-                              &ProviderManagerImpl::startProviderRPC, pool)) {}
+                              &ProviderManagerImpl::startProviderRPC, pool)) {
+        spdlog::trace("ProviderManagerImpl initialized");
+    }
+
+    ~ProviderManagerImpl() {
+        m_lookup_provider.deregister();
+        m_list_providers.deregister();
+        m_load_module.deregister();
+        m_start_provider.deregister();
+        spdlog::trace("ProviderManagerImpl destroyed");
+    }
 
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),
