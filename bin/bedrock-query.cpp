@@ -173,7 +173,7 @@ static void resolveSSGAddresses(thallium::engine& engine) {
             exit(-1);
         }
         g_addresses.emplace_back(
-            static_cast<std::string>(thallium::endpoint(engine, addr, false)));
+            static_cast<std::string>(thallium::endpoint(engine, addr, true)));
     }
     ssg_group_destroy(gid);
     ssg_finalize();
