@@ -49,7 +49,8 @@ class SSGData {
         spdlog::trace("Leaving and destroying SSG group {}", name);
         if (gid) {
             int ret = ssg_group_leave(gid);
-            if (ret != SSG_SUCCESS) {
+            // if SWIM is disabled, this function will return SSG_ERR_NOT_SUPPORTED
+            if (ret != SSG_SUCCESS && ret != SSG_ERR_NOT_SUPPORTED) {
                 spdlog::error(
                     "Could not leave SSG group \"{}\" "
                     "(ssg_group_leave returned {})",
