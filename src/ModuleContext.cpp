@@ -42,9 +42,13 @@ bool ModuleContext::loadModule(const std::string& moduleName,
     spdlog::trace("Loading module {} from library {}", moduleName, library);
     void* handle = nullptr;
     if (library == "")
-        handle = dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL);
+        handle = dlopen(nullptr, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
     else
-        handle = dlopen(library.c_str(), RTLD_NOW | RTLD_GLOBAL);
+        handle = dlopen(library.c_str(), RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE);
+    // XXX we use RTLD_NODELETE to prevent the symbols from being deleted
+    // when shutting down, allowing ASAN to detect leaks in module libraries.
+    // However if we ever want to add the possibility to unload and reload libraries,
+    // we will need something better than this.
     if (!handle)
         throw Exception("Could not dlopen library {}: {}", library, dlerror());
     s_libraries[moduleName] = library;
