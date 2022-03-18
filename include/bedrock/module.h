@@ -134,7 +134,7 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
  *
  * @return null-terminated configuration string.
  */
-typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
+typedef const char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
 
 /**
  * @brief Type of function called to get the configuration of a client.
@@ -144,7 +144,7 @@ typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
  *
  * @return null-terminated configuration string.
  */
-typedef char* (*bedrock_client_get_config_fn)(bedrock_module_client_t);
+typedef const char* (*bedrock_client_get_config_fn)(bedrock_module_client_t);
 
 /**
  * @brief A global instance of the bedrock_module structure must be provided

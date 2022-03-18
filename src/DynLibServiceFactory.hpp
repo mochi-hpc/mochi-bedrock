@@ -96,7 +96,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         auto config = m_module.get_provider_config(provider);
         if (!config) return std::string("{}");
         auto config_str = std::string(config);
-        free(config);
+        free((void *)config);
         return config_str;
     }
 
@@ -123,7 +123,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         auto config = m_module.get_client_config(client);
         if (!config) return std::string("{}");
         auto config_str = std::string(config);
-        free(config);
+        free((void *)config);
         return config_str;
     }
 
