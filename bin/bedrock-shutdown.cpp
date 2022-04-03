@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 static void parseCommandLine(int argc, char** argv) {
     try {
         TCLAP::CmdLine cmd("Query the configuration from Bedrock daemons", ' ',
-                           "0.3");
+                           "0.4");
         TCLAP::UnlabeledValueArg<std::string> protocol(
             "protocol", "Protocol (e.g. ofi+tcp)", true, "na+sm", "protocol");
         TCLAP::ValueArg<std::string> logLevel(

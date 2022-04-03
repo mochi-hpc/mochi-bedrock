@@ -20,6 +20,20 @@ namespace tl = thallium;
 class ServerImpl;
 
 /**
+ * @brief Enum class to specify the type of configuration
+ * being used to intialize the server.
+ */
+enum class ConfigType {
+    JSON,
+    JX9
+};
+
+/**
+ * @brief Parameters to pass to Jx9 config.
+ */
+typedef std::unordered_map<std::string, std::string> Jx9ParamMap;
+
+/**
  * @brief The Server class is encapsulating everything needed for
  * a Bedrock service to to be instaniated on a process. It is used
  * in bin/bedrock.cpp.
@@ -31,9 +45,13 @@ class Server {
      * @brief Constructor.
      *
      * @param address Address of the server.
-     * @param config JSON configuration.
+     * @param config JSON or JX9 configuration script.
+     * @param configType type of configuration (JSON or JX9).
+     * @param jx9Params parameters to pass to Jx9 configuration.
      */
-    Server(const std::string& address, const std::string& config = "");
+    Server(const std::string& address, const std::string& config = "",
+           ConfigType configType = ConfigType::JSON,
+           const Jx9ParamMap& jx9Params = Jx9ParamMap());
 
     /**
      * @brief Copy-constructor is deleted.

@@ -15,10 +15,13 @@ static std::string g_log_level;
 static std::string g_config_file;
 static bool        g_use_stdin;
 static std::string g_output_file;
+static bedrock::ConfigType g_config_type = bedrock::ConfigType::JSON;
+static std::string g_jx9_params;
 
 static void        parseCommandLine(int argc, char** argv);
 static std::string getConfigFromStdIn();
 static std::string getConfigFromFile(const std::string& filename);
+static bedrock::Jx9ParamMap parseJx9Params(const std::string& args);
 
 int main(int argc, char** argv) {
     parseCommandLine(argc, argv);
@@ -29,7 +32,8 @@ int main(int argc, char** argv) {
             config = getConfigFromStdIn();
         else if (!g_config_file.empty())
             config = getConfigFromFile(g_config_file);
-        bedrock::Server server(g_address, config);
+        auto jx9_params = parseJx9Params(g_jx9_params);
+        bedrock::Server server(g_address, config, g_config_type, jx9_params);
         if (!g_output_file.empty()) {
             std::ofstream output_file(g_output_file);
             output_file << server.getCurrentConfig();
@@ -39,9 +43,28 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+static bedrock::Jx9ParamMap parseJx9Params(const std::string& args) {
+    bedrock::Jx9ParamMap map;
+    auto s_stream = std::stringstream(args);
+    while(s_stream.good()) {
+        std::string assignment;
+        std::getline(s_stream, assignment, ',');
+        auto equal = assignment.find('=');
+        if(equal == std::string::npos) {
+            std::cerr << "Invalid definition of " << assignment << " in jx9 parameters"
+                      << std::endl;
+            exit(-1);
+        }
+        auto varname = assignment.substr(0, equal);
+        auto vardef = assignment.substr(equal+1);
+        map[varname] = vardef;
+    }
+    return map;
+}
+
 static void parseCommandLine(int argc, char** argv) {
     try {
-        TCLAP::CmdLine cmd("Spawns a Bedrock daemon", ' ', "0.1");
+        TCLAP::CmdLine cmd("Spawns a Bedrock daemon", ' ', "0.4");
         TCLAP::UnlabeledValueArg<std::string> address(
             "address",
             "Protocol (e.g. ofi+tcp) or address (e.g. "
@@ -52,25 +75,40 @@ static void parseCommandLine(int argc, char** argv) {
             "Log level (trace, debug, info, warning, error, critical, off)",
             false, "info", "level");
         TCLAP::ValueArg<std::string> configFile(
-            "c", "config", "JSON configuration file", false, "", "config-file");
+            "c", "config", "JSON or JX9 configuration file", false, "", "config-file");
         TCLAP::ValueArg<std::string> outConfigFile(
             "o", "output-config", "JSON file to write after deployment", false,
             "", "config-file");
         TCLAP::SwitchArg stdinSwitch(
-            "", "stdin", "Read JSON configuration from standard input", false);
+            "", "stdin", "Read configuration from standard input", false);
+        TCLAP::SwitchArg jx9Switch(
+            "j", "jx9", "Interpret configuration as a Jx9 script", false);
+        TCLAP::ValueArg<std::string> jx9Params(
+            "", "jx9-context", "Comma-separated list of Jx9 parameters for the Jx9 script",
+            false, "", "x=1,y=2,z=something,...");
         cmd.add(address);
         cmd.add(logLevel);
         cmd.add(configFile);
         cmd.add(outConfigFile);
         cmd.add(stdinSwitch);
+        cmd.add(jx9Switch);
+        cmd.add(jx9Params);
         cmd.parse(argc, argv);
         g_address     = address.getValue();
         g_log_level   = logLevel.getValue();
         g_config_file = configFile.getValue();
         g_output_file = outConfigFile.getValue();
         g_use_stdin   = stdinSwitch.getValue();
-        if (g_use_stdin && !g_config_file.empty()) {
+        g_jx9_params  = jx9Params.getValue();
+        if (g_use_stdin && configFile.isSet()) {
             std::cerr << "error: both config file and --stdin were provided"
+                      << std::endl;
+            exit(-1);
+        }
+        if (jx9Switch.getValue()) {
+            g_config_type = bedrock::ConfigType::JX9;
+        } else if(jx9Params.isSet()) {
+            std::cerr << "error: passing Jx9 parameters for a JSON configuration"
                       << std::endl;
             exit(-1);
         }

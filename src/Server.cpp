@@ -26,13 +26,24 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-Server::Server(const std::string& address, const std::string& configString) {
+Server::Server(const std::string& address, const std::string& configString,
+               ConfigType configType, const Jx9ParamMap& jx9Params) {
 
-    // Read JSON config file
+    std::string jsonConfigString;
+
+    if(configType == ConfigType::JX9) {
+        spdlog::trace("Interpreting JX9 template configuration");
+        jsonConfigString = Jx9Manager().executeQuery(configString, jx9Params);
+        spdlog::trace("JX9 template configuration interpreted");
+    } else {
+        jsonConfigString = configString;
+    }
+
+    // Read JSON config
     spdlog::trace("Parsing JSON configuration");
     json config;
-    if (!configString.empty()) {
-        config = json::parse(configString);
+    if (!jsonConfigString.empty()) {
+        config = json::parse(jsonConfigString);
     } else {
         config = json::object();
     }
@@ -80,7 +91,7 @@ Server::Server(const std::string& address, const std::string& configString) {
                                         tl::pool(bedrock_pool));
     self->m_margo_manager = margoMgr;
 
-    // Initializing the jx9 manaher
+    // Initializing the jx9 manager
     spdlog::trace("Initializing Jx9Manager");
     auto jx9Manager     = Jx9Manager();
     self->m_jx9_manager = jx9Manager;
