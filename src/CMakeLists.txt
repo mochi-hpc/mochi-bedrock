@@ -43,6 +43,8 @@ target_link_libraries (bedrock-server
     PkgConfig::ABTIO
     PkgConfig::SSG
     nlohmann_json::nlohmann_json
+    spdlog::spdlog
+    fmt::fmt
     ${OPTIONAL_MPI})
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC
@@ -56,7 +58,7 @@ set_target_properties (bedrock-server
 # client library
 add_library (bedrock-client ${client-src-files})
 target_compile_options(bedrock-client PUBLIC -Wall -Wextra)
-target_link_libraries (bedrock-client thallium)
+target_link_libraries (bedrock-client thallium spdlog::spdlog fmt::fmt)
 target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-client BEFORE PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)

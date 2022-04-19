@@ -41,7 +41,9 @@ find_package (nlohmann_json REQUIRED)
 # search for TCLAP
 find_package (TCLAP REQUIRED)
 # search for spdlog
-find_package(spdlog REQUIRED)
+find_package (spdlog REQUIRED)
+# search for fmt
+find_package (fmt REQUIRED)
 
 if (${ENABLE_MPI})
     find_package (MPI REQUIRED)
@@ -52,7 +54,7 @@ endif()
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
 set (BEDROCK_VERSION_MINOR 4)
-set (BEDROCK_VERSION_PATCH 0)
+set (BEDROCK_VERSION_PATCH 1)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 

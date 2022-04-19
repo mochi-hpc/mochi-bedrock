@@ -16,7 +16,7 @@
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/fmt.h>
+#include <fmt/format.h>
 #include <fstream>
 
 namespace tl = thallium;
