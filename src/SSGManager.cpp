@@ -161,7 +161,7 @@ SSGManager::SSGManager(const MargoManager& margo,
     auto addGroup = [this, &margo](const auto& config) {
         std::string        name, bootstrap, group_file;
         ssg_group_config_t group_config;
-        ABT_pool           pool;
+        ABT_pool           pool = ABT_POOL_NULL;
         extractConfigParameters(config, margo, name, bootstrap, group_config,
                                 group_file, pool);
         createGroup(name, &group_config, pool, bootstrap, group_file);
@@ -370,7 +370,7 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
 
     std::string        name, bootstrap, group_file;
     ssg_group_config_t group_config;
-    ABT_pool           pool;
+    ABT_pool           pool = ABT_POOL_NULL;
     extractConfigParameters(config, margo, name, bootstrap, group_config,
                             group_file, pool);
     return createGroup(name, &group_config, pool, bootstrap, group_file);
