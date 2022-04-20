@@ -45,6 +45,8 @@ int main(int argc, char** argv) {
 
 static bedrock::Jx9ParamMap parseJx9Params(const std::string& args) {
     bedrock::Jx9ParamMap map;
+    if(args.empty())
+        return map;
     auto s_stream = std::stringstream(args);
     while(s_stream.good()) {
         std::string assignment;
