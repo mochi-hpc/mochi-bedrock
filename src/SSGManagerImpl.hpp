@@ -89,6 +89,7 @@ class SSGManagerImpl {
 
     ~SSGManagerImpl() {
         spdlog::trace("Destroying SSGManager");
+        m_ssg_groups.clear();
         s_num_ssg_init -= 1;
         if (s_num_ssg_init == 0) {
             spdlog::trace("Finalizing SSG");
