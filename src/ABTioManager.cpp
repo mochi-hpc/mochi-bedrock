@@ -21,6 +21,11 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     self->m_margo_manager = margoCtx;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
+#ifndef ENABLE_ABT_IO
+    if (!(config.is_array() && config.empty()))
+        throw Exception(
+            "Configuration has \"abt_io\" entry but Bedrock wasn't compiled with ABT-IO support");
+#else
     if (!config.is_array()) {
         throw Exception("\"abt_io\" entry should be an array type");
     }
@@ -112,6 +117,7 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     }
     // setup self
     self->m_instances = std::move(abt_io_entries);
+#endif
 }
 
 ABTioManager::ABTioManager(const ABTioManager&) = default;
@@ -128,42 +134,72 @@ ABTioManager::operator bool() const { return static_cast<bool>(self); }
 
 abt_io_instance_id
 ABTioManager::getABTioInstance(const std::string& name) const {
+#ifndef ENABLE_ABT_IO
+    (void)name;
+    return nullptr;
+#else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p.name == name; });
     if (it == self->m_instances.end())
         return ABT_IO_INSTANCE_NULL;
     else
         return it->abt_io_id;
+#endif
 }
 
 abt_io_instance_id ABTioManager::getABTioInstance(int index) const {
+#ifndef ENABLE_ABT_IO
+    (void)index;
+    return nullptr;
+#else
     if (index < 0 || index >= (int)self->m_instances.size())
         return ABT_IO_INSTANCE_NULL;
     return self->m_instances[index].abt_io_id;
+#endif
 }
 
 const std::string& ABTioManager::getABTioInstanceName(int index) const {
     static const std::string empty = "";
+#ifndef ENABLE_ABT_IO
+    (void)index;
+    return empty;
+#else
     if (index < 0 || index >= (int)self->m_instances.size()) return empty;
     return self->m_instances[index].name;
+#endif
 }
 
 int ABTioManager::getABTioInstanceIndex(const std::string& name) const {
+#ifndef ENABLE_ABT_IO
+    (void)name;
+    return -1;
+#else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p.name == name; });
     if (it == self->m_instances.end())
         return -1;
     else
         return std::distance(self->m_instances.begin(), it);
+#endif
 }
 
 size_t ABTioManager::numABTioInstances() const {
+#ifndef ENABLE_ABT_IO
+    return 0;
+#else
     return self->m_instances.size();
+#endif
 }
 
 void ABTioManager::addABTioInstance(const std::string& name,
                                     const std::string& pool_name,
                                     const std::string& config) {
+#ifndef ENABLE_ABT_IO
+    (void)name;
+    (void)pool_name;
+    (void)config;
+    throw Exception("Bedrock wasn't compiled with ABT-IO support");
+#else
     ABT_pool pool;
     json     abt_io_config;
     // parse configuration
@@ -207,10 +243,15 @@ void ABTioManager::addABTioInstance(const std::string& name,
     entry.abt_io_id = abt_io;
     entry.margo_ctx = self->m_margo_manager;
     self->m_instances.push_back(std::move(entry));
+#endif
 }
 
 std::string ABTioManager::getCurrentConfig() const {
+#ifndef ENABLE_ABT_IO
+    return "[]";
+#else
     return self->makeConfig().dump();
+#endif
 }
 
 } // namespace bedrock

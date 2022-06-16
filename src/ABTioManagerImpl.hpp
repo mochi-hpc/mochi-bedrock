@@ -7,9 +7,12 @@
 #define __BEDROCK_ABTIO_CONTEXT_IMPL_H
 
 #include "bedrock/MargoManager.hpp"
+#include "bedrock/ABTioManager.hpp"
 #include "MargoManagerImpl.hpp"
 #include <nlohmann/json.hpp>
+#ifdef ENABLE_ABT_IO
 #include <abt-io.h>
+#endif
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -20,18 +23,22 @@ using nlohmann::json;
 
 class ABTioEntry {
   public:
+#ifdef ENABLE_ABT_IO
     std::string                       name;
     ABT_pool                          pool;
     abt_io_instance_id                abt_io_id;
     std::shared_ptr<MargoManagerImpl> margo_ctx;
+#endif
 
     json makeConfig() const {
         json config      = json::object();
+#ifdef ENABLE_ABT_IO
         config["name"]   = name;
         config["pool"]   = MargoManager(margo_ctx).getPoolInfo(pool).first;
         auto c           = abt_io_get_config(abt_io_id);
         config["config"] = c ? json::parse(c) : json::object();
         free(c);
+#endif
         return config;
     }
 };

@@ -163,7 +163,10 @@ SSGManager::SSGManager(const MargoManager& margo,
     if (config.is_null()) return;
 
 #ifndef ENABLE_SSG
-    spdlog::error("Configuration has \"ssg\" entry but Bedrock wasn't compiled with SSG support");
+    if (!config.empty()) {
+        throw Exception(
+            "Configuration has \"ssg\" entry but Bedrock wasn't compiled with SSG support");
+    }
 #else
     if (SSGManagerImpl::s_num_ssg_init == 0) {
         int ret = ssg_init();
@@ -467,7 +470,11 @@ hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
 }
 
 std::string SSGManager::getCurrentConfig() const {
+#ifndef ENABLE_SSG
+    return "[]";
+#else
     return self->makeConfig().dump();
+#endif
 }
 
 } // namespace bedrock

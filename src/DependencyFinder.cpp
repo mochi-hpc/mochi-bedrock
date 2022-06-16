@@ -66,10 +66,12 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
         }
         abt_io_instance_id abt_id
             = ABTioManager(abtio_manager_impl).getABTioInstance(spec);
+#ifdef ENABLE_ABT_IO
         if (abt_id == ABT_IO_INSTANCE_NULL) {
             throw Exception("Could not find ABT-IO instance with name \"{}\"",
                             spec);
         }
+#endif
         if (resolved) { *resolved = spec; }
         return VoidPtr(abt_id);
     } else if (type == "ssg") { // SSG group
