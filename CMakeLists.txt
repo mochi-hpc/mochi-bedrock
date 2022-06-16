@@ -10,6 +10,9 @@ add_definitions (-g)
 option (ENABLE_TESTS    "Build tests" OFF)
 option (ENABLE_EXAMPLES "Build examples" OFF)
 option (ENABLE_MPI      "Enable MPI support" OFF)
+option (ENABLE_MONA     "Enable MoNA support" OFF)
+option (ENABLE_SSG      "Enable SSG support" ON)
+option (ENABLE_ABT_IO   "Enable ABT-IO support" ON)
 
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
@@ -32,10 +35,6 @@ set (BUILD_SHARED_LIBS "ON" CACHE BOOL "Build a shared library")
 find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)
-# search for abt-io
-pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
-# search for ssg
-pkg_check_modules (SSG REQUIRED IMPORTED_TARGET ssg)
 # search for nlohmann/json
 find_package (nlohmann_json REQUIRED)
 # search for TCLAP
@@ -44,7 +43,19 @@ find_package (TCLAP REQUIRED)
 find_package (spdlog REQUIRED)
 # search for fmt
 find_package (fmt REQUIRED)
-
+# search for abt-io
+if (ENABLE_ABT_IO)
+    pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
+    add_definitions (-DENABLE_ABT_IO)
+    set (OPTIONAL_ABT_IO PkgConfig::ABTIO)
+endif ()
+# search for ssg
+if (ENABLE_SSG)
+    pkg_check_modules (SSG REQUIRED IMPORTED_TARGET ssg)
+    add_definitions (-DENABLE_SSG)
+    set (OPTIONAL_SSG PkgConfig::SSG)
+endif ()
+# search for MPI
 if (${ENABLE_MPI})
     find_package (MPI REQUIRED)
     add_definitions (-DENABLE_MPI)
@@ -53,8 +64,8 @@ endif()
 
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
-set (BEDROCK_VERSION_MINOR 4)
-set (BEDROCK_VERSION_PATCH 1)
+set (BEDROCK_VERSION_MINOR 5)
+set (BEDROCK_VERSION_PATCH 0)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 

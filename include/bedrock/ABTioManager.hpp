@@ -6,9 +6,11 @@
 #ifndef __BEDROCK_ABTIO_MANAGER_HPP
 #define __BEDROCK_ABTIO_MANAGER_HPP
 
-#include <abt-io.h>
 #include <thallium.hpp>
 #include <memory>
+
+/* Forward declaration to avoid including <abt-io.h> */
+typedef struct abt_io_instance* abt_io_instance_id;
 
 namespace bedrock {
 

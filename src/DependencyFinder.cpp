@@ -78,9 +78,11 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
             throw Exception("Could not resolve SSG dependency: no SSGManager found");
         }
         ssg_group_id_t gid = SSGManager(ssg_manager_impl).getGroup(spec);
+#ifdef ENABLE_SSG
         if (gid == SSG_GROUP_ID_INVALID) {
             throw Exception("Could not find SSG group with name \"{}\"", spec);
         }
+#endif
         if (resolved) { *resolved = spec; }
         return VoidPtr(reinterpret_cast<void*>(gid));
     } else { // Provider or provider handle

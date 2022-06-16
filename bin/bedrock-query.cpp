@@ -1,5 +1,7 @@
 #include <bedrock/Client.hpp>
+#ifdef ENABLE_SSG
 #include <ssg.h>
+#endif
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
 #include <nlohmann/json.hpp>
@@ -130,6 +132,11 @@ static void parseCommandLine(int argc, char** argv) {
 
 static void resolveSSGAddresses(thallium::engine& engine) {
     if (g_ssg_file.empty()) return;
+#ifndef ENABLE_SSG
+    spdlog::critical("Bedrock was not built with SSG support");
+    exit(-1);
+    (void)engine;
+#else
     margo_instance_id mid = engine.get_margo_instance();
     int               ret = ssg_init();
     if (ret != SSG_SUCCESS) {
@@ -177,6 +184,7 @@ static void resolveSSGAddresses(thallium::engine& engine) {
     }
     ssg_group_destroy(gid);
     ssg_finalize();
+#endif
 }
 
 static std::string lookupBedrockConfig(const bedrock::Client& client,

@@ -7,9 +7,12 @@
 #define __BEDROCK_SSG_MANAGER_HPP
 
 #include <bedrock/MargoManager.hpp>
-#include <ssg.h>
 #include <string>
 #include <memory>
+
+typedef uint64_t ssg_group_id_t;
+typedef uint64_t ssg_member_id_t;
+typedef struct ssg_group_config ssg_group_config_t;
 
 namespace bedrock {
 
@@ -17,6 +20,7 @@ class Server;
 class ServerImpl;
 class DependencyFinder;
 class SSGManagerImpl;
+class SSGUpdateHandler;
 
 /**
  * @brief The SSGManager class encapsulates an ssg_group_id_t.
@@ -26,6 +30,7 @@ class SSGManager {
     friend class Server;
     friend class ServerImpl;
     friend class DependencyFinder;
+    friend class SSGUpdateHandler;
 
   public:
     /**
@@ -125,9 +130,6 @@ class SSGManager {
 
     inline SSGManager(std::shared_ptr<SSGManagerImpl> impl)
     : self(std::move(impl)) {}
-
-    static void membershipUpdate(void* group_data, ssg_member_id_t member_id,
-                                 ssg_member_update_type_t update_type);
 };
 
 } // namespace bedrock

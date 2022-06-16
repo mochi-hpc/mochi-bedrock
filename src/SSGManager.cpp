@@ -10,11 +10,14 @@
 #include <margo.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
-#ifdef ENABLE_MPI
+#ifdef ENABLE_SSG
+  #include <ssg.h>
+  #ifdef ENABLE_MPI
     #include <ssg-mpi.h>
-#endif
-#ifdef ENABLE_PMIX
+  #endif
+  #ifdef ENABLE_PMIX
     #include <ssg-pmix.h>
+  #endif
 #endif
 #include <regex>
 
@@ -41,6 +44,15 @@ bool SSGManagerImpl::s_initialized_mpi = false;
 bool SSGManagerImpl::s_initialized_pmix = false;
 #endif
 
+class SSGUpdateHandler {
+#ifdef ENABLE_SSG
+    public:
+    static void membershipUpdate(void* group_data, ssg_member_id_t member_id,
+                                 ssg_member_update_type_t update_type);
+#endif
+};
+
+#ifdef ENABLE_SSG
 static void validateGroupConfig(json&                           config,
                                 const std::vector<std::string>& existing_names,
                                 const MargoManager&             margo) {
@@ -141,6 +153,7 @@ static void extractConfigParameters(const json&         config,
         }
     }
 }
+#endif
 
 SSGManager::SSGManager(const MargoManager& margo,
                        const std::string&  configString)
@@ -149,6 +162,9 @@ SSGManager::SSGManager(const MargoManager& margo,
     auto config           = json::parse(configString);
     if (config.is_null()) return;
 
+#ifndef ENABLE_SSG
+    spdlog::error("Configuration has \"ssg\" entry but Bedrock wasn't compiled with SSG support");
+#else
     if (SSGManagerImpl::s_num_ssg_init == 0) {
         int ret = ssg_init();
         if (ret != SSG_SUCCESS) {
@@ -178,6 +194,7 @@ SSGManager::SSGManager(const MargoManager& margo,
         }
         for (const auto& c : config) { addGroup(c); }
     }
+#endif
 }
 
 SSGManager::SSGManager(const SSGManager&) = default;
@@ -193,12 +210,17 @@ SSGManager::~SSGManager() = default;
 SSGManager::operator bool() const { return static_cast<bool>(self); }
 
 ssg_group_id_t SSGManager::getGroup(const std::string& group_name) const {
+#ifdef ENABLE_SSG
     auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
                            [&](auto& g) { return g->name == group_name; });
     if (it == self->m_ssg_groups.end())
         return SSG_GROUP_ID_INVALID;
     else
         return (*it)->gid;
+#else
+    (void)group_name;
+    return 0;
+#endif
 }
 
 ssg_group_id_t SSGManager::createGroup(const std::string&        name,
@@ -206,6 +228,15 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                                        ABT_pool                  pool,
                                        const std::string& bootstrap_method,
                                        const std::string& group_file) {
+#ifndef ENABLE_SSG
+    (void)name;
+    (void)config;
+    (void)pool;
+    (void)bootstrap_method;
+    (void)group_file;
+    throw Exception("Bedrock wasn't compiled with SSG support");
+    return 0;
+#else // ENABLE_SSG
     int            ret;
     ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
     auto           mid        = self->m_margo_manager->m_mid;
@@ -249,7 +280,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
 
         ret = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
                                const_cast<ssg_group_config_t*>(config),
-                               SSGManager::membershipUpdate, group_data.get(),
+                               SSGUpdateHandler::membershipUpdate, group_data.get(),
                                &gid);
         if (ret != SSG_SUCCESS) {
             throw Exception("ssg_group_create failed with error code {}", ret);
@@ -270,7 +301,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                 " (ssg_group_id_load returned {}",
                 group_file, ret);
         }
-        ret = ssg_group_join(mid, gid, SSGManager::membershipUpdate,
+        ret = ssg_group_join(mid, gid, SSGUpdateHandler::membershipUpdate,
                              group_data.get());
         if (ret != SSG_SUCCESS) {
             throw Exception(
@@ -290,16 +321,16 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
         ret = ssg_group_create_mpi(
             self->m_margo_manager->m_mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(config),
-            SSGManager::membershipUpdate, group_data.get(), &gid);
+            SSGUpdateHandler::membershipUpdate, group_data.get(), &gid);
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to create SSG group {} "
                 "(ssg_group_create_mpi returned {})",
                 name, ret);
         }
-#else
+#else // ENABLE_MPI
         throw Exception("Bedrock was not compiled with MPI support");
-#endif
+#endif // ENABLE_MPI
 
     } else if (bootstrap_method == "pmix") {
 #ifdef ENABLE_PMIX
@@ -312,10 +343,10 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
         gid = ssg_group_create_pmix(
             self->m_margo_manager->m_mid, name.c_str(), proc,
             const_cast<ssg_group_config_t*>(config),
-            SSGManager::membershipUpdate, group_data.get());
-#else
+            SSGUpdateHandler::membershipUpdate, group_data.get());
+#else // ENABLE_PMIX
         throw Exception("Bedrock was not compiled with PMIx support");
-#endif
+#endif // ENABLE_PMIX
     } else {
         throw Exception("Invalid SSG bootstrapping method {}",
                         bootstrap_method);
@@ -342,10 +373,16 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
     group_data->gid = gid;
     self->m_ssg_groups.push_back(std::move(group_data));
     return gid;
+#endif // ENABLE_SSSG
 }
 
 ssg_group_id_t
 SSGManager::createGroupFromConfig(const std::string& configString) {
+#ifndef ENABLE_SSG
+    (void)configString;
+    throw Exception("Bedrock wasn't compiled with SSG support");
+    return 0;
+#else // ENABLE_SSG
     auto config = json::parse(configString);
     if (!config.is_object()) {
         throw Exception("SSG group config should be an object");
@@ -374,17 +411,25 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
     extractConfigParameters(config, margo, name, bootstrap, group_config,
                             group_file, pool);
     return createGroup(name, &group_config, pool, bootstrap, group_file);
+#endif // ENABLE_SSG
 }
 
-void SSGManager::membershipUpdate(void* group_data, ssg_member_id_t member_id,
+#ifdef ENABLE_SSG
+void SSGUpdateHandler::membershipUpdate(void* group_data, ssg_member_id_t member_id,
                                   ssg_member_update_type_t update_type) {
     SSGData* gdata = reinterpret_cast<SSGData*>(group_data);
     (void)gdata;
     spdlog::trace("SSG membership updated: member_id={}, update_type={}",
                   member_id, update_type);
 }
+#endif
 
 hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
+#ifndef ENABLE_SSG
+    (void)address;
+    throw Exception("Bedrock wasn't compiled with SSG support");
+    return HG_ADDR_NULL;
+#else // ENABLE_SSG
     std::regex  re("ssg:\\/\\/([a-zA-Z_][a-zA-Z0-9_]*)\\/(#?)([0-9][0-9]*)$");
     std::smatch match;
     if (std::regex_search(address, match, re)) {
@@ -418,6 +463,7 @@ hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
         throw Exception("Invalid SSG address specification \"{}\"", address);
     }
     return HG_ADDR_NULL;
+#endif // ENABLE_SSG
 }
 
 std::string SSGManager::getCurrentConfig() const {
