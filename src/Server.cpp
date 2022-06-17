@@ -7,6 +7,7 @@
 #include "bedrock/Exception.hpp"
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/ABTioManager.hpp"
+#include "bedrock/MonaManager.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/ProviderManager.hpp"
 #include "bedrock/ClientManager.hpp"
@@ -117,6 +118,13 @@ Server::Server(const std::string& address, const std::string& configString,
     auto abtioMgr         = ABTioManager(margoMgr, abtioConfig);
     self->m_abtio_manager = abtioMgr;
     spdlog::trace("ABTioManager initialized");
+
+    // Initialize mona manager
+    spdlog::trace("Initializing MonaManager");
+    auto monaConfig      = config["mona"].dump();
+    auto monaMgr         = MonaManager(margoMgr, monaConfig, address);
+    self->m_mona_manager = monaMgr;
+    spdlog::trace("MonaManager initialized");
 
     // Initialize the module context
     spdlog::trace("Initialize ModuleContext");

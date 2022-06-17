@@ -58,6 +58,12 @@
             }
         }
     ],
+    "mona" : [
+        {
+            "name" : "mymonainstance",
+            "pool" : "__primary__"
+        }
+    ],
     "libraries" : {
         "module_a" : "examples/libexample-module-a.so",
         "module_b" : "examples/libexample-module-b.so"

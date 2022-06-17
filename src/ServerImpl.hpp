@@ -8,6 +8,7 @@
 
 #include "MargoManagerImpl.hpp"
 #include "ABTioManagerImpl.hpp"
+#include "MonaManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
 #include "ClientManagerImpl.hpp"
 #include "DependencyFinderImpl.hpp"
@@ -31,6 +32,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
   public:
     std::shared_ptr<MargoManagerImpl>     m_margo_manager;
     std::shared_ptr<ABTioManagerImpl>     m_abtio_manager;
+    std::shared_ptr<MonaManagerImpl>      m_mona_manager;
     std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
     std::shared_ptr<ClientManagerImpl>    m_client_manager;
     std::shared_ptr<DependencyFinderImpl> m_dependency_finder;

@@ -60,7 +60,13 @@ if (${ENABLE_MPI})
     find_package (MPI REQUIRED)
     add_definitions (-DENABLE_MPI)
     set (OPTIONAL_MPI MPI::MPI_C)
-endif()
+endif ()
+# search for mona
+if (ENABLE_MONA)
+    pkg_check_modules (MONA REQUIRED IMPORTED_TARGET mona)
+    add_definitions (-DENABLE_MONA)
+    set (OPTIONAL_MONA PkgConfig::MONA)
+endif ()
 
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)

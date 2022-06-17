@@ -22,6 +22,8 @@ class SSGManager;
 class SSGData;
 class ABTioManager;
 class ABTioEntry;
+class MonaManager;
+class MonaEntry;
 class ProviderEntry;
 class ServerImpl;
 
@@ -36,6 +38,8 @@ class MargoManager {
     friend class DependencyFinder;
     friend class SSGManager;
     friend class SSGData;
+    friend class MonaEntry;
+    friend class MonaManager;
     friend class ABTioEntry;
     friend class ABTioManager;
     friend class ProviderEntry;
