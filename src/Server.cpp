@@ -141,7 +141,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
     // Initializing dependency finder
     spdlog::trace("Initializing DependencyFinder");
-    auto dependencyFinder     = DependencyFinder(margoMgr, abtioMgr, ssgMgr,
+    auto dependencyFinder     = DependencyFinder(margoMgr, abtioMgr, ssgMgr, monaMgr,
                                              providerManager, clientManager);
     self->m_dependency_finder = dependencyFinder;
     self->m_dependency_finder->m_timeout = dependency_timeout;

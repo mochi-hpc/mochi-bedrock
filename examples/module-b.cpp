@@ -12,6 +12,7 @@ class ServiceBFactory : public bedrock::AbstractServiceFactory {
 
     ServiceBFactory() {
         m_provider_dependencies.push_back({ "ssg_group", "ssg", BEDROCK_REQUIRED });
+        m_provider_dependencies.push_back({ "mona_instance", "mona", BEDROCK_REQUIRED });
         m_provider_dependencies.push_back({ "a_provider", "module_a", BEDROCK_REQUIRED });
         m_provider_dependencies.push_back({ "a_local", "module_a", BEDROCK_REQUIRED | BEDROCK_ARRAY});
         m_provider_dependencies.push_back({ "a_client", "module_a", BEDROCK_REQUIRED });

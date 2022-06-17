@@ -43,7 +43,8 @@ class DependencyFinder {
      * @param cmanager Client manager
      */
     DependencyFinder(const MargoManager& margo, const ABTioManager& abtio,
-                     const SSGManager& ssg, const ProviderManager& pmanager,
+                     const SSGManager& ssg, const MonaManager& mona,
+                     const ProviderManager& pmanager,
                      const ClientManager& cmanager);
 
     /**

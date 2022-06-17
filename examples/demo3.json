@@ -95,6 +95,7 @@
             "config" : {},
             "dependencies" : {
                 "ssg_group" : "mygroup",
+                "mona_instance" : "mymonainstance",
                 "a_provider" : "ProviderA",
                 "a_local" : [ "ClientA->ProviderA@local" ],
                 "a_client" : "ClientA"

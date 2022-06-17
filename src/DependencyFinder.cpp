@@ -19,12 +19,14 @@ namespace bedrock {
 DependencyFinder::DependencyFinder(const MargoManager&    margo,
                                    const ABTioManager&    abtio,
                                    const SSGManager&      ssg,
+                                   const MonaManager&     mona,
                                    const ProviderManager& pmanager,
                                    const ClientManager&   cmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio.self;
     self->m_ssg_context      = ssg.self;
+    self->m_mona_context     = mona.self;
     self->m_provider_manager = pmanager.self;
     self->m_client_manager   = cmanager.self;
 }
@@ -74,6 +76,21 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
 #endif
         if (resolved) { *resolved = spec; }
         return VoidPtr(abt_id);
+    } else if (type == "mona") { // MoNA instance
+        auto mona_manager_impl = self->m_mona_context.lock();
+        if (!mona_manager_impl) {
+            throw Exception("Could not resolve MoNA dependency: no MonaManager found");
+        }
+        mona_instance_t mona_id
+            = MonaManager(mona_manager_impl).getMonaInstance(spec);
+#ifdef ENABLE_MONA
+        if (mona_id == MONA_INSTANCE_NULL) {
+            throw Exception("Could not find MoNA instance with name \"{}\"",
+                            spec);
+        }
+#endif
+        if (resolved) { *resolved = spec; }
+        return VoidPtr(mona_id);
     } else if (type == "ssg") { // SSG group
         auto ssg_manager_impl = self->m_ssg_context.lock();
         if(!ssg_manager_impl) {
