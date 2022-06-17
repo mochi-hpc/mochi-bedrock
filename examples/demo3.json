@@ -51,11 +51,8 @@
     "ssg" : [
         {
             "name" : "mygroup",
-            "bootstrap" : "init",
-            "group_file" : "mygroup.ssg",
-            "swim" : {
-                "disabled" : true
-            }
+            "bootstrap" : "init|join",
+            "group_file" : "mygroup.ssg"
         }
     ],
     "mona" : [

@@ -20,6 +20,7 @@
   #endif
 #endif
 #include <regex>
+#include <fstream>
 
 namespace bedrock {
 
@@ -100,7 +101,8 @@ static void validateGroupConfig(json&                           config,
                 "\"bootstrap\" field should be a string");
     auto bootstrap = config["bootstrap"].get<std::string>();
     if (bootstrap != "init" && bootstrap != "join" && bootstrap != "mpi"
-        && bootstrap != "pmix") {
+        && bootstrap != "pmix" && bootstrap != "init|join"
+        && bootstrap != "mpi|join" && bootstrap != "pmix|join") {
         throw Exception(
             "Invalid bootstrap value \"{}\" in SSG group configuration",
             bootstrap);
@@ -256,7 +258,34 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
 
     (void)pool; // TODO add support for specifying the pool
 
-    if (bootstrap_method == "init") {
+    auto method = bootstrap_method;
+
+    if (method == "init|join"
+    ||  method == "mpi|join"
+    ||  method == "pmix|join") {
+        auto sep = method.find('|');
+        if(group_file.empty()) {
+            auto new_method = method.substr(0, sep);
+            spdlog::trace("Group file not specified, changing bootstrap method from \"{}\" to \"{}\"",
+                method, new_method);
+            method = std::move(new_method);
+        } else {
+            std::ifstream f(group_file.c_str());
+            if(f.good()) {
+                auto new_method = method.substr(sep+1);
+                spdlog::trace("File {} found, changing bootstrap method from \"{}\" to \"{}\"",
+                    group_file, method, new_method);
+                method = std::move(new_method);
+            } else {
+                auto new_method = method.substr(0, sep);
+                spdlog::trace("File {} not found, changing bootstrap method from \"{}\" to \"{}\"",
+                    group_file, method, new_method);
+                method = std::move(new_method);
+            }
+        }
+    }
+
+    if (method == "init") {
 
         hg_addr_t   addr;
         hg_return_t hret = margo_addr_self(mid, &addr);
@@ -289,7 +318,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
             throw Exception("ssg_group_create failed with error code {}", ret);
         }
 
-    } else if (bootstrap_method == "join") {
+    } else if (method == "join") {
 
         if (group_file.empty()) {
             throw Exception(
@@ -304,8 +333,10 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                 " (ssg_group_id_load returned {}",
                 group_file, ret);
         }
+        std::cerr << "YYYY" << std::endl;
         ret = ssg_group_join(mid, gid, SSGUpdateHandler::membershipUpdate,
                              group_data.get());
+        std::cerr << "XXXX" << std::endl;
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to join SSG group {} "
@@ -313,7 +344,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                 name, ret);
         }
 
-    } else if (bootstrap_method == "mpi") {
+    } else if (method == "mpi") {
 #ifdef ENABLE_MPI
         int flag;
         MPI_Initialized(&flag);
@@ -335,7 +366,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
         throw Exception("Bedrock was not compiled with MPI support");
 #endif // ENABLE_MPI
 
-    } else if (bootstrap_method == "pmix") {
+    } else if (method == "pmix") {
 #ifdef ENABLE_PMIX
         pmix_proc_t proc;
         auto        ret = PMIx_Init(&proc, NULL, 0);
@@ -355,8 +386,8 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                         bootstrap_method);
     }
     if (!group_file.empty()
-        && (bootstrap_method == "init" || bootstrap_method == "mpi"
-            || bootstrap_method == "pmix")) {
+        && (method == "init" || method == "mpi"
+            || method == "pmix")) {
         int rank = -1;
         ret      = ssg_get_group_self_rank(gid, &rank);
         if (rank == -1 || ret != SSG_SUCCESS) {
