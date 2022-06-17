@@ -333,10 +333,8 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                 " (ssg_group_id_load returned {}",
                 group_file, ret);
         }
-        std::cerr << "YYYY" << std::endl;
         ret = ssg_group_join(mid, gid, SSGUpdateHandler::membershipUpdate,
                              group_data.get());
-        std::cerr << "XXXX" << std::endl;
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to join SSG group {} "
