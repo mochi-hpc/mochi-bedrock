@@ -25,10 +25,22 @@ class MonaEntry {
   public:
 #ifdef ENABLE_MONA
     std::string                       name;
-    ABT_pool                          pool;
-    mona_instance_t                   mona;
+    ABT_pool                          pool = ABT_POOL_NULL;
+    mona_instance_t                   mona = nullptr;
     std::shared_ptr<MargoManagerImpl> margo_ctx;
+
+    MonaEntry(const MonaEntry&) = delete;
+
+    MonaEntry(MonaEntry&& other)
+    : name(std::move(other.name))
+    , pool(other.pool)
+    , mona(other.mona)
+    , margo_ctx(std::move(other.margo_ctx)) {
+        other.mona = nullptr;
+    }
 #endif
+
+    MonaEntry() = default;
 
     json makeConfig() const {
         json config      = json::object();
@@ -51,6 +63,14 @@ class MonaEntry {
 #endif
         return config;
     }
+
+#ifdef ENABLE_MONA
+    ~MonaEntry() {
+        if(mona) {
+            mona_finalize(mona);
+        }
+    }
+#endif
 };
 
 class MonaManagerImpl {

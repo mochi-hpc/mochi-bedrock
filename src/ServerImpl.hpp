@@ -33,11 +33,11 @@ class ServerImpl : public tl::provider<ServerImpl> {
     std::shared_ptr<MargoManagerImpl>     m_margo_manager;
     std::shared_ptr<ABTioManagerImpl>     m_abtio_manager;
     std::shared_ptr<MonaManagerImpl>      m_mona_manager;
-    std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
-    std::shared_ptr<ClientManagerImpl>    m_client_manager;
-    std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
     std::shared_ptr<SSGManagerImpl>       m_ssg_manager;
+    std::shared_ptr<ClientManagerImpl>    m_client_manager;
+    std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
     std::shared_ptr<Jx9ManagerImpl>       m_jx9_manager;
+    std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
     tl::pool                              m_pool;
 
     tl::remote_procedure m_get_config_rpc;
