@@ -7,6 +7,7 @@
 #include "bedrock/Client.hpp"
 #include "bedrock/ServiceHandle.hpp"
 #include "bedrock/RequestResult.hpp"
+#include "bedrock/client.h"
 
 #include "ClientImpl.hpp"
 #include "ServiceHandleImpl.hpp"
@@ -51,3 +52,13 @@ ServiceHandle Client::makeServiceHandle(const std::string& address,
 }
 
 } // namespace bedrock
+
+extern "C" int bedrock_client_init(margo_instance_id mid, bedrock_client_t* client) {
+    *client = static_cast<void*>(new bedrock::Client(mid));
+    return 0;
+}
+
+extern "C" int bedrock_client_finalize(bedrock_client_t client) {
+    delete static_cast<bedrock::Client*>(client);
+    return 0;
+}

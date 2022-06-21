@@ -6,6 +6,7 @@
 #include "bedrock/ServiceHandle.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/Exception.hpp"
+#include "bedrock/service-handle.h"
 
 #include "AsyncRequestImpl.hpp"
 #include "ClientImpl.hpp"
@@ -15,6 +16,8 @@
 #include <thallium/serialization/stl/pair.hpp>
 #include <thallium/serialization/stl/unordered_map.hpp>
 #include <thallium/serialization/stl/vector.hpp>
+
+#include <cstring>
 
 namespace bedrock {
 
@@ -230,3 +233,33 @@ void ServiceHandle::queryConfig(const std::string& script, std::string* result,
 }
 
 } // namespace bedrock
+
+extern "C"
+int bedrock_service_handle_create(
+        bedrock_client_t client,
+        const char* addr,
+        uint16_t provider_id,
+        bedrock_service_t* sh) {
+    auto c = static_cast<bedrock::Client*>(client);
+    *sh = static_cast<void*>(
+            new bedrock::ServiceHandle(
+                c->makeServiceHandle(addr, provider_id)));
+    return 0;
+}
+
+extern "C"
+int bedrock_service_handle_destroy(
+        bedrock_service_t sh) {
+    delete static_cast<bedrock::ServiceHandle*>(sh);
+    return 0;
+}
+
+extern "C"
+char* bedrock_service_query_config(
+        bedrock_service_t sh,
+        const char* script) {
+    auto service_handle = static_cast<bedrock::ServiceHandle*>(sh);
+    std::string result;
+    service_handle->queryConfig(script, &result);
+    return strdup(result.c_str());
+}
