@@ -7,6 +7,7 @@
 #define __BEDROCK_CLIENT_H
 
 #include <margo.h>
+#include <bedrock/common.h>
 
 #ifdef __cplusplus
 extern "C" {
