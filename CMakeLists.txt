@@ -48,12 +48,14 @@ if (ENABLE_ABT_IO)
     pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
     add_definitions (-DENABLE_ABT_IO)
     set (OPTIONAL_ABT_IO PkgConfig::ABTIO)
+    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} abt-io")
 endif ()
 # search for ssg
 if (ENABLE_SSG)
     pkg_check_modules (SSG REQUIRED IMPORTED_TARGET ssg)
     add_definitions (-DENABLE_SSG)
     set (OPTIONAL_SSG PkgConfig::SSG)
+    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} ssg")
 endif ()
 # search for MPI
 if (${ENABLE_MPI})
@@ -66,12 +68,13 @@ if (ENABLE_MONA)
     pkg_check_modules (MONA REQUIRED IMPORTED_TARGET mona)
     add_definitions (-DENABLE_MONA)
     set (OPTIONAL_MONA PkgConfig::MONA)
+    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} mona")
 endif ()
 
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
 set (BEDROCK_VERSION_MINOR 5)
-set (BEDROCK_VERSION_PATCH 0)
+set (BEDROCK_VERSION_PATCH 1)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 
