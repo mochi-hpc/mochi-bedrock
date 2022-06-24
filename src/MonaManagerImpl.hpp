@@ -10,6 +10,7 @@
 #include "bedrock/MonaManager.hpp"
 #include "MargoManagerImpl.hpp"
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 #ifdef ENABLE_MONA
 #include <mona.h>
 #endif
@@ -67,7 +68,9 @@ class MonaEntry {
 #ifdef ENABLE_MONA
     ~MonaEntry() {
         if(mona) {
+            spdlog::trace("Finalizing MoNA instance {}", name);
             mona_finalize(mona);
+            spdlog::trace("Done finalizing MoNA instance {}", name);
         }
     }
 #endif
@@ -85,6 +88,10 @@ class MonaManagerImpl {
         json config = json::array();
         for (auto& i : m_instances) { config.push_back(i.makeConfig()); }
         return config;
+    }
+
+    ~MonaManagerImpl() {
+        spdlog::trace("Finalizing MoNA");
     }
 };
 
