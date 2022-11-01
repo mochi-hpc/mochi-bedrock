@@ -13,6 +13,7 @@
 #ifdef ENABLE_ABT_IO
 #include <abt-io.h>
 #endif
+#include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -25,8 +26,8 @@ class ABTioEntry {
   public:
 #ifdef ENABLE_ABT_IO
     std::string                       name;
-    ABT_pool                          pool;
-    abt_io_instance_id                abt_io_id;
+    ABT_pool                          pool = ABT_POOL_NULL;
+    abt_io_instance_id                abt_io_id = 0;
     std::shared_ptr<MargoManagerImpl> margo_ctx;
 #endif
 
@@ -40,6 +41,28 @@ class ABTioEntry {
         free(c);
 #endif
         return config;
+    }
+
+    ABTioEntry() = default;
+
+    ABTioEntry(const ABTioEntry&) = delete;
+
+    ABTioEntry(ABTioEntry&& other)
+    : name(std::move(other.name))
+    , pool(other.pool)
+    , abt_io_id(other.abt_io_id)
+    , margo_ctx(std::move(other.margo_ctx))
+    {
+        other.abt_io_id = 0;
+    }
+
+    ~ABTioEntry() {
+#ifdef ENABLE_ABT_IO
+        if(!abt_io_id)
+            return;
+        spdlog::trace("Freeing ABT-IO instance {}", name);
+        abt_io_finalize(abt_io_id);
+#endif
     }
 };
 

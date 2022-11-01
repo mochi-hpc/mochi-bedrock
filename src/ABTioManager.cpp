@@ -102,6 +102,7 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
         abt_io_info.json_config   = configs[i].c_str();
         abt_io_info.progress_pool = pools[i];
         abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
+        spdlog::trace("Created ABT-IO instance {}", names[i]);
         if (abt_io == ABT_IO_INSTANCE_NULL) {
             for (unsigned j = 0; j < abt_io_entries.size(); j++) {
                 abt_io_finalize(abt_io_entries[j].abt_io_id);
