@@ -69,30 +69,48 @@ ABT_pool MargoManager::getDefaultHandlerPool() const {
     return p;
 }
 
-ABT_pool MargoManager::getPool(int index) const {
-    margo_pool_info info = {ABT_POOL_NULL,0,0};
+MargoManager::PoolInfo MargoManager::getPool(int index) const {
+    margo_pool_info info = {ABT_POOL_NULL,"",0};
     margo_find_pool_by_index(self->m_mid, index, &info);
-    return info.pool;
+    return {info.pool, info.name, info.index};
 }
 
-ABT_pool MargoManager::getPool(const std::string& name) const {
-    margo_pool_info info = {ABT_POOL_NULL,0,0};
+MargoManager::PoolInfo MargoManager::getPool(const std::string& name) const {
+    margo_pool_info info = {ABT_POOL_NULL,"",0};
     margo_find_pool_by_name(self->m_mid, name.c_str(), &info);
-    return info.pool;
+    return {info.pool, info.name, info.index};
+}
+
+MargoManager::PoolInfo MargoManager::getPool(ABT_pool pool) const {
+    margo_pool_info info = {ABT_POOL_NULL,"",0};
+    margo_find_pool_by_handle(self->m_mid, pool, &info);
+    return {info.pool, info.name, info.index};
 }
 
 size_t MargoManager::getNumPools() const {
     return margo_get_num_pools(self->m_mid);
 }
 
-std::pair<std::string, int> MargoManager::getPoolInfo(ABT_pool pool) const {
-    margo_pool_info info = {ABT_POOL_NULL,0,0};
-    std::pair<std::string, int> result = {"", -1};
-    if(HG_SUCCESS == margo_find_pool_by_handle(self->m_mid, pool, &info)) {
-        result.first  = info.name ? info.name : std::string{};
-        result.second = info.index;
-    }
-    return result;
+MargoManager::XstreamInfo MargoManager::getXstream(int index) const {
+    margo_xstream_info info = {ABT_XSTREAM_NULL,"",0};
+    margo_find_xstream_by_index(self->m_mid, index, &info);
+    return {info.xstream, info.name, info.index};
+}
+
+MargoManager::XstreamInfo MargoManager::getXstream(const std::string& name) const {
+    margo_xstream_info info = {ABT_XSTREAM_NULL,"",0};
+    margo_find_xstream_by_name(self->m_mid, name.c_str(), &info);
+    return {info.xstream, info.name, info.index};
+}
+
+MargoManager::XstreamInfo MargoManager::getXstream(ABT_xstream xstream) const {
+    margo_xstream_info info = {ABT_XSTREAM_NULL,"",0};
+    margo_find_xstream_by_handle(self->m_mid, xstream, &info);
+    return {info.xstream, info.name, info.index};
+}
+
+size_t MargoManager::getNumXstreams() const {
+    return margo_get_num_xstreams(self->m_mid);
 }
 
 } // namespace bedrock

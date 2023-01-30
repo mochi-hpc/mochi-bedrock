@@ -63,14 +63,14 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
                 "Could not find \"pool\" entry in ABT-IO descriptor");
         } else if (pool_json_it->is_string()) {
             auto pool_str = pool_json_it->get<std::string>();
-            pool          = margoCtx.getPool(pool_str);
+            pool          = margoCtx.getPool(pool_str).pool;
             if (pool == ABT_POOL_NULL) {
                 throw Exception("Could not find pool \"{}\" in MargoManager",
                                 pool_str);
             }
         } else if (pool_json_it->is_number_integer()) {
             pool_index = pool_json_it->get<int>();
-            pool       = margoCtx.getPool(pool_index);
+            pool       = margoCtx.getPool(pool_index).pool;
             if (pool == ABT_POOL_NULL) {
                 throw Exception("Could not find pool {} in MargoManager",
                                 pool_index);
@@ -220,7 +220,7 @@ void ABTioManager::addABTioInstance(const std::string& name,
         throw Exception("Name \"{}\" already used by another ABT-IO instance");
     }
     // find pool
-    pool = MargoManager(self->m_margo_manager).getPool(pool_name);
+    pool = MargoManager(self->m_margo_manager).getPool(pool_name).pool;
     if (pool == ABT_POOL_NULL) {
         throw Exception("Could not find pool \"{}\" in MargoManager",
                         pool_name);

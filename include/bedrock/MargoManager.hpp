@@ -46,6 +46,25 @@ class MargoManager {
     friend class ServerImpl;
 
   public:
+
+    /**
+     * @brief Structure holding information about a pool in Margo.
+     */
+    struct PoolInfo {
+        ABT_pool    pool;
+        std::string name;
+        uint32_t    index;
+    };
+
+    /**
+     * @brief Structure holding information about an ES in Margo.
+     */
+    struct XstreamInfo {
+        ABT_xstream xstream;
+        std::string name;
+        uint32_t    index;
+    };
+
     /**
      * @brief Constructor from an existing Margo instance.
      *
@@ -114,12 +133,17 @@ class MargoManager {
     /**
      * @brief Get the pool corresponding to a particular index.
      */
-    ABT_pool getPool(int index) const;
+    PoolInfo getPool(int index) const;
 
     /**
      * @brief Get the pool corresponding to a particular name.
      */
-    ABT_pool getPool(const std::string& name) const;
+    PoolInfo getPool(const std::string& name) const;
+
+    /**
+     * @brief Get the pool corresponding to a particular handle.
+     */
+    PoolInfo getPool(ABT_pool pool) const;
 
     /**
      * @brief Get the number of pools.
@@ -127,12 +151,24 @@ class MargoManager {
     size_t getNumPools() const;
 
     /**
-     * @brief Resolve an ABT_pool handle to a <name, index> pair,
-     * or <"",-1> if the pool wasn't recognized.
-     *
-     * @param pool Pool
+     * @brief Get the ES corresponding to a particular index.
      */
-    std::pair<std::string, int> getPoolInfo(ABT_pool pool) const;
+    XstreamInfo getXstream(int index) const;
+
+    /**
+     * @brief Get the xstream corresponding to a particular name.
+     */
+    XstreamInfo getXstream(const std::string& name) const;
+
+    /**
+     * @brief Get the xstream corresponding to a particular handle.
+     */
+    XstreamInfo getXstream(ABT_xstream es) const;
+
+    /**
+     * @brief Get the number of pools.
+     */
+    size_t getNumXstreams() const;
 
     /**
      * @brief Return the current JSON configuration.

@@ -59,7 +59,7 @@ class SSGData {
         c["name"]       = name;
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
-        c["pool"]       = MargoManager(margo_ctx).getPoolInfo(pool).first;
+        c["pool"]       = MargoManager(margo_ctx).getPool(pool).name;
         c["credential"] = config.ssg_credential;
         c["swim"]       = json::object();
         auto& swim      = c["swim"];

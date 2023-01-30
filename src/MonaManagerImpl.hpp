@@ -47,7 +47,7 @@ class MonaEntry {
         json config      = json::object();
 #ifdef ENABLE_MONA
         config["name"]   = name;
-        config["pool"]   = MargoManager(margo_ctx).getPoolInfo(pool).first;
+        config["pool"]   = MargoManager(margo_ctx).getPool(pool).name;
         na_addr_t self_addr;
         na_return_t ret = mona_addr_self(mona, &self_addr);
         if(ret != NA_SUCCESS) {

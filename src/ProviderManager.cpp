@@ -106,7 +106,7 @@ void ProviderManager::registerProvider(
         entry.provider_id  = descriptor.provider_id;
         entry.factory      = service_factory;
         entry.margo_ctx    = self->m_margo_context;
-        entry.pool         = margoCtx.getPool(pool_name);
+        entry.pool         = margoCtx.getPool(pool_name).pool;
         entry.dependencies = dependencies;
 
         FactoryArgs args;
@@ -184,7 +184,7 @@ void ProviderManager::addProviderFromJSON(const std::string& jsonString) {
         pool_name = pool_it->get<std::string>();
     } else {
         pool_name
-            = margoCtx.getPoolInfo(margoCtx.getDefaultHandlerPool()).first;
+            = margoCtx.getPool(margoCtx.getDefaultHandlerPool()).name;
     }
 
     auto deps_from_config = config.value("dependencies", json::object());

@@ -40,7 +40,7 @@ class ProviderEntry : public ProviderWrapper {
         c["name"]         = name;
         c["type"]         = type;
         c["provider_id"]  = provider_id;
-        c["pool"]         = MargoManager(margo_ctx).getPoolInfo(pool).first;
+        c["pool"]         = MargoManager(margo_ctx).getPool(pool).name;
         c["config"]       = json::parse(factory->getProviderConfig(handle));
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];

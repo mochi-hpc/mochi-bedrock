@@ -73,9 +73,9 @@ Server::Server(const std::string& address, const std::string& configString,
     if (bedrockConfig.contains("pool")) {
         auto bedrockPoolRef = bedrockConfig["pool"];
         if (bedrockPoolRef.is_string()) {
-            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<std::string>());
+            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<std::string>()).pool;
         } else if (bedrockPoolRef.is_number_integer()) {
-            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<int>());
+            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<int>()).pool;
         } else {
             throw Exception("Invalid type in Bedrock's \"pool\" entry");
         }

@@ -55,7 +55,7 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                                std::string* resolved) const {
     spdlog::trace("DependencyFinder search for {} of type {}", spec, type);
     if (type == "pool") { // Argobots pool
-        ABT_pool p = MargoManager(self->m_margo_context).getPool(spec);
+        ABT_pool p = MargoManager(self->m_margo_context).getPool(spec).pool;
         if (p == ABT_POOL_NULL) {
             throw Exception("Could not find pool with name \"{}\"", spec);
         }

@@ -70,8 +70,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
         config["libraries"] = json::parse(ModuleContext::getCurrentConfig());
         config["bedrock"]   = json::object();
         auto pool_info
-            = MargoManager(m_margo_manager).getPoolInfo(m_pool.native_handle());
-        if (pool_info.second >= 0) config["bedrock"]["pool"] = pool_info.first;
+            = MargoManager(m_margo_manager).getPool(m_pool.native_handle());
+        if (pool_info.pool != ABT_POOL_NULL) config["bedrock"]["pool"] = pool_info.name;
         config["bedrock"]["provider_id"] = get_provider_id();
         return config;
     }

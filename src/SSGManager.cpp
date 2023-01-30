@@ -110,14 +110,14 @@ static void validateGroupConfig(json&                           config,
     if (config.contains("pool")) {
         if (config["pool"].is_string()) {
             auto pool_name = config["pool"].get<std::string>();
-            if (ABT_POOL_NULL == margo.getPool(pool_name)) {
+            if (ABT_POOL_NULL == margo.getPool(pool_name).pool) {
                 throw Exception(
                     "Could not find pool \"{}\" in SSG configuration",
                     pool_name);
             }
         } else if (config["pool"].is_number_integer()) {
             auto pool_index = config["pool"].get<int>();
-            if (ABT_POOL_NULL == margo.getPool(pool_index)) {
+            if (ABT_POOL_NULL == margo.getPool(pool_index).pool) {
                 throw Exception(
                     "Could not find pool number {} in SSG configuration",
                     pool_index);
@@ -149,9 +149,9 @@ static void extractConfigParameters(const json&         config,
     group_file                  = config["group_file"].get<std::string>();
     if (config.contains("pool")) {
         if (config["pool"].is_string()) {
-            pool = margo.getPool(config["pool"].get<std::string>());
+            pool = margo.getPool(config["pool"].get<std::string>()).pool;
         } else {
-            pool = margo.getPool(config["pool"].get<size_t>());
+            pool = margo.getPool(config["pool"].get<size_t>()).pool;
         }
     }
 }

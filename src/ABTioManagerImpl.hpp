@@ -35,7 +35,7 @@ class ABTioEntry {
         json config      = json::object();
 #ifdef ENABLE_ABT_IO
         config["name"]   = name;
-        config["pool"]   = MargoManager(margo_ctx).getPoolInfo(pool).first;
+        config["pool"]   = MargoManager(margo_ctx).getPool(pool).name;
         auto c           = abt_io_get_config(abt_io_id);
         config["config"] = c ? json::parse(c) : json::object();
         free(c);
