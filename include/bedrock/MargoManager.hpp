@@ -151,6 +151,27 @@ class MargoManager {
     size_t getNumPools() const;
 
     /**
+     * @brief Add a pool from a JSON configuration, returning
+     * the corresponding PoolInfo object.
+     */
+    PoolInfo addPool(const std::string& config);
+
+    /**
+     * @brief Remove a pool by its index.
+     */
+    void removePool(int index);
+
+    /**
+     * @brief Remove a pool by its name.
+     */
+    void removePool(const std::string& name);
+
+    /**
+     * @brief Remove a pool by its handle.
+     */
+    void removePool(ABT_pool pool);
+
+    /**
      * @brief Get the ES corresponding to a particular index.
      */
     XstreamInfo getXstream(int index) const;
@@ -169,6 +190,27 @@ class MargoManager {
      * @brief Get the number of pools.
      */
     size_t getNumXstreams() const;
+
+    /**
+     * @brief Add an ES from a JSON configuration, returning
+     * the corresponding XstreamInfo object.
+     */
+    XstreamInfo addXstream(const std::string& config);
+
+    /**
+     * @brief Remove an ES by its index.
+     */
+    void removeXstream(int index);
+
+    /**
+     * @brief Remove an xstream by its name.
+     */
+    void removeXstream(const std::string& name);
+
+    /**
+     * @brief Remove an xstream by its handle.
+     */
+    void removeXstream(ABT_xstream xstream);
 
     /**
      * @brief Return the current JSON configuration.
