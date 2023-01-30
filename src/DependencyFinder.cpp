@@ -136,7 +136,7 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                     std::string client_name_found;
                     auto        ptr = findClient(type, "", &client_name_found);
                     if (resolved) { *resolved = client_name_found; }
-                    return std::move(ptr);
+                    return ptr;
                 } else if (isPositiveNumber(
                                specifier)) { // dependency to a provider
                                              // specified by type:id
@@ -154,7 +154,7 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                         try {
                             auto ptr = findClient(type, identifier);
                             if (resolved) { *resolved = identifier; }
-                            return std::move(ptr);
+                            return ptr;
                         } catch (const Exception&) {
                             // didn't fine a client, try a provider
                             uint16_t provider_id;
@@ -164,7 +164,7 @@ VoidPtr DependencyFinder::find(const std::string& type, const std::string& spec,
                                 *resolved
                                     = type + ":" + std::to_string(provider_id);
                             }
-                            return std::move(ptr);
+                            return ptr;
                         }
                     } catch (const Exception&) {
                         throw Exception(
