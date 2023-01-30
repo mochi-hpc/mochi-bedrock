@@ -70,15 +70,15 @@ ABT_pool MargoManager::getDefaultHandlerPool() const {
 }
 
 ABT_pool MargoManager::getPool(int index) const {
-    ABT_pool pool = ABT_POOL_NULL;
-    margo_get_pool_by_index(self->m_mid, index, &pool);
-    return pool;
+    margo_pool_info info = {ABT_POOL_NULL,0,0};
+    margo_find_pool_by_index(self->m_mid, index, &info);
+    return info.pool;
 }
 
 ABT_pool MargoManager::getPool(const std::string& name) const {
-    ABT_pool pool = ABT_POOL_NULL;
-    margo_get_pool_by_name(self->m_mid, name.c_str(), &pool);
-    return pool;
+    margo_pool_info info = {ABT_POOL_NULL,0,0};
+    margo_find_pool_by_name(self->m_mid, name.c_str(), &info);
+    return info.pool;
 }
 
 size_t MargoManager::getNumPools() const {
@@ -86,15 +86,11 @@ size_t MargoManager::getNumPools() const {
 }
 
 std::pair<std::string, int> MargoManager::getPoolInfo(ABT_pool pool) const {
-    std::pair<std::string, int> result   = {"", -1};
-    auto                        numPools = getNumPools();
-    for (size_t i = 0; i < numPools; i++) {
-        ABT_pool p = getPool(i);
-        if (p == pool) {
-            result.first  = margo_get_pool_name(self->m_mid, i);
-            result.second = i;
-            return result;
-        }
+    margo_pool_info info = {ABT_POOL_NULL,0,0};
+    std::pair<std::string, int> result = {"", -1};
+    if(HG_SUCCESS == margo_find_pool_by_handle(self->m_mid, pool, &info)) {
+        result.first  = info.name ? info.name : std::string{};
+        result.second = info.index;
     }
     return result;
 }
