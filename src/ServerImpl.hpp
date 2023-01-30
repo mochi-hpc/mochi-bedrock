@@ -46,6 +46,11 @@ class ServerImpl : public tl::provider<ServerImpl> {
     tl::remote_procedure m_create_abtio_rpc;
     tl::remote_procedure m_add_ssg_group_rpc;
 
+    tl::remote_procedure m_add_pool_rpc;
+    tl::remote_procedure m_add_xstream_rpc;
+    tl::remote_procedure m_remove_pool_rpc;
+    tl::remote_procedure m_remove_xstream_rpc;
+
     ServerImpl(const tl::engine& engine, uint16_t provider_id,
                const tl::pool& pool)
     : tl::provider<ServerImpl>(engine, provider_id), m_pool(pool),
@@ -58,7 +63,16 @@ class ServerImpl : public tl::provider<ServerImpl> {
       m_create_abtio_rpc(
           define("bedrock_create_abtio", &ServerImpl::createABTioRPC, pool)),
       m_add_ssg_group_rpc(
-          define("bedrock_add_ssg_group", &ServerImpl::addSSGgroupRPC, pool)) {}
+          define("bedrock_add_ssg_group", &ServerImpl::addSSGgroupRPC, pool)),
+      m_add_pool_rpc(
+          define("bedrock_add_pool", &ServerImpl::addPoolRPC, pool)),
+      m_add_xstream_rpc(
+          define("bedrock_add_xstream", &ServerImpl::addXstreamRPC, pool)),
+      m_remove_pool_rpc(
+          define("bedrock_remove_pool", &ServerImpl::removePoolRPC, pool)),
+      m_remove_xstream_rpc(
+          define("bedrock_remove_xstream", &ServerImpl::removeXstreamRPC, pool))
+    {}
 
     json makeConfig() const {
         auto config         = json::object();
@@ -91,7 +105,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
                 = Jx9Manager(m_jx9_manager).executeQuery(script, args);
             result.success() = true;
         } catch (const Exception& ex) {
-            result.value()   = ex.what();
+            result.error()   = ex.what();
             result.success() = false;
         }
         req.respond(result);
@@ -108,7 +122,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
             else
                 jsonconfig = json::object();
         } catch (...) {
-            result.value()   = "Invalid JSON configuration for client";
+            result.error()   = "Invalid JSON configuration for client";
             result.success() = false;
             req.respond(result);
             return;
@@ -130,7 +144,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
                 .addClientFromJSON(fullconfig.dump(),
                                    DependencyFinder(m_dependency_finder));
         } catch (const Exception& ex) {
-            result.value()   = ex.what();
+            result.error()   = ex.what();
             result.success() = false;
         }
         req.respond(result);
@@ -143,7 +157,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
         try {
             ABTioManager(m_abtio_manager).addABTioInstance(name, pool, config);
         } catch (const Exception& ex) {
-            result.value()   = ex.what();
+            result.error()   = ex.what();
             result.success() = false;
         }
         req.respond(result);
@@ -155,7 +169,55 @@ class ServerImpl : public tl::provider<ServerImpl> {
         try {
             SSGManager(m_ssg_manager).createGroupFromConfig(config);
         } catch (const Exception& ex) {
-            result.value()   = ex.what();
+            result.error()   = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void addPoolRPC(const tl::request& req, const std::string& config) {
+        RequestResult<bool> result;
+        result.success() = true;
+        try {
+            MargoManager(m_margo_manager).addPool(config);
+        } catch (const Exception& ex) {
+            result.error() = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void removePoolRPC(const tl::request& req, const std::string& name) {
+        RequestResult<bool> result;
+        result.success() = true;
+        try {
+            MargoManager(m_margo_manager).removePool(name);
+        } catch (const Exception& ex) {
+            result.error() = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void addXstreamRPC(const tl::request& req, const std::string& config) {
+        RequestResult<bool> result;
+        result.success() = true;
+        try {
+            MargoManager(m_margo_manager).addXstream(config);
+        } catch (const Exception& ex) {
+            result.error() = ex.what();
+            result.success() = false;
+        }
+        req.respond(result);
+    }
+
+    void removeXstreamRPC(const tl::request& req, const std::string& name) {
+        RequestResult<bool> result;
+        result.success() = true;
+        try {
+            MargoManager(m_margo_manager).removeXstream(name);
+        } catch (const Exception& ex) {
+            result.error() = ex.what();
             result.success() = false;
         }
         req.respond(result);
