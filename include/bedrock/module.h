@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define BEDROCK_MODULE_API_VERSION 1
+
 #define BEDROCK_OPTIONAL 0x0
 #define BEDROCK_REQUIRED 0x1
 #define BEDROCK_ARRAY    0x2
@@ -147,12 +149,16 @@ typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
 typedef char* (*bedrock_client_get_config_fn)(bedrock_module_client_t);
 
 /**
- * @brief A global instance of the bedrock_module structure must be provided
+ * @brief A global instance of a bedrock_module_vX structure must be provided
  * in a shared library to make up a Bedrock module.
  * The provider_dependencies and client_dependencies arrays should be terminated
  * by a BEDROCK_NO_MORE_DEPENDENCIES.
+ *
+ * @warning The api_version field should always match the version of the
+ * bedrock_module_vX structure used!
  */
-struct bedrock_module {
+struct bedrock_module_v1 {
+    int api_version; // should always be set to 1
     bedrock_register_provider_fn       register_provider;
     bedrock_deregister_provider_fn     deregister_provider;
     bedrock_provider_get_config_fn     get_provider_config;
@@ -169,10 +175,10 @@ struct bedrock_module {
  * @brief The following macro must be placed in a .c file
  * compiled into a shared library along wit. For example:
  *
- * static struct bedrock_module bake_module {
+ * static struct bedrock_module_v1 bake_module {
  *   ...
  * };
- * DEFINE_BEDROCK_C_MODULE(bake, bake_module);
+ * BEDROCK_REGISTER_MODULE_WITH_VERSION(bake, bake_module, 1);
  *
  * @param __name__ Name of the module.
  * @param __struct__ Name of the structure defining the module.
@@ -180,8 +186,52 @@ struct bedrock_module {
  * Note: if the macro is called in a C++ file instead of
  * a C file, it should be preceded by extern "C".
  */
-#define BEDROCK_REGISTER_MODULE(__name__, __struct__) \
-    void __name__##_bedrock_init(struct bedrock_module* m) { *m = __struct__; }
+#define BEDROCK_REGISTER_MODULE_WITH_VERSION(__name__, __struct__, __v__) \
+    void __name__##_bedrock_init(struct bedrock_module_v1** m) { \
+        *m = (struct bedrock_module_v1*)(&(__struct__));\
+        (*m)->api_version = __v__;\
+    }
+
+/**
+ * @brief A global instance of the bedrock_module structure must be provided
+ * in a shared library to make up a Bedrock module.
+ * The provider_dependencies and client_dependencies arrays should be terminated
+ * by a BEDROCK_NO_MORE_DEPENDENCIES.
+ *
+ * @warning This structure is deprecated.
+ * Please use one of the bedrock_module_vX structures.
+ */
+struct bedrock_module {
+    bedrock_register_provider_fn       register_provider;
+    bedrock_deregister_provider_fn     deregister_provider;
+    bedrock_provider_get_config_fn     get_provider_config;
+    bedrock_init_client_fn             init_client;
+    bedrock_finalize_client_fn         finalize_client;
+    bedrock_client_get_config_fn       get_client_config;
+    bedrock_create_provider_handle_fn  create_provider_handle;
+    bedrock_destroy_provider_handle_fn destroy_provider_handle;
+    struct bedrock_dependency*         provider_dependencies;
+    struct bedrock_dependency*         client_dependencies;
+};
+
+#define BEDROCK_REGISTER_MODULE(__name__, __struct__)                         \
+    void __name__##_bedrock_init(struct bedrock_module_v1** m) {              \
+        static struct bedrock_module_v1 v1 = {0};                             \
+        if(v1.api_version == 0) {                                             \
+            v1.api_version = 1;                                               \
+            v1.register_provider = (__struct__).register_provider;            \
+            v1.deregister_provider = (__struct__).deregister_provider;        \
+            v1.get_provider_config = (__struct__).get_provider_config;        \
+            v1.init_client = (__struct__).init_client;                        \
+            v1.finalize_client = (__struct__).finalize_client;                \
+            v1.get_client_config = (__struct__).get_client_config;            \
+            v1.create_provider_handle = (__struct__).create_provider_handle;  \
+            v1.destroy_provider_handle = (__struct__).destroy_provider_handle;\
+            v1.provider_dependencies = (__struct__).provider_dependencies;    \
+            v1.client_dependencies = (__struct__).client_dependencies;        \
+        }                                                                     \
+        *m = &v1;                                                             \
+    }
 
 /**
  * @brief Get the margo instance from the bedrock_args_t.

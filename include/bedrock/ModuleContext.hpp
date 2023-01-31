@@ -30,13 +30,13 @@ class ModuleContext {
      * @brief Register a module that is already in the program's memory.
      *
      * @param moduleName Module name.
-     * @param module Module structure.
+     * @param mod Module structure.
      *
      * @return true if the module was registered, false if a module with the
      * same name was already present.
      */
-    static bool registerModule(const std::string&    moduleName,
-                               const bedrock_module& module);
+    static bool registerModule(const std::string&        moduleName,
+                               const bedrock_module_v1& mod);
 
     /**
      * @brief Register a factory. This function is used mainly by the

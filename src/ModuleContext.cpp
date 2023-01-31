@@ -21,7 +21,7 @@ static std::unordered_map<std::string, std::shared_ptr<AbstractServiceFactory>>
     s_modules;
 
 bool ModuleContext::registerModule(const std::string&    moduleName,
-                                   const bedrock_module& module) {
+                                   const bedrock_module_v1& module) {
     return registerFactory(moduleName,
                            std::make_shared<DynLibServiceFactory>(module));
 }

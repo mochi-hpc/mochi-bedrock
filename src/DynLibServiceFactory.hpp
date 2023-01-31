@@ -17,13 +17,13 @@ namespace bedrock {
 class DynLibServiceFactory : public AbstractServiceFactory {
 
   public:
-    DynLibServiceFactory(const bedrock_module& mod)
+    DynLibServiceFactory(const bedrock_module_v1& mod)
     : m_handle(nullptr), m_module(mod) {}
 
     DynLibServiceFactory(const std::string& moduleName, void* handle) {
         m_handle         = handle;
         auto symbol_name = moduleName + "_bedrock_init";
-        typedef void (*module_init_fn)(bedrock_module*);
+        typedef void (*module_init_fn)(bedrock_module_v1**);
         module_init_fn init_module
             = (module_init_fn)dlsym(m_handle, symbol_name.c_str());
         if (!init_module) {
@@ -31,7 +31,9 @@ class DynLibServiceFactory : public AbstractServiceFactory {
             dlclose(m_handle);
             throw Exception("Could not load {} module: {}", moduleName, error);
         }
-        init_module(&m_module);
+        bedrock_module_v1* module_ptr = nullptr;
+        init_module(&module_ptr);
+        m_module = *module_ptr;
         if (m_module.provider_dependencies) {
             int i = 0;
             while (m_module.provider_dependencies[i].name != nullptr) {
@@ -157,7 +159,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
 
   private:
     void*                   m_handle = nullptr;
-    bedrock_module          m_module;
+    bedrock_module_v1       m_module;
     std::vector<Dependency> m_provider_dependencies;
     std::vector<Dependency> m_client_dependencies;
 };

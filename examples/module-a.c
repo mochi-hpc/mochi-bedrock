@@ -93,7 +93,8 @@ static struct bedrock_dependency client_dependencies[] = {
     BEDROCK_NO_MORE_DEPENDENCIES
 };
 
-static struct bedrock_module module_a = {
+static struct bedrock_module_v1 module_a = {
+    .api_version             = 1,
     .register_provider       = module_a_register_provider,
     .deregister_provider     = module_a_deregister_provider,
     .get_provider_config     = module_a_get_provider_config,
@@ -106,4 +107,4 @@ static struct bedrock_module module_a = {
     .client_dependencies     = client_dependencies
 };
 
-BEDROCK_REGISTER_MODULE(module_a, module_a)
+BEDROCK_REGISTER_MODULE_WITH_VERSION(module_a, module_a, 1)
