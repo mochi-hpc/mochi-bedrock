@@ -6,6 +6,8 @@
 #ifndef __ALPHA_SERVICE_HANDLE_IMPL_H
 #define __ALPHA_SERVICE_HANDLE_IMPL_H
 
+#include "ClientImpl.hpp"
+
 namespace bedrock {
 
 class ServiceHandleImpl {

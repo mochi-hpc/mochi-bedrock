@@ -40,11 +40,32 @@ ServiceHandle::operator bool() const { return static_cast<bool>(self); }
 
 Client ServiceHandle::client() const { return Client(self->m_client); }
 
+#define SEND_RPC_WITH_BOOL_RESULT(...) do {\
+    if (req == nullptr) { \
+        RequestResult<bool> response = rpc.on(ph)(__VA_ARGS__); \
+        if (!response.success()) { throw Exception(response.error()); } \
+    } else { \
+        auto async_response = rpc.on(ph).async(__VA_ARGS__); \
+        auto async_request_impl \
+            = std::make_shared<AsyncRequestImpl>(std::move(async_response)); \
+        async_request_impl->m_wait_callback \
+            = [](AsyncRequestImpl& async_request_impl) { \
+                  RequestResult<std::string> response \
+                      = async_request_impl.m_async_response.wait(); \
+                  if (!response.success()) { \
+                      throw Exception(response.error()); \
+                  } \
+              }; \
+        *req = AsyncRequest(std::move(async_request_impl)); \
+    } \
+} while(0)
+
 void ServiceHandle::loadModule(const std::string& name, const std::string& path,
                                AsyncRequest* req) const {
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_load_module;
     auto& ph  = self->m_ph;
+    /*
     if (req == nullptr) { // synchronous call
         RequestResult<bool> response = rpc.on(ph)(name, path);
         if (!response.success()) { throw Exception(response.error()); }
@@ -62,6 +83,8 @@ void ServiceHandle::loadModule(const std::string& name, const std::string& path,
               };
         *req = AsyncRequest(std::move(async_request_impl));
     }
+    */
+    SEND_RPC_WITH_BOOL_RESULT(name, path);
 }
 
 void ServiceHandle::startProvider(const std::string& name,
@@ -73,6 +96,7 @@ void ServiceHandle::startProvider(const std::string& name,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_start_provider;
     auto& ph  = self->m_ph;
+    /*
     if (req == nullptr) { // synchronous call
         RequestResult<bool> response
             = rpc.on(ph)(name, type, provider_id, pool, config, dependencies);
@@ -92,6 +116,8 @@ void ServiceHandle::startProvider(const std::string& name,
               };
         *req = AsyncRequest(std::move(async_request_impl));
     }
+    */
+    SEND_RPC_WITH_BOOL_RESULT(name, type, provider_id, pool, config, dependencies);
 }
 
 void ServiceHandle::createClient(const std::string&   name,
@@ -102,6 +128,7 @@ void ServiceHandle::createClient(const std::string&   name,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_create_client;
     auto& ph  = self->m_ph;
+    /*
     if (req == nullptr) { // synchronous call
         RequestResult<bool> response
             = rpc.on(ph)(name, type, config, dependencies);
@@ -121,6 +148,8 @@ void ServiceHandle::createClient(const std::string&   name,
               };
         *req = AsyncRequest(std::move(async_request_impl));
     }
+    */
+    SEND_RPC_WITH_BOOL_RESULT(name, type, config, dependencies);
 }
 
 void ServiceHandle::createABTioInstance(const std::string& name,
@@ -130,6 +159,7 @@ void ServiceHandle::createABTioInstance(const std::string& name,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_create_abtio;
     auto& ph  = self->m_ph;
+    /*
     if (req == nullptr) { // synchronous call
         RequestResult<bool> response = rpc.on(ph)(name, pool, config);
         if (!response.success()) { throw Exception(response.error()); }
@@ -147,6 +177,8 @@ void ServiceHandle::createABTioInstance(const std::string& name,
               };
         *req = AsyncRequest(std::move(async_request_impl));
     }
+    */
+    SEND_RPC_WITH_BOOL_RESULT(name, pool, config);
 }
 
 void ServiceHandle::addSSGgroup(const std::string& config,
@@ -154,6 +186,7 @@ void ServiceHandle::addSSGgroup(const std::string& config,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_add_ssg_group;
     auto& ph  = self->m_ph;
+    /*
     if (req == nullptr) { // synchronous call
         RequestResult<bool> response = rpc.on(ph)(config);
         if (!response.success()) { throw Exception(response.error()); }
@@ -171,6 +204,40 @@ void ServiceHandle::addSSGgroup(const std::string& config,
               };
         *req = AsyncRequest(std::move(async_request_impl));
     }
+    */
+    SEND_RPC_WITH_BOOL_RESULT(config);
+}
+
+void ServiceHandle::addPool(const std::string& config,
+                            AsyncRequest*      req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_add_pool;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(config);
+}
+
+void ServiceHandle::addXstream(const std::string& config,
+                               AsyncRequest*      req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_add_xstream;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(config);
+}
+
+void ServiceHandle::removePool(const std::string& name,
+                               AsyncRequest*      req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_remove_pool;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(name);
+}
+
+void ServiceHandle::removeXstream(const std::string& name,
+                                  AsyncRequest*      req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_remove_xstream;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(name);
 }
 
 void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {

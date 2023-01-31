@@ -24,6 +24,10 @@ class ClientImpl {
     tl::remote_procedure m_create_client;
     tl::remote_procedure m_create_abtio;
     tl::remote_procedure m_add_ssg_group;
+    tl::remote_procedure m_add_pool;
+    tl::remote_procedure m_add_xstream;
+    tl::remote_procedure m_remove_pool;
+    tl::remote_procedure m_remove_xstream;
 
     ClientImpl(const tl::engine& engine)
     : m_engine(engine), m_get_config(m_engine.define("bedrock_get_config")),
@@ -32,7 +36,12 @@ class ClientImpl {
       m_start_provider(m_engine.define("bedrock_start_provider")),
       m_create_client(m_engine.define("bedrock_create_client")),
       m_create_abtio(m_engine.define("bedrock_create_abtio")),
-      m_add_ssg_group(m_engine.define("bedrock_add_ssg_group")) {}
+      m_add_ssg_group(m_engine.define("bedrock_add_ssg_group")),
+      m_add_pool(m_engine.define("bedrock_add_pool")),
+      m_add_xstream(m_engine.define("bedrock_add_pool")),
+      m_remove_pool(m_engine.define("bedrock_remove_pool")),
+      m_remove_xstream(m_engine.define("bedrock_remove_xstream"))
+    {}
 
     ClientImpl(margo_instance_id mid) : ClientImpl(tl::engine(mid)) {}
 
