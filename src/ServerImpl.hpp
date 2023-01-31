@@ -74,6 +74,18 @@ class ServerImpl : public tl::provider<ServerImpl> {
           define("bedrock_remove_xstream", &ServerImpl::removeXstreamRPC, pool))
     {}
 
+    ~ServerImpl() {
+        m_get_config_rpc.deregister();
+        m_query_config_rpc.deregister();
+        m_create_client_rpc.deregister();
+        m_create_abtio_rpc.deregister();
+        m_add_ssg_group_rpc.deregister();
+        m_add_pool_rpc.deregister();
+        m_add_xstream_rpc.deregister();
+        m_remove_pool_rpc.deregister();
+        m_remove_xstream_rpc.deregister();
+    }
+
     json makeConfig() const {
         auto config         = json::object();
         config["margo"]     = m_margo_manager->makeConfig();

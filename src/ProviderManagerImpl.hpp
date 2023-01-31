@@ -75,6 +75,7 @@ class ProviderManagerImpl
     tl::remote_procedure m_list_providers;
     tl::remote_procedure m_load_module;
     tl::remote_procedure m_start_provider;
+    tl::remote_procedure m_change_provider_pool;
 
     ProviderManagerImpl(const tl::engine& engine, uint16_t provider_id,
                         const tl::pool& pool)
@@ -86,7 +87,10 @@ class ProviderManagerImpl
       m_load_module(define("bedrock_load_module",
                            &ProviderManagerImpl::loadModuleRPC, pool)),
       m_start_provider(define("bedrock_start_provider",
-                              &ProviderManagerImpl::startProviderRPC, pool)) {
+                              &ProviderManagerImpl::startProviderRPC, pool)),
+      m_change_provider_pool(define("bedrock_change_provider_pool",
+                              &ProviderManagerImpl::changeProviderPoolRPC, pool))
+    {
         spdlog::trace("ProviderManagerImpl initialized");
     }
 
@@ -95,6 +99,7 @@ class ProviderManagerImpl
         m_list_providers.deregister();
         m_load_module.deregister();
         m_start_provider.deregister();
+        m_change_provider_pool.deregister();
         spdlog::trace("ProviderManagerImpl destroyed");
     }
 
@@ -195,6 +200,19 @@ class ProviderManagerImpl
         } catch (std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();
+        }
+        req.respond(result);
+    }
+
+    void changeProviderPoolRPC(const tl::request& req, const std::string& name,
+                               const std::string& pool) {
+        RequestResult<bool> result;
+        auto                manager = ProviderManager(shared_from_this());
+        try {
+            manager.changeProviderPool(name, pool);
+        } catch (Exception& ex) {
+            result.success() = false;
+            result.error() = ex.what();
         }
         req.respond(result);
     }

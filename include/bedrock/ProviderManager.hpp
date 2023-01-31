@@ -147,6 +147,15 @@ class ProviderManager {
     void addProviderListFromJSON(const std::string& jsonString);
 
     /**
+     * @brief Change the pool associated with a provider.
+     *
+     * @param provider Provider.
+     * @param pool New pool.
+     */
+    void changeProviderPool(const std::string& provider,
+                            const std::string& pool);
+
+    /**
      * @brief Return the current JSON configuration.
      */
     std::string getCurrentConfig() const;

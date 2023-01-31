@@ -65,25 +65,6 @@ void ServiceHandle::loadModule(const std::string& name, const std::string& path,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_load_module;
     auto& ph  = self->m_ph;
-    /*
-    if (req == nullptr) { // synchronous call
-        RequestResult<bool> response = rpc.on(ph)(name, path);
-        if (!response.success()) { throw Exception(response.error()); }
-    } else { // asynchronous call
-        auto async_response = rpc.on(ph).async(name, path);
-        auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
-        async_request_impl->m_wait_callback
-            = [](AsyncRequestImpl& async_request_impl) {
-                  RequestResult<std::string> response
-                      = async_request_impl.m_async_response.wait();
-                  if (!response.success()) {
-                      throw Exception(response.error());
-                  }
-              };
-        *req = AsyncRequest(std::move(async_request_impl));
-    }
-    */
     SEND_RPC_WITH_BOOL_RESULT(name, path);
 }
 
@@ -96,28 +77,16 @@ void ServiceHandle::startProvider(const std::string& name,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_start_provider;
     auto& ph  = self->m_ph;
-    /*
-    if (req == nullptr) { // synchronous call
-        RequestResult<bool> response
-            = rpc.on(ph)(name, type, provider_id, pool, config, dependencies);
-        if (!response.success()) { throw Exception(response.error()); }
-    } else { // asynchronous call
-        auto async_response = rpc.on(ph).async(name, type, provider_id, pool,
-                                               config, dependencies);
-        auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
-        async_request_impl->m_wait_callback
-            = [](AsyncRequestImpl& async_request_impl) {
-                  RequestResult<std::string> response
-                      = async_request_impl.m_async_response.wait();
-                  if (!response.success()) {
-                      throw Exception(response.error());
-                  }
-              };
-        *req = AsyncRequest(std::move(async_request_impl));
-    }
-    */
     SEND_RPC_WITH_BOOL_RESULT(name, type, provider_id, pool, config, dependencies);
+}
+
+void ServiceHandle::changeProviderPool(const std::string& provider_name,
+                                       const std::string&   pool,
+                                       AsyncRequest*        req) const {
+    if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_change_provider_pool;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(provider_name, pool);
 }
 
 void ServiceHandle::createClient(const std::string&   name,
@@ -128,27 +97,6 @@ void ServiceHandle::createClient(const std::string&   name,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_create_client;
     auto& ph  = self->m_ph;
-    /*
-    if (req == nullptr) { // synchronous call
-        RequestResult<bool> response
-            = rpc.on(ph)(name, type, config, dependencies);
-        if (!response.success()) { throw Exception(response.error()); }
-    } else { // asynchronous call
-        auto async_response
-            = rpc.on(ph).async(name, type, config, dependencies);
-        auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
-        async_request_impl->m_wait_callback
-            = [](AsyncRequestImpl& async_request_impl) {
-                  RequestResult<std::string> response
-                      = async_request_impl.m_async_response.wait();
-                  if (!response.success()) {
-                      throw Exception(response.error());
-                  }
-              };
-        *req = AsyncRequest(std::move(async_request_impl));
-    }
-    */
     SEND_RPC_WITH_BOOL_RESULT(name, type, config, dependencies);
 }
 
@@ -159,25 +107,6 @@ void ServiceHandle::createABTioInstance(const std::string& name,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_create_abtio;
     auto& ph  = self->m_ph;
-    /*
-    if (req == nullptr) { // synchronous call
-        RequestResult<bool> response = rpc.on(ph)(name, pool, config);
-        if (!response.success()) { throw Exception(response.error()); }
-    } else { // asynchronous call
-        auto async_response = rpc.on(ph).async(name, pool, config);
-        auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
-        async_request_impl->m_wait_callback
-            = [](AsyncRequestImpl& async_request_impl) {
-                  RequestResult<std::string> response
-                      = async_request_impl.m_async_response.wait();
-                  if (!response.success()) {
-                      throw Exception(response.error());
-                  }
-              };
-        *req = AsyncRequest(std::move(async_request_impl));
-    }
-    */
     SEND_RPC_WITH_BOOL_RESULT(name, pool, config);
 }
 
@@ -186,25 +115,6 @@ void ServiceHandle::addSSGgroup(const std::string& config,
     if (not self) throw Exception("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_add_ssg_group;
     auto& ph  = self->m_ph;
-    /*
-    if (req == nullptr) { // synchronous call
-        RequestResult<bool> response = rpc.on(ph)(config);
-        if (!response.success()) { throw Exception(response.error()); }
-    } else { // asynchronous call
-        auto async_response = rpc.on(ph).async(config);
-        auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
-        async_request_impl->m_wait_callback
-            = [](AsyncRequestImpl& async_request_impl) {
-                  RequestResult<std::string> response
-                      = async_request_impl.m_async_response.wait();
-                  if (!response.success()) {
-                      throw Exception(response.error());
-                  }
-              };
-        *req = AsyncRequest(std::move(async_request_impl));
-    }
-    */
     SEND_RPC_WITH_BOOL_RESULT(config);
 }
 

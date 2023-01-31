@@ -282,6 +282,23 @@ void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
     }
 }
 
+void ProviderManager::changeProviderPool(const std::string& provider,
+                                         const std::string& pool) {
+    // find the provider
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    auto                       it = self->resolveSpec(provider);
+    if (it == self->m_providers.end())
+        throw Exception{"Provider with spec \"{}\" not found", provider};
+    // find the pool
+    auto margo_manager = MargoManager(self->m_margo_context);
+    auto pool_info = margo_manager.getPool(pool);
+    if(pool_info.pool == ABT_POOL_NULL) {
+        throw Exception{"Could not find pool named \"{}\"", pool};
+    }
+    // call the provider's change_pool callback
+    it->factory->changeProviderPool(it->handle, pool_info.pool);
+}
+
 std::string ProviderManager::getCurrentConfig() const {
     return self->makeConfig().dump();
 }

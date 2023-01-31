@@ -21,6 +21,7 @@ class ClientImpl {
     tl::remote_procedure m_query_config;
     tl::remote_procedure m_load_module;
     tl::remote_procedure m_start_provider;
+    tl::remote_procedure m_change_provider_pool;
     tl::remote_procedure m_create_client;
     tl::remote_procedure m_create_abtio;
     tl::remote_procedure m_add_ssg_group;
@@ -34,6 +35,7 @@ class ClientImpl {
       m_query_config(m_engine.define("bedrock_query_config")),
       m_load_module(m_engine.define("bedrock_load_module")),
       m_start_provider(m_engine.define("bedrock_start_provider")),
+      m_change_provider_pool(m_engine.define("bedrock_change_provider_pool")),
       m_create_client(m_engine.define("bedrock_create_client")),
       m_create_abtio(m_engine.define("bedrock_create_abtio")),
       m_add_ssg_group(m_engine.define("bedrock_add_ssg_group")),

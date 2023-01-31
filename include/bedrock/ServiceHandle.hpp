@@ -98,6 +98,17 @@ class ServiceHandle {
                        AsyncRequest*        req          = nullptr) const;
 
     /**
+     * @brief Request that a provider change its pool for another one.
+     *
+     * @param provider_name Name of the provider.
+     * @param pool_name Name of the new pool.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void changeProviderPool(const std::string& provider_name,
+                            const std::string& pool_name,
+                            AsyncRequest*      req = nullptr) const;
+
+    /**
      * @brief Creates a client on the target service daemon.
      *
      * @param name Name of the new client.
