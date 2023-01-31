@@ -8,6 +8,7 @@
 
 #include <bedrock/module.h>
 #include <bedrock/ModuleContext.hpp>
+#include <bedrock/Exception.hpp>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -62,6 +63,7 @@ struct FactoryArgs {
 class AbstractServiceFactory {
 
   public:
+
     /**
      * @brief Constructor.
      */
@@ -116,6 +118,20 @@ class AbstractServiceFactory {
      * @return the string configuration.
      */
     virtual std::string getProviderConfig(void* provider) = 0;
+
+    /**
+     * @brief Change pool used by a provider.
+     *
+     * @param provider Provider.
+     * @param new_pool New Argobots pool.
+     *
+     * This function may throw a bedrock::Exception if the change was not possible.
+     */
+    virtual void changeProviderPool(void* provider, ABT_pool new_pool) {
+        (void)provider;
+        (void)new_pool;
+        throw Exception{"Changing pool not supported for this provider"};
+    }
 
     /**
      * @brief Register a client for the service.
