@@ -48,7 +48,7 @@ bool ClientManager::lookupClient(const std::string& name,
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->resolveSpec(name);
     if (it == self->m_clients.end()) { return false; }
-    if (wrapper) { *wrapper = *it; }
+    if (wrapper) { *wrapper = *(*it); }
     return true;
 }
 
@@ -57,8 +57,8 @@ void ClientManager::lookupOrCreateAnonymous(const std::string& type,
     {
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         for (const auto& client : self->m_clients) {
-            if (client.type == type) {
-                if (wrapper) { *wrapper = client; }
+            if (client->type == type) {
+                if (wrapper) { *wrapper = *client; }
                 return;
             }
         }
@@ -91,7 +91,7 @@ void ClientManager::lookupOrCreateAnonymous(const std::string& type,
     // get the client
     if (wrapper) {
         auto it  = self->resolveSpec(descriptor.name);
-        *wrapper = *it;
+        *wrapper = *(*it);
     }
 }
 
@@ -99,7 +99,7 @@ std::vector<ClientDescriptor> ClientManager::listClients() const {
     std::lock_guard<tl::mutex>    lock(self->m_clients_mtx);
     std::vector<ClientDescriptor> result;
     result.reserve(self->m_clients.size());
-    for (const auto& w : self->m_clients) { result.push_back(w); }
+    for (const auto& w : self->m_clients) { result.push_back(*w); }
     return result;
 }
 
@@ -130,12 +130,12 @@ void ClientManager::createClient(const ClientDescriptor&      descriptor,
 
         auto margoCtx = MargoManager(self->m_margo_context);
 
-        ClientEntry entry;
-        entry.name         = descriptor.name;
-        entry.type         = descriptor.type;
-        entry.factory      = service_factory;
-        entry.margo_ctx    = self->m_margo_context;
-        entry.dependencies = dependencies;
+        auto entry = std::make_shared<ClientEntry>();
+        entry->name         = descriptor.name;
+        entry->type         = descriptor.type;
+        entry->factory      = service_factory;
+        entry->margo_ctx    = self->m_margo_context;
+        entry->dependencies = dependencies;
 
         FactoryArgs args;
         args.name         = descriptor.name;
@@ -147,7 +147,7 @@ void ClientManager::createClient(const ClientDescriptor&      descriptor,
 
         spdlog::trace("Registering client {} of type {}", descriptor.name,
                       descriptor.type);
-        entry.handle = service_factory->initClient(args);
+        entry->handle = service_factory->initClient(args);
 
         self->m_clients.push_back(entry);
     }
@@ -161,8 +161,8 @@ void ClientManager::destroyClient(const std::string& name) {
         throw Exception("Could not find client with name \"{}\"", name);
     }
     auto& client = *it;
-    spdlog::trace("Destroying client {}", client.name);
-    client.factory->finalizeClient(client.handle);
+    spdlog::trace("Destroying client {}", client->name);
+    client->factory->finalizeClient(client->handle);
 }
 
 void ClientManager::addClientFromJSON(

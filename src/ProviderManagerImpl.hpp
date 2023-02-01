@@ -29,7 +29,7 @@ using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
 
-class ProviderEntry : public ProviderWrapper {
+class ProviderEntry : public ProviderWrapper, public NamedDependency {
   public:
     std::shared_ptr<MargoManagerImpl> margo_ctx;
     ABT_pool                          pool;
@@ -57,6 +57,10 @@ class ProviderEntry : public ProviderWrapper {
         }
         return c;
     }
+
+    const std::string& getName() const override {
+        return name;
+    }
 };
 
 class ProviderManagerImpl
@@ -64,10 +68,10 @@ class ProviderManagerImpl
   public std::enable_shared_from_this<ProviderManagerImpl> {
 
   public:
-    std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
-    std::vector<ProviderEntry>            m_providers;
-    mutable tl::mutex                     m_providers_mtx;
-    mutable tl::condition_variable        m_providers_cv;
+    std::shared_ptr<DependencyFinderImpl>       m_dependency_finder;
+    std::vector<std::shared_ptr<ProviderEntry>> m_providers;
+    mutable tl::mutex                           m_providers_mtx;
+    mutable tl::condition_variable              m_providers_cv;
 
     std::shared_ptr<MargoManagerImpl> m_margo_context;
 
@@ -105,9 +109,9 @@ class ProviderManagerImpl
 
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),
-                            [&type, &provider_id](const ProviderWrapper& item) {
-                                return item.type == type
-                                    && item.provider_id == provider_id;
+                            [&type, &provider_id](const auto& p) {
+                                return p->type == type
+                                    && p->provider_id == provider_id;
                             });
     }
 
@@ -116,8 +120,8 @@ class ProviderManagerImpl
         decltype(m_providers.begin()) it;
         if (column == std::string::npos) {
             it = std::find_if(m_providers.begin(), m_providers.end(),
-                              [&spec](const ProviderWrapper& item) {
-                                  return item.name == spec;
+                              [&spec](const auto& p) {
+                                  return p->name == spec;
                               });
         } else {
             auto     type            = spec.substr(0, column);
@@ -131,7 +135,7 @@ class ProviderManagerImpl
     json makeConfig() const {
         auto                       config = json::array();
         std::lock_guard<tl::mutex> lock(m_providers_mtx);
-        for (auto& p : m_providers) { config.push_back(p.makeConfig()); }
+        for (auto& p : m_providers) { config.push_back(p->makeConfig()); }
         return config;
     }
 

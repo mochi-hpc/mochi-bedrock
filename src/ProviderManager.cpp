@@ -52,7 +52,7 @@ bool ProviderManager::lookupProvider(const std::string& spec,
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end()) { return false; }
-    if (wrapper) { *wrapper = *it; }
+    if (wrapper) { *wrapper = *(*it); }
     return true;
 }
 
@@ -60,7 +60,7 @@ std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
     std::lock_guard<tl::mutex>      lock(self->m_providers_mtx);
     std::vector<ProviderDescriptor> result;
     result.reserve(self->m_providers.size());
-    for (const auto& w : self->m_providers) { result.push_back(w); }
+    for (const auto& w : self->m_providers) { result.push_back(*w); }
     return result;
 }
 
@@ -100,19 +100,19 @@ void ProviderManager::registerProvider(
 
         auto margoCtx = MargoManager(self->m_margo_context);
 
-        ProviderEntry entry;
-        entry.name         = descriptor.name;
-        entry.type         = descriptor.type;
-        entry.provider_id  = descriptor.provider_id;
-        entry.factory      = service_factory;
-        entry.margo_ctx    = self->m_margo_context;
-        entry.pool         = margoCtx.getPool(pool_name).pool;
-        entry.dependencies = dependencies;
+        auto entry = std::make_shared<ProviderEntry>();
+        entry->name         = descriptor.name;
+        entry->type         = descriptor.type;
+        entry->provider_id  = descriptor.provider_id;
+        entry->factory      = service_factory;
+        entry->margo_ctx    = self->m_margo_context;
+        entry->pool         = margoCtx.getPool(pool_name).pool;
+        entry->dependencies = dependencies;
 
         FactoryArgs args;
         args.name         = descriptor.name;
         args.mid          = margoCtx.getMargoInstance();
-        args.pool         = entry.pool;
+        args.pool         = entry->pool;
         args.config       = config;
         args.provider_id  = descriptor.provider_id;
         args.dependencies = dependencies;
@@ -123,7 +123,7 @@ void ProviderManager::registerProvider(
 
         spdlog::trace("Registering provider {} of type {} with provider id {}",
                       descriptor.name, descriptor.type, descriptor.provider_id);
-        entry.handle = service_factory->registerProvider(args);
+        entry->handle = service_factory->registerProvider(args);
 
         self->m_providers.push_back(entry);
     }
@@ -137,8 +137,8 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
         throw Exception("Could not find provider for spec \"{}\"", spec);
     }
     auto& provider = *it;
-    spdlog::trace("Deregistering provider {}", provider.name);
-    provider.factory->deregisterProvider(provider.handle);
+    spdlog::trace("Deregistering provider {}", provider->name);
+    provider->factory->deregisterProvider(provider->handle);
 }
 
 void ProviderManager::addProviderFromJSON(const std::string& jsonString) {
@@ -296,7 +296,7 @@ void ProviderManager::changeProviderPool(const std::string& provider,
         throw Exception{"Could not find pool named \"{}\"", pool};
     }
     // call the provider's change_pool callback
-    it->factory->changeProviderPool(it->handle, pool_info.pool);
+    (*it)->factory->changeProviderPool((*it)->handle, pool_info.pool);
 }
 
 std::string ProviderManager::getCurrentConfig() const {

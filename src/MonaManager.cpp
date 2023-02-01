@@ -97,7 +97,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
         i += 1;
     }
     // instantiate MoNA instances
-    std::vector<MonaEntry> mona_entries;
+    std::vector<std::shared_ptr<MonaEntry>> mona_entries;
     for (unsigned i = 0; i < names.size(); i++) {
 
         const auto& address = addresses[i];
@@ -105,15 +105,15 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
 
         if (!mona) {
             for (unsigned j = 0; j < mona_entries.size(); j++) {
-                mona_finalize(mona_entries[j].mona);
+                mona_finalize(mona_entries[j]->mona);
             }
             throw Exception("Could not initialize mona instance {}", i);
         }
-        MonaEntry entry;
-        entry.name      = names[i];
-        entry.pool      = pools[i];
-        entry.mona      = mona;
-        entry.margo_ctx = self->m_margo_manager;
+        auto entry = std::make_shared<MonaEntry>();
+        entry->name      = names[i];
+        entry->pool      = pools[i];
+        entry->mona      = mona;
+        entry->margo_ctx = self->m_margo_manager;
         mona_entries.push_back(std::move(entry));
         spdlog::trace("Added MoNA instance \"{}\"", names[i]);
     }
@@ -141,11 +141,11 @@ MonaManager::getMonaInstance(const std::string& name) const {
     return nullptr;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p.name == name; });
+                           [&name](const auto& p) { return p->name == name; });
     if (it == self->m_instances.end())
         return nullptr;
     else
-        return it->mona;
+        return (*it)->mona;
 #endif
 }
 
@@ -156,7 +156,7 @@ mona_instance_t MonaManager::getMonaInstance(int index) const {
 #else
     if (index < 0 || index >= (int)self->m_instances.size())
         return MONA_INSTANCE_NULL;
-    return self->m_instances[index].mona;
+    return self->m_instances[index]->mona;
 #endif
 }
 
@@ -167,7 +167,7 @@ const std::string& MonaManager::getMonaInstanceName(int index) const {
     return empty;
 #else
     if (index < 0 || index >= (int)self->m_instances.size()) return empty;
-    return self->m_instances[index].name;
+    return self->m_instances[index]->name;
 #endif
 }
 
@@ -177,7 +177,7 @@ int MonaManager::getMonaInstanceIndex(const std::string& name) const {
     return -1;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p.name == name; });
+                           [&name](const auto& p) { return p->name == name; });
     if (it == self->m_instances.end())
         return -1;
     else
@@ -206,7 +206,7 @@ void MonaManager::addMonaInstance(const std::string& name,
     // check if the name doesn't already exist
     auto it = std::find_if(
         self->m_instances.begin(), self->m_instances.end(),
-        [&name](const auto& instance) { return instance.name == name; });
+        [&name](const auto& instance) { return instance->name == name; });
     if (it != self->m_instances.end()) {
         throw Exception("Name \"{}\" already used by another MoNA instance");
     }
@@ -222,11 +222,11 @@ void MonaManager::addMonaInstance(const std::string& name,
     if (!mona) {
         throw Exception("Could not initialize mona instance");
     }
-    MonaEntry entry;
-    entry.name      = name;
-    entry.pool      = pool;
-    entry.mona      = mona;
-    entry.margo_ctx = self->m_margo_manager;
+    auto entry = std::make_shared<MonaEntry>();
+    entry->name      = name;
+    entry->pool      = pool;
+    entry->mona      = mona;
+    entry->margo_ctx = self->m_margo_manager;
     self->m_instances.push_back(std::move(entry));
 #endif
 }

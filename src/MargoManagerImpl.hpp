@@ -19,10 +19,16 @@ using nlohmann::json;
 
 class PoolRef : public NamedDependency {
 
+    std::string pool_name;
+
     public:
 
     PoolRef(std::string name)
-    : NamedDependency(std::move(name)) {}
+    : pool_name(std::move(name)) {}
+
+    const std::string& getName() const override {
+        return pool_name;
+    }
 };
 
 class MargoManagerImpl {

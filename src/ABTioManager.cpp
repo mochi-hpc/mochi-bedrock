@@ -139,7 +139,7 @@ ABTioManager::getABTioInstance(const std::string& name) const {
     return nullptr;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p->name() == name; });
+                           [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
         return ABT_IO_INSTANCE_NULL;
     else
@@ -165,7 +165,7 @@ const std::string& ABTioManager::getABTioInstanceName(int index) const {
     return empty;
 #else
     if (index < 0 || index >= (int)self->m_instances.size()) return empty;
-    return self->m_instances[index]->name();
+    return self->m_instances[index]->getName();
 #endif
 }
 
@@ -175,7 +175,7 @@ int ABTioManager::getABTioInstanceIndex(const std::string& name) const {
     return -1;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p->name() == name; });
+                           [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
         return -1;
     else
@@ -214,7 +214,7 @@ void ABTioManager::addABTioInstance(const std::string& name,
     // check if the name doesn't already exist
     auto it = std::find_if(
         self->m_instances.begin(), self->m_instances.end(),
-        [&name](const auto& instance) { return instance->name() == name; });
+        [&name](const auto& instance) { return instance->getName() == name; });
     if (it != self->m_instances.end()) {
         throw Exception("Name \"{}\" already used by another ABT-IO instance");
     }

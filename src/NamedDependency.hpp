@@ -15,22 +15,11 @@ class NamedDependency {
 
     public:
 
-    NamedDependency(std::string name)
-    : m_name(std::move(name)) {}
+    NamedDependency() = default;
 
     virtual ~NamedDependency() = default;
 
-    const std::string& name() const {
-        return m_name;
-    }
-
-    std::string& name() {
-        return m_name;
-    }
-
-    protected:
-
-    std::string m_name;
+    virtual const std::string& getName() const = 0;
 };
 
 } // namespace bedrock

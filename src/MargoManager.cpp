@@ -154,7 +154,7 @@ void MargoManager::removePool(int index) {
 void MargoManager::removePool(const std::string& name) {
     auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
-        [&name](auto& p) { return p->name() == name; });
+        [&name](auto& p) { return p->getName() == name; });
     if(it == self->m_pools.end()) {
         throw Exception(
             "Could not find pool named {} known to Bedrock", name);

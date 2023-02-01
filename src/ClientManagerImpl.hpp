@@ -24,7 +24,7 @@ using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
 
-class ClientEntry : public ClientWrapper {
+class ClientEntry : public ClientWrapper, public NamedDependency {
   public:
     std::shared_ptr<MargoManagerImpl> margo_ctx;
     ResolvedDependencyMap             dependencies;
@@ -49,6 +49,10 @@ class ClientEntry : public ClientWrapper {
         }
         return c;
     }
+
+    const std::string& getName() const override {
+        return name;
+    }
 };
 
 class ClientManagerImpl
@@ -56,9 +60,9 @@ class ClientManagerImpl
   public std::enable_shared_from_this<ClientManagerImpl> {
 
   public:
-    std::vector<ClientEntry>       m_clients;
-    mutable tl::mutex              m_clients_mtx;
-    mutable tl::condition_variable m_clients_cv;
+    std::vector<std::shared_ptr<ClientEntry>> m_clients;
+    mutable tl::mutex                         m_clients_mtx;
+    mutable tl::condition_variable            m_clients_cv;
 
     std::shared_ptr<MargoManagerImpl> m_margo_context;
 
@@ -76,14 +80,14 @@ class ClientManagerImpl
     auto resolveSpec(const std::string& spec) {
         auto it = std::find_if(
             m_clients.begin(), m_clients.end(),
-            [&spec](const ClientWrapper& item) { return item.name == spec; });
+            [&spec](const std::shared_ptr<ClientEntry>& item) { return item->name == spec; });
         return it;
     }
 
     json makeConfig() const {
         auto                       config = json::array();
         std::lock_guard<tl::mutex> lock(m_clients_mtx);
-        for (auto& p : m_clients) { config.push_back(p.makeConfig()); }
+        for (auto& p : m_clients) { config.push_back(p->makeConfig()); }
         return config;
     }
 

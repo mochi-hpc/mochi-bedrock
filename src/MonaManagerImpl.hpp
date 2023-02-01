@@ -22,10 +22,10 @@ namespace bedrock {
 
 using nlohmann::json;
 
-class MonaEntry {
+class MonaEntry : public NamedDependency {
   public:
-#ifdef ENABLE_MONA
     std::string                       name;
+#ifdef ENABLE_MONA
     ABT_pool                          pool = ABT_POOL_NULL;
     mona_instance_t                   mona = nullptr;
     std::shared_ptr<MargoManagerImpl> margo_ctx;
@@ -42,6 +42,10 @@ class MonaEntry {
 #endif
 
     MonaEntry() = default;
+
+    const std::string& getName() const {
+        return name;
+    }
 
     json makeConfig() const {
         json config      = json::object();
@@ -81,12 +85,12 @@ class MonaManagerImpl {
     friend class MonaManager;
 
   public:
-    std::shared_ptr<MargoManagerImpl> m_margo_manager;
-    std::vector<MonaEntry>            m_instances;
+    std::shared_ptr<MargoManagerImpl>       m_margo_manager;
+    std::vector<std::shared_ptr<MonaEntry>> m_instances;
 
     json makeConfig() const {
         json config = json::array();
-        for (auto& i : m_instances) { config.push_back(i.makeConfig()); }
+        for (auto& i : m_instances) { config.push_back(i->makeConfig()); }
         return config;
     }
 

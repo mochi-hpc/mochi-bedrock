@@ -25,6 +25,7 @@ class SSGManagerImpl;
 
 class SSGEntry : public NamedDependency {
   public:
+    std::string                       group_name;
 #ifdef ENABLE_SSG
     ssg_group_config_t                config;
     std::string                       bootstrap;
@@ -35,10 +36,10 @@ class SSGEntry : public NamedDependency {
     ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
 
     SSGEntry(std::string name)
-    : NamedDependency(std::move(name)) {}
+    : group_name(std::move(name)) {}
 
     ~SSGEntry() {
-        spdlog::trace("Leaving and destroying SSG group {}", name());
+        spdlog::trace("Leaving and destroying SSG group {}", group_name);
         if (gid) {
             int ret = ssg_group_leave(gid);
             // if SWIM is disabled, this function will return SSG_ERR_NOT_SUPPORTED
@@ -46,21 +47,21 @@ class SSGEntry : public NamedDependency {
                 spdlog::error(
                     "Could not leave SSG group \"{}\" "
                     "(ssg_group_leave returned {})",
-                    name(), ret);
+                    group_name, ret);
             }
             ret = ssg_group_destroy(gid);
             if (ret != SSG_SUCCESS) {
                 spdlog::error(
                     "Could not destroy SSG group \"{}\" "
                     "(ssg_group_destroy returned {})",
-                    name(), ret);
+                    group_name, ret);
             }
         }
     }
 
     json makeConfig() const {
         json c          = json::object();
-        c["name"]       = name();
+        c["name"]       = group_name;
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
         c["pool"]       = MargoManager(margo_ctx).getPool(pool).name;
@@ -81,6 +82,10 @@ class SSGEntry : public NamedDependency {
     }
 
 #endif
+
+    const std::string& getName() const override {
+        return group_name;
+    }
 };
 
 class SSGManagerImpl {

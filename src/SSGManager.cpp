@@ -217,7 +217,7 @@ SSGManager::operator bool() const { return static_cast<bool>(self); }
 ssg_group_id_t SSGManager::getGroup(const std::string& group_name) const {
 #ifdef ENABLE_SSG
     auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
-                           [&](auto& g) { return g->name() == group_name; });
+                           [&](auto& g) { return g->getName() == group_name; });
     if (it == self->m_ssg_groups.end())
         return SSG_GROUP_ID_INVALID;
     else
@@ -421,7 +421,7 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
 
     std::vector<std::string> existing_names;
     for (const auto& g : self->m_ssg_groups) {
-        existing_names.push_back(g->name());
+        existing_names.push_back(g->getName());
     }
 
     auto margo = MargoManager(self->m_margo_manager);

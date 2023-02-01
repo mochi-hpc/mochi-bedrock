@@ -33,13 +33,14 @@ class ABTioEntry : public NamedDependency {
 
     public:
 
+    std::string                       instance_name;
     ABT_pool                          pool = ABT_POOL_NULL;
     abt_io_instance_id                abt_io_id = 0;
     std::shared_ptr<MargoManagerImpl> margo_ctx;
 
     json makeConfig() const {
         json config      = json::object();
-        config["name"]   = name();
+        config["name"]   = instance_name;
         config["pool"]   = MargoManager(margo_ctx).getPool(pool).name;
         auto c           = abt_io_get_config(abt_io_id);
         config["config"] = c ? json::parse(c) : json::object();
@@ -48,12 +49,12 @@ class ABTioEntry : public NamedDependency {
     }
 
     ABTioEntry(std::string name)
-    : NamedDependency(std::move(name)) {}
+    : instance_name(std::move(name)) {}
 
     ABTioEntry(const ABTioEntry&) = delete;
 
     ABTioEntry(ABTioEntry&& other)
-    : NamedDependency(std::move(other))
+    : instance_name(std::move(other.instance_name))
     , pool(other.pool)
     , abt_io_id(other.abt_io_id)
     , margo_ctx(std::move(other.margo_ctx))
@@ -64,8 +65,12 @@ class ABTioEntry : public NamedDependency {
     ~ABTioEntry() {
         if(!abt_io_id)
             return;
-        spdlog::trace("Freeing ABT-IO instance {}", name());
+        spdlog::trace("Freeing ABT-IO instance {}", instance_name);
         abt_io_finalize(abt_io_id);
+    }
+
+    const std::string& getName() const override {
+        return instance_name;
     }
 };
 
