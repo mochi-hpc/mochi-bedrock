@@ -37,7 +37,7 @@ class MargoManager {
     friend class ClientManager;
     friend class DependencyFinder;
     friend class SSGManager;
-    friend class SSGData;
+    friend class SSGEntry;
     friend class MonaEntry;
     friend class MonaManager;
     friend class ABTioEntry;

@@ -217,7 +217,7 @@ SSGManager::operator bool() const { return static_cast<bool>(self); }
 ssg_group_id_t SSGManager::getGroup(const std::string& group_name) const {
 #ifdef ENABLE_SSG
     auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
-                           [&](auto& g) { return g->name == group_name; });
+                           [&](auto& g) { return g->name() == group_name; });
     if (it == self->m_ssg_groups.end())
         return SSG_GROUP_ID_INVALID;
     else
@@ -245,9 +245,8 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
     int            ret;
     ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
     auto           mid        = self->m_margo_manager->m_mid;
-    auto           group_data = std::make_unique<SSGData>();
+    auto           group_data = std::make_shared<SSGEntry>(name);
     group_data->margo_ctx     = self->m_margo_manager;
-    group_data->name          = name;
     group_data->config        = *config;
     group_data->pool          = pool;
     group_data->bootstrap     = bootstrap_method;
@@ -422,7 +421,7 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
 
     std::vector<std::string> existing_names;
     for (const auto& g : self->m_ssg_groups) {
-        existing_names.push_back(g->name);
+        existing_names.push_back(g->name());
     }
 
     auto margo = MargoManager(self->m_margo_manager);
@@ -449,7 +448,7 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
 #ifdef ENABLE_SSG
 void SSGUpdateHandler::membershipUpdate(void* group_data, ssg_member_id_t member_id,
                                   ssg_member_update_type_t update_type) {
-    SSGData* gdata = reinterpret_cast<SSGData*>(group_data);
+    SSGEntry* gdata = reinterpret_cast<SSGEntry*>(group_data);
     (void)gdata;
     spdlog::trace("SSG membership updated: member_id={}, update_type={}",
                   member_id, update_type);

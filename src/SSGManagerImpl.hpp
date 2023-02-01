@@ -8,23 +8,24 @@
 
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/SSGManager.hpp"
+#include "NamedDependency.hpp"
 #include "MargoManagerImpl.hpp"
 #include <spdlog/spdlog.h>
-#ifdef ENABLE_SSG
-#include <ssg.h>
-#endif
 #include <memory>
 #include <vector>
 #include <string>
+
+#ifdef ENABLE_SSG
+#include <ssg.h>
+#endif
 
 namespace bedrock {
 
 class SSGManagerImpl;
 
-class SSGData {
+class SSGEntry : public NamedDependency {
   public:
 #ifdef ENABLE_SSG
-    std::string                       name;
     ssg_group_config_t                config;
     std::string                       bootstrap;
     std::string                       group_file;
@@ -33,8 +34,11 @@ class SSGData {
 
     ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
 
-    ~SSGData() {
-        spdlog::trace("Leaving and destroying SSG group {}", name);
+    SSGEntry(std::string name)
+    : NamedDependency(std::move(name)) {}
+
+    ~SSGEntry() {
+        spdlog::trace("Leaving and destroying SSG group {}", name());
         if (gid) {
             int ret = ssg_group_leave(gid);
             // if SWIM is disabled, this function will return SSG_ERR_NOT_SUPPORTED
@@ -42,21 +46,21 @@ class SSGData {
                 spdlog::error(
                     "Could not leave SSG group \"{}\" "
                     "(ssg_group_leave returned {})",
-                    name, ret);
+                    name(), ret);
             }
             ret = ssg_group_destroy(gid);
             if (ret != SSG_SUCCESS) {
                 spdlog::error(
                     "Could not destroy SSG group \"{}\" "
                     "(ssg_group_destroy returned {})",
-                    name, ret);
+                    name(), ret);
             }
         }
     }
 
     json makeConfig() const {
         json c          = json::object();
-        c["name"]       = name;
+        c["name"]       = name();
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
         c["pool"]       = MargoManager(margo_ctx).getPool(pool).name;
@@ -82,10 +86,8 @@ class SSGData {
 class SSGManagerImpl {
 
   public:
-    std::shared_ptr<MargoManagerImpl>     m_margo_manager;
-    std::vector<std::unique_ptr<SSGData>> m_ssg_groups;
-    // note: we need a vector of unique_ptr because
-    // membership callbacks are being passed the internal pointer
+    std::shared_ptr<MargoManagerImpl>      m_margo_manager;
+    std::vector<std::shared_ptr<SSGEntry>> m_ssg_groups;
 
     json makeConfig() const {
         auto config = json::array();
