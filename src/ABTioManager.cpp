@@ -96,7 +96,7 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
         i += 1;
     }
     // instantiate ABT-IO instances
-    std::vector<ABTioEntry> abt_io_entries;
+    std::vector<std::shared_ptr<ABTioEntry>> abt_io_entries;
     for (unsigned i = 0; i < names.size(); i++) {
         abt_io_init_info abt_io_info;
         abt_io_info.json_config   = configs[i].c_str();
@@ -105,15 +105,14 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
         spdlog::trace("Created ABT-IO instance {}", names[i]);
         if (abt_io == ABT_IO_INSTANCE_NULL) {
             for (unsigned j = 0; j < abt_io_entries.size(); j++) {
-                abt_io_finalize(abt_io_entries[j].abt_io_id);
+                abt_io_finalize(abt_io_entries[j]->abt_io_id);
             }
             throw Exception("Could not initialized abt-io instance {}", i);
         }
-        ABTioEntry entry;
-        entry.name      = names[i];
-        entry.pool      = pools[i];
-        entry.abt_io_id = abt_io;
-        entry.margo_ctx = self->m_margo_manager;
+        auto entry = std::make_shared<ABTioEntry>(names[i]);
+        entry->pool      = pools[i];
+        entry->abt_io_id = abt_io;
+        entry->margo_ctx = self->m_margo_manager;
         abt_io_entries.push_back(std::move(entry));
     }
     // setup self
@@ -140,11 +139,11 @@ ABTioManager::getABTioInstance(const std::string& name) const {
     return nullptr;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p.name == name; });
+                           [&name](const auto& p) { return p->name() == name; });
     if (it == self->m_instances.end())
         return ABT_IO_INSTANCE_NULL;
     else
-        return it->abt_io_id;
+        return (*it)->abt_io_id;
 #endif
 }
 
@@ -155,7 +154,7 @@ abt_io_instance_id ABTioManager::getABTioInstance(int index) const {
 #else
     if (index < 0 || index >= (int)self->m_instances.size())
         return ABT_IO_INSTANCE_NULL;
-    return self->m_instances[index].abt_io_id;
+    return self->m_instances[index]->abt_io_id;
 #endif
 }
 
@@ -166,7 +165,7 @@ const std::string& ABTioManager::getABTioInstanceName(int index) const {
     return empty;
 #else
     if (index < 0 || index >= (int)self->m_instances.size()) return empty;
-    return self->m_instances[index].name;
+    return self->m_instances[index]->name();
 #endif
 }
 
@@ -176,7 +175,7 @@ int ABTioManager::getABTioInstanceIndex(const std::string& name) const {
     return -1;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p.name == name; });
+                           [&name](const auto& p) { return p->name() == name; });
     if (it == self->m_instances.end())
         return -1;
     else
@@ -215,7 +214,7 @@ void ABTioManager::addABTioInstance(const std::string& name,
     // check if the name doesn't already exist
     auto it = std::find_if(
         self->m_instances.begin(), self->m_instances.end(),
-        [&name](const auto& instance) { return instance.name == name; });
+        [&name](const auto& instance) { return instance->name() == name; });
     if (it != self->m_instances.end()) {
         throw Exception("Name \"{}\" already used by another ABT-IO instance");
     }
@@ -238,11 +237,10 @@ void ABTioManager::addABTioInstance(const std::string& name,
     if (abt_io == ABT_IO_INSTANCE_NULL) {
         throw Exception("Could not initialized abt-io instance {}", name);
     }
-    ABTioEntry entry;
-    entry.name      = name;
-    entry.pool      = pool;
-    entry.abt_io_id = abt_io;
-    entry.margo_ctx = self->m_margo_manager;
+    auto entry = std::make_shared<ABTioEntry>(name);
+    entry->pool      = pool;
+    entry->abt_io_id = abt_io;
+    entry->margo_ctx = self->m_margo_manager;
     self->m_instances.push_back(std::move(entry));
 #endif
 }

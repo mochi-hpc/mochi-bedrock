@@ -9,46 +9,51 @@
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/ABTioManager.hpp"
 #include "MargoManagerImpl.hpp"
+#include "NamedDependency.hpp"
 #include <nlohmann/json.hpp>
-#ifdef ENABLE_ABT_IO
-#include <abt-io.h>
-#endif
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
+#ifdef ENABLE_ABT_IO
+#include <abt-io.h>
+#else
+typedef uint64_t abt_io_instance_id;
+inline char* abt_io_get_config(abt_io_instance_id) { return nullptr; }
+inline void abt_io_finalize(abt_io_instance_id) {}
+#endif
+
+
 namespace bedrock {
 
 using nlohmann::json;
 
-class ABTioEntry {
-  public:
-#ifdef ENABLE_ABT_IO
-    std::string                       name;
+class ABTioEntry : public NamedDependency {
+
+    public:
+
     ABT_pool                          pool = ABT_POOL_NULL;
     abt_io_instance_id                abt_io_id = 0;
     std::shared_ptr<MargoManagerImpl> margo_ctx;
-#endif
 
     json makeConfig() const {
         json config      = json::object();
-#ifdef ENABLE_ABT_IO
-        config["name"]   = name;
+        config["name"]   = name();
         config["pool"]   = MargoManager(margo_ctx).getPool(pool).name;
         auto c           = abt_io_get_config(abt_io_id);
         config["config"] = c ? json::parse(c) : json::object();
         free(c);
-#endif
         return config;
     }
 
-    ABTioEntry() = default;
+    ABTioEntry(std::string name)
+    : NamedDependency(std::move(name)) {}
 
     ABTioEntry(const ABTioEntry&) = delete;
 
     ABTioEntry(ABTioEntry&& other)
-    : name(std::move(other.name))
+    : NamedDependency(std::move(other))
     , pool(other.pool)
     , abt_io_id(other.abt_io_id)
     , margo_ctx(std::move(other.margo_ctx))
@@ -57,24 +62,22 @@ class ABTioEntry {
     }
 
     ~ABTioEntry() {
-#ifdef ENABLE_ABT_IO
         if(!abt_io_id)
             return;
-        spdlog::trace("Freeing ABT-IO instance {}", name);
+        spdlog::trace("Freeing ABT-IO instance {}", name());
         abt_io_finalize(abt_io_id);
-#endif
     }
 };
 
 class ABTioManagerImpl {
 
   public:
-    std::shared_ptr<MargoManagerImpl> m_margo_manager;
-    std::vector<ABTioEntry>           m_instances;
+    std::shared_ptr<MargoManagerImpl>        m_margo_manager;
+    std::vector<std::shared_ptr<ABTioEntry>> m_instances;
 
     json makeConfig() const {
         json config = json::array();
-        for (auto& i : m_instances) { config.push_back(i.makeConfig()); }
+        for (auto& i : m_instances) { config.push_back(i->makeConfig()); }
         return config;
     }
 };
