@@ -47,8 +47,8 @@ class MargoManagerImpl {
     // to keep track of who is using which pool and xstream,
     // we keep a shared_ptr to a PoolRef/XstreamRef with just
     // the name of the pool/xstream and its handle.
-    std::vector<std::shared_ptr<PoolRef>> m_pools;
     std::vector<std::shared_ptr<XstreamRef>> m_xstreams;
+    std::vector<std::shared_ptr<PoolRef>> m_pools;
 
     json makeConfig() const {
         char* str    = margo_get_config(m_mid);

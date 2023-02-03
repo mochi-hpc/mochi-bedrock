@@ -225,7 +225,7 @@ std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_n
         return *it;
 #else
     (void)group_name;
-    return 0;
+    return nullptr;
 #endif
 }
 
@@ -242,11 +242,11 @@ SSGManager::createGroup(const std::string&                      name,
     (void)bootstrap_method;
     (void)group_file;
     throw Exception("Bedrock wasn't compiled with SSG support");
-    return 0;
+    return nullptr;
 #else // ENABLE_SSG
     int            ret;
-    ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
-    auto           mid        = self->m_margo_manager->m_mid;
+    ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
+    auto           mid = MargoManager(self->m_margo_manager).getMargoInstance();
 
     // The inner data of the ssg_entry will be set later.
     // The ssg_entry needs to be created here because the

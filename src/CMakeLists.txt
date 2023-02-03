@@ -11,6 +11,7 @@ set (server-src-files
      DependencyFinder.cpp
      Module.cpp
      MargoLogging.cpp
+     NamedDependency.cpp
      Jx9Manager.cpp)
 
 set (client-src-files

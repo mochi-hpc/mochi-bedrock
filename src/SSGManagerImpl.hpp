@@ -34,34 +34,14 @@ class SSGEntry : public NamedDependency {
     std::shared_ptr<NamedDependency> pool;
 
     SSGEntry(std::string name)
-    : NamedDependency(std::move(name), "ssg", SSG_GROUP_ID_INVALID, releaseSSGid)
+    : NamedDependency(
+        std::move(name),
+        "ssg", SSG_GROUP_ID_INVALID,
+        std::function<void(void*)>())
     {}
 
     SSGEntry(const SSGEntry&) = delete;
     SSGEntry(SSGEntry&&) = delete;
-
-    static void releaseSSGid(void* args) {
-        auto gid = reinterpret_cast<ssg_group_id_t>(args);
-        if (gid) {
-            int ret = ssg_group_leave(gid);
-            // if SWIM is disabled, this function will return SSG_ERR_NOT_SUPPORTED
-            if (ret != SSG_SUCCESS && ret != SSG_ERR_NOT_SUPPORTED) {
-                spdlog::error(
-                    "Could not leave SSG group (ssg_group_leave returned {})",
-                    ret);
-            }
-            ret = ssg_group_destroy(gid);
-            if (ret != SSG_SUCCESS) {
-                spdlog::error(
-                    "Could not destroy SSG group (ssg_group_destroy returned {})",
-                    ret);
-            }
-        }
-    }
-
-    ~SSGEntry() {
-        spdlog::trace("Leaving and destroying SSG group {}", getName());
-    }
 
     void setSSGid(ssg_group_id_t gid) {
         m_handle = reinterpret_cast<void*>(gid);
@@ -106,8 +86,30 @@ class SSGManagerImpl {
         return config;
     }
 
+    static void releaseSSGid(ssg_group_id_t gid) {
+        if (!gid) return;
+        int ret = ssg_group_leave(gid);
+        // if SWIM is disabled, this function will return SSG_ERR_NOT_SUPPORTED
+        if (ret != SSG_SUCCESS && ret != SSG_ERR_NOT_SUPPORTED) {
+            spdlog::error(
+                    "Could not leave SSG group (ssg_group_leave returned {})",
+                    ret);
+        }
+        ret = ssg_group_destroy(gid);
+        if (ret != SSG_SUCCESS) {
+            spdlog::error(
+                    "Could not destroy SSG group (ssg_group_destroy returned {})",
+                    ret);
+        }
+    }
+
     void clear() {
+#ifdef ENABLE_SSG
+        for(auto& g : m_ssg_groups) {
+            releaseSSGid(g->getHandle<ssg_group_id_t>());
+        }
         m_ssg_groups.resize(0);
+#endif
     }
 
     ~SSGManagerImpl() {

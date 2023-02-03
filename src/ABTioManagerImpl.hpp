@@ -52,7 +52,7 @@ class ABTioEntry : public NamedDependency {
         std::shared_ptr<NamedDependency> p)
     : NamedDependency(
         std::forward<S>(name),
-        "abtio",
+        "abt_io",
         abt_io_id,
         releaseABTioEntry)
     , pool(std::move(p))

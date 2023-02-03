@@ -53,13 +53,15 @@ class ClientEntry : public NamedDependency {
         auto& d           = c["dependencies"];
         for (auto& p : dependencies) {
             auto& dep_name  = p.first;
-            auto& dep_array = p.second;
-            if (dep_array.size() == 0) continue;
-            if (!(dep_array[0].flags & BEDROCK_ARRAY)) {
-                d[dep_name] = dep_array[0].spec;
+            auto& dep_group = p.second;
+            if (dep_group.dependencies.size() == 0) continue;
+            if (!dep_group.is_array) {
+                d[dep_name] = dep_group.dependencies[0]->getName();
             } else {
                 d[dep_name] = json::array();
-                for (auto& x : dep_array) { d[dep_name].push_back(x.spec); }
+                for (auto& x : dep_group.dependencies) {
+                    d[dep_name].push_back(x->getName());
+                }
             }
         }
         return c;

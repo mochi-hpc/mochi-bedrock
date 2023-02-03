@@ -194,51 +194,23 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     auto deps_from_config = config.value("dependencies", json::object());
 
     ResolvedDependencyMap resolved_dependency_map;
-    // the required_dependencies vector is there to keep shared_ptrs alive
-    // long enough in case the DependencyFinder create temporary dependencies
-    // (e.g. provider handles).
-    std::vector<std::shared_ptr<NamedDependency>> required_dependencies;
 
     for (const auto& dependency : service_factory->getProviderDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
             if (!(dependency.flags & BEDROCK_ARRAY)) {
-                if (dep_config.is_array()) {
-                    if (dep_config.size() == 0
-                        && dependency.flags & BEDROCK_REQUIRED) {
-                        throw Exception(
-                            "Missing dependency {} in configuration (empty "
-                            "array found)",
-                            dependency.name);
-                    } else if (dep_config.size() > 1) {
-                        throw Exception(
-                            "Dependency {} is not an array, yet multiple "
-                            "values were found",
-                            dependency.name);
-                    } else {
-                        dep_config = dep_config[0];
-                    }
-                }
-
                 if (!dep_config.is_string()) {
                     throw Exception("Dependency {} should be a string",
                                     dependency.name);
                 }
-                std::string resolved_spec;
-                auto        ptr = dependencyFinder.find(
-                        dependency.type,
-                        dep_config.get<std::string>(),
-                        &resolved_spec);
-                ResolvedDependency resolved_dependency;
-                resolved_dependency.name   = dependency.name;
-                resolved_dependency.type   = dependency.type;
-                resolved_dependency.flags  = dependency.flags;
-                resolved_dependency.spec   = resolved_spec;
-                resolved_dependency.handle = ptr->getHandle<void*>();
-                resolved_dependency_map[dependency.name].push_back(resolved_dependency);
-                required_dependencies.push_back(ptr);
-            } else {
+                auto dep_handle = dependencyFinder.find(
+                        dependency.type, dep_config.get<std::string>(), nullptr);
+                resolved_dependency_map[dependency.name].is_array = false;
+                resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
+
+            } else { // dependency is an array
+
                 if (!dep_config.is_array()) {
                     throw Exception("Dependency {} should be an array",
                                     dependency.name);
@@ -250,18 +222,10 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                             "Item in dependency array {} should be a string",
                             dependency.name);
                     }
-                    std::string resolved_spec;
-                    auto        ptr = dependencyFinder.find(dependency.type,
-                                                     elem.get<std::string>(),
-                                                     &resolved_spec);
-                    ResolvedDependency resolved_dependency;
-                    resolved_dependency.name   = dependency.name;
-                    resolved_dependency.type   = dependency.type;
-                    resolved_dependency.flags  = dependency.flags;
-                    resolved_dependency.spec   = resolved_spec;
-                    resolved_dependency.handle = ptr->getHandle<void*>();
-                    resolved_dependency_map[dependency.name].push_back(resolved_dependency);
-                    required_dependencies.push_back(ptr);
+                    auto dep_handle = dependencyFinder.find(
+                            dependency.type, elem.get<std::string>(), nullptr);
+                    resolved_dependency_map[dependency.name].is_array = true;
+                    resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {

@@ -199,10 +199,7 @@ ClientManager::addClientFromJSON(
 
     auto deps_from_config = config.value("dependencies", json::object());
 
-    ResolvedDependencyMap                         resolved_dependency_map;
-    // dependencies is used to keep shared_ptrs alive long enough in case
-    // they are temporary
-    std::vector<std::shared_ptr<NamedDependency>> dependencies;
+    ResolvedDependencyMap resolved_dependency_map;
 
     for (const auto& dependency : service_factory->getClientDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);
@@ -213,19 +210,10 @@ ClientManager::addClientFromJSON(
                     throw Exception("Dependency {} should be a string",
                                     dependency.name);
                 }
-                std::string        resolved_spec;
-                auto               ptr = dependencyFinder.find(dependency.type,
-                                                 dep_config.get<std::string>(),
-                                                 &resolved_spec);
-                ResolvedDependency resolved_dependency;
-                resolved_dependency.name   = dependency.name;
-                resolved_dependency.type   = dependency.type;
-                resolved_dependency.flags  = dependency.flags;
-                resolved_dependency.spec   = resolved_spec;
-                resolved_dependency.handle = ptr->getHandle<void*>();
-                resolved_dependency_map[dependency.name].push_back(
-                    resolved_dependency);
-                dependencies.push_back(std::move(ptr));
+                auto ptr = dependencyFinder.find(dependency.type,
+                        dep_config.get<std::string>(), nullptr);
+                resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
+                resolved_dependency_map[dependency.name].is_array = false;
             } else {
                 if (!dep_config.is_array()) {
                     throw Exception("Dependency {} should be an array",
@@ -238,18 +226,10 @@ ClientManager::addClientFromJSON(
                             "Item in dependency array {} should be a string",
                             dependency.name);
                     }
-                    std::string resolved_spec;
-                    auto        ptr = dependencyFinder.find(dependency.type,
-                                                     elem.get<std::string>(),
-                                                     &resolved_spec);
-                    ResolvedDependency resolved_dependency;
-                    resolved_dependency.name   = dependency.name;
-                    resolved_dependency.type   = dependency.type;
-                    resolved_dependency.flags  = dependency.flags;
-                    resolved_dependency.spec   = resolved_spec;
-                    resolved_dependency.handle = ptr->getHandle<void*>();
-                    resolved_dependency_map[dependency.name].push_back(resolved_dependency);
-                    dependencies.push_back(std::move(ptr));
+                    auto ptr = dependencyFinder.find(dependency.type,
+                            elem.get<std::string>(), nullptr);
+                    resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
+                    resolved_dependency_map[dependency.name].is_array = true;
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {

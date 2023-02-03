@@ -34,17 +34,9 @@ class NamedDependency {
     , m_handle(reinterpret_cast<void*>(handle))
     , m_release(std::move(release)) {}
 
-    NamedDependency(NamedDependency&& other)
-    : m_name(std::move(other.m_name))
-    , m_handle(other.m_handle)
-    , m_release(std::move(other.m_release)) {
-        other.m_handle = nullptr;
-        other.m_release = std::function<void(void*)>();
-    }
+    NamedDependency(NamedDependency&& other);
 
-    virtual ~NamedDependency() {
-        if(m_release) m_release(m_handle);
-    }
+    virtual ~NamedDependency();
 
     const std::string& getName() const {
         return m_name;
