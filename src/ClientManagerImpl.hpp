@@ -9,7 +9,7 @@
 #include "MargoManagerImpl.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
-#include "bedrock/ClientWrapper.hpp"
+#include "bedrock/ClientDescriptor.hpp"
 #include "bedrock/ClientManager.hpp"
 
 #include <thallium.hpp>
@@ -24,16 +24,31 @@ using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
 
-class ClientEntry : public ClientWrapper, public NamedDependency {
-  public:
-    std::shared_ptr<MargoManagerImpl> margo_ctx;
-    ResolvedDependencyMap             dependencies;
+class ClientEntry : public NamedDependency {
+
+    public:
+
+    AbstractServiceFactory* factory;
+    ResolvedDependencyMap   dependencies;
+
+    ClientEntry(std::string name, std::string type,
+                void* handle, AbstractServiceFactory* f,
+                ResolvedDependencyMap deps)
+    : NamedDependency(
+        std::move(name),
+        std::move(type),
+        handle,
+        [f](void* args) {
+            if(f) f->finalizeClient(args);
+        })
+    , factory(f)
+    , dependencies(deps) {}
 
     json makeConfig() const {
         auto c            = json::object();
-        c["name"]         = name;
-        c["type"]         = type;
-        c["config"]       = json::parse(factory->getClientConfig(handle));
+        c["name"]         = getName();
+        c["type"]         = getType();
+        c["config"]       = json::parse(factory->getClientConfig(getHandle<void*>()));
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];
         for (auto& p : dependencies) {
@@ -48,10 +63,6 @@ class ClientEntry : public ClientWrapper, public NamedDependency {
             }
         }
         return c;
-    }
-
-    const std::string& getName() const override {
-        return name;
     }
 };
 
@@ -80,7 +91,7 @@ class ClientManagerImpl
     auto resolveSpec(const std::string& spec) {
         auto it = std::find_if(
             m_clients.begin(), m_clients.end(),
-            [&spec](const std::shared_ptr<ClientEntry>& item) { return item->name == spec; });
+            [&spec](const std::shared_ptr<ClientEntry>& item) { return item->getName() == spec; });
         return it;
     }
 
@@ -94,22 +105,21 @@ class ClientManagerImpl
   private:
     void lookupClientRPC(const tl::request& req, const std::string& name,
                          double timeout) {
-        auto          manager = ClientManager(shared_from_this());
         double        t1      = tl::timer::wtime();
-        ClientWrapper wrapper;
         RequestResult<ClientDescriptor> result;
-        bool found = manager.lookupClient(name, &wrapper);
-        if (!found && timeout > 0) {
-            std::unique_lock<tl::mutex> lock(m_clients_mtx);
-            m_clients_cv.wait(lock, [this, &name, t1, timeout]() {
+        std::unique_lock<tl::mutex> lock(m_clients_mtx);
+        auto it = resolveSpec(name);
+        if (it == m_clients.end() && timeout > 0) {
+            m_clients_cv.wait(lock, [this, &name, &it, t1, timeout]() {
+                // FIXME will not actually wake up after timeout
                 double t2 = tl::timer::wtime();
-                return (t2 - t1 > timeout)
-                    || (resolveSpec(name) != m_clients.end());
+                it = resolveSpec(name);
+                return (t2 - t1 > timeout) || (it != m_clients.end());
             });
-            found = manager.lookupClient(name, &wrapper);
         }
-        if (found) {
-            result.value() = wrapper;
+        if (it != m_clients.end()) {
+            result.value().name = (*it)->getName();
+            result.value().type = (*it)->getType();
         } else {
             result.error()
                 = "Could not find client with name \""s + name + "\"";

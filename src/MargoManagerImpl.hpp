@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <margo.h>
 #include <thallium.hpp>
-#include "NamedDependency.hpp"
+#include "bedrock/NamedDependency.hpp"
 
 namespace tl = thallium;
 
@@ -17,18 +17,24 @@ namespace bedrock {
 
 using nlohmann::json;
 
-class PoolRef : public NamedDependency {
+struct PoolRef : public NamedDependency {
 
-    std::string pool_name;
+    PoolRef(std::string name, ABT_pool pool)
+    : NamedDependency(
+        std::move(name),
+        "pool", pool,
+        std::function<void(void*)>()) {}
 
-    public:
+};
 
-    PoolRef(std::string name)
-    : pool_name(std::move(name)) {}
+struct XstreamRef : public NamedDependency {
 
-    const std::string& getName() const override {
-        return pool_name;
-    }
+    XstreamRef(std::string name, ABT_xstream xstream)
+    : NamedDependency(
+        std::move(name),
+        "xstream", xstream,
+        std::function<void(void*)>()) {}
+
 };
 
 class MargoManagerImpl {
@@ -38,10 +44,11 @@ class MargoManagerImpl {
     margo_instance_id m_mid;
     tl::engine        m_engine;
 
-    // to keep track of who is using which pool,
-    // we keep a shared_ptr to a PoolRef with just
-    // the name of the pool.
+    // to keep track of who is using which pool and xstream,
+    // we keep a shared_ptr to a PoolRef/XstreamRef with just
+    // the name of the pool/xstream and its handle.
     std::vector<std::shared_ptr<PoolRef>> m_pools;
+    std::vector<std::shared_ptr<XstreamRef>> m_xstreams;
 
     json makeConfig() const {
         char* str    = margo_get_config(m_mid);

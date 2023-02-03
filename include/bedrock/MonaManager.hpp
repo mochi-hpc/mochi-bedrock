@@ -8,6 +8,7 @@
 
 #include <thallium.hpp>
 #include <memory>
+#include <bedrock/NamedDependency.hpp>
 
 /* Forward declaration to avoid including <mona.h> */
 typedef struct mona_instance* mona_instance_t;
@@ -81,30 +82,16 @@ class MonaManager {
      *
      * @return internal mona_instance_t or nullptr.
      */
-    mona_instance_t getMonaInstance(const std::string& name) const;
+    std::shared_ptr<NamedDependency>
+        getMonaInstance(const std::string& name) const;
 
     /**
      * @brief Get the internal mona_instance_t by its index.
      *
      * @return internal mona_instance_t or nullptr.
      */
-    mona_instance_t getMonaInstance(int index) const;
-
-    /**
-     * @brief Get the name of an mona instance from its index.
-     * If the index is invalid, the function will return "".
-     *
-     * @param index Index of the abt-io instance
-     */
-    const std::string& getMonaInstanceName(int index) const;
-
-    /**
-     * @brief Get the index of an mona instance from its name.
-     * If the name is invalid, the function will return -1.
-     *
-     * @param name Name of the abt-io instance
-     */
-    int getMonaInstanceIndex(const std::string& name) const;
+    std::shared_ptr<NamedDependency>
+        getMonaInstance(int index) const;
 
     /**
      * @brief Returns the number of mona instances stored.
@@ -118,8 +105,9 @@ class MonaManager {
      * @param pool Name of the pool to use.
      * @param address Address to use..
      */
-    void addMonaInstance(const std::string& name, const std::string& pool,
-                         const std::string& address);
+    std::shared_ptr<NamedDependency>
+        addMonaInstance(const std::string& name, const std::string& pool,
+                        const std::string& address);
 
     /**
      * @brief Return the current JSON configuration.

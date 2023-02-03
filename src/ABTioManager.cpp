@@ -29,17 +29,17 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     if (!config.is_array()) {
         throw Exception("\"abt_io\" entry should be an array type");
     }
-    std::vector<std::string> names;
-    std::vector<ABT_pool>    pools;
-    std::vector<std::string> configs;
+    std::vector<std::string>                      names;
+    std::vector<std::shared_ptr<NamedDependency>> pools;
+    std::vector<std::string>                      configs;
     int                      i = 0;
     for (auto& abt_io_config : config) {
         if (!abt_io_config.is_object()) {
             throw Exception("ABT-IO descriptors in JSON should be object type");
         }
-        std::string name;       // abt_io instance name
-        int         pool_index; // pool index
-        ABT_pool    pool;       // pool
+        std::string name;                      // abt_io instance name
+        int         pool_index;                // pool index
+        std::shared_ptr<NamedDependency> pool; // pool
         // find the name of the instance or use a default name
         auto name_json_it = abt_io_config.find("name");
         if (name_json_it == abt_io_config.end()) {
@@ -63,15 +63,15 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
                 "Could not find \"pool\" entry in ABT-IO descriptor");
         } else if (pool_json_it->is_string()) {
             auto pool_str = pool_json_it->get<std::string>();
-            pool          = margoCtx.getPool(pool_str).pool;
-            if (pool == ABT_POOL_NULL) {
+            pool          = margoCtx.getPool(pool_str);
+            if (!pool) {
                 throw Exception("Could not find pool \"{}\" in MargoManager",
                                 pool_str);
             }
         } else if (pool_json_it->is_number_integer()) {
             pool_index = pool_json_it->get<int>();
-            pool       = margoCtx.getPool(pool_index).pool;
-            if (pool == ABT_POOL_NULL) {
+            pool       = margoCtx.getPool(pool_index);
+            if (!pool) {
                 throw Exception("Could not find pool {} in MargoManager",
                                 pool_index);
             }
@@ -100,19 +100,14 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     for (unsigned i = 0; i < names.size(); i++) {
         abt_io_init_info abt_io_info;
         abt_io_info.json_config   = configs[i].c_str();
-        abt_io_info.progress_pool = pools[i];
+        abt_io_info.progress_pool = pools[i]->getHandle<ABT_pool>();
         abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
         spdlog::trace("Created ABT-IO instance {}", names[i]);
         if (abt_io == ABT_IO_INSTANCE_NULL) {
-            for (unsigned j = 0; j < abt_io_entries.size(); j++) {
-                abt_io_finalize(abt_io_entries[j]->abt_io_id);
-            }
+            abt_io_entries.clear();
             throw Exception("Could not initialized abt-io instance {}", i);
         }
-        auto entry = std::make_shared<ABTioEntry>(names[i]);
-        entry->pool      = pools[i];
-        entry->abt_io_id = abt_io;
-        entry->margo_ctx = self->m_margo_manager;
+        auto entry = std::make_shared<ABTioEntry>(names[i], abt_io, pools[i]);
         abt_io_entries.push_back(std::move(entry));
     }
     // setup self
@@ -132,7 +127,7 @@ ABTioManager::~ABTioManager() = default;
 
 ABTioManager::operator bool() const { return static_cast<bool>(self); }
 
-abt_io_instance_id
+std::shared_ptr<NamedDependency>
 ABTioManager::getABTioInstance(const std::string& name) const {
 #ifndef ENABLE_ABT_IO
     (void)name;
@@ -141,45 +136,21 @@ ABTioManager::getABTioInstance(const std::string& name) const {
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
-        return ABT_IO_INSTANCE_NULL;
+        return nullptr;
     else
-        return (*it)->abt_io_id;
+        return *it;
 #endif
 }
 
-abt_io_instance_id ABTioManager::getABTioInstance(int index) const {
+std::shared_ptr<NamedDependency>
+ABTioManager::getABTioInstance(int index) const {
 #ifndef ENABLE_ABT_IO
     (void)index;
     return nullptr;
 #else
     if (index < 0 || index >= (int)self->m_instances.size())
-        return ABT_IO_INSTANCE_NULL;
-    return self->m_instances[index]->abt_io_id;
-#endif
-}
-
-const std::string& ABTioManager::getABTioInstanceName(int index) const {
-    static const std::string empty = "";
-#ifndef ENABLE_ABT_IO
-    (void)index;
-    return empty;
-#else
-    if (index < 0 || index >= (int)self->m_instances.size()) return empty;
-    return self->m_instances[index]->getName();
-#endif
-}
-
-int ABTioManager::getABTioInstanceIndex(const std::string& name) const {
-#ifndef ENABLE_ABT_IO
-    (void)name;
-    return -1;
-#else
-    auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p->getName() == name; });
-    if (it == self->m_instances.end())
-        return -1;
-    else
-        return std::distance(self->m_instances.begin(), it);
+        return nullptr;
+    return self->m_instances[index];
 #endif
 }
 
@@ -191,16 +162,17 @@ size_t ABTioManager::numABTioInstances() const {
 #endif
 }
 
-void ABTioManager::addABTioInstance(const std::string& name,
-                                    const std::string& pool_name,
-                                    const std::string& config) {
+std::shared_ptr<NamedDependency>
+ABTioManager::addABTioInstance(const std::string& name,
+                               const std::string& pool_name,
+                               const std::string& config) {
 #ifndef ENABLE_ABT_IO
     (void)name;
     (void)pool_name;
     (void)config;
     throw Exception("Bedrock wasn't compiled with ABT-IO support");
 #else
-    ABT_pool pool;
+    std::shared_ptr<NamedDependency> pool;
     json     abt_io_config;
     // parse configuration
     try {
@@ -219,8 +191,8 @@ void ABTioManager::addABTioInstance(const std::string& name,
         throw Exception("Name \"{}\" already used by another ABT-IO instance");
     }
     // find pool
-    pool = MargoManager(self->m_margo_manager).getPool(pool_name).pool;
-    if (pool == ABT_POOL_NULL) {
+    pool = MargoManager(self->m_margo_manager).getPool(pool_name);
+    if (!pool) {
         throw Exception("Could not find pool \"{}\" in MargoManager",
                         pool_name);
     }
@@ -232,16 +204,14 @@ void ABTioManager::addABTioInstance(const std::string& name,
     // all good, can instanciate
     abt_io_init_info abt_io_info;
     abt_io_info.json_config   = config.c_str();
-    abt_io_info.progress_pool = pool;
+    abt_io_info.progress_pool = pool->getHandle<ABT_pool>();
     abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
     if (abt_io == ABT_IO_INSTANCE_NULL) {
         throw Exception("Could not initialized abt-io instance {}", name);
     }
-    auto entry = std::make_shared<ABTioEntry>(name);
-    entry->pool      = pool;
-    entry->abt_io_id = abt_io;
-    entry->margo_ctx = self->m_margo_manager;
-    self->m_instances.push_back(std::move(entry));
+    auto entry = std::make_shared<ABTioEntry>(name, abt_io, pool);
+    self->m_instances.push_back(entry);
+    return entry;
 #endif
 }
 

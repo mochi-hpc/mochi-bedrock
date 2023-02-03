@@ -31,17 +31,17 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
     if (!config.is_array()) {
         throw Exception("\"mona\" entry should be an array type");
     }
-    std::vector<std::string> names;
-    std::vector<ABT_pool>    pools;
-    std::vector<std::string> addresses;
-    int                      i = 0;
+    std::vector<std::string>                      names;
+    std::vector<std::shared_ptr<NamedDependency>> pools;
+    std::vector<std::string>                      addresses;
+    int                                           i = 0;
     for (auto& mona_config : config) {
         if (!mona_config.is_object()) {
             throw Exception("MoNA descriptors in JSON should be object type");
         }
         std::string name;       // mona instance name
         int         pool_index; // pool index
-        ABT_pool    pool;       // pool
+        std::shared_ptr<NamedDependency> pool;
         // find the name of the instance or use a default name
         auto name_json_it = mona_config.find("name");
         if (name_json_it == mona_config.end()) {
@@ -66,15 +66,15 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
                 "Could not find \"pool\" entry in MoNA descriptor");
         } else if (pool_json_it->is_string()) {
             auto pool_str = pool_json_it->get<std::string>();
-            pool          = margoCtx.getPool(pool_str).pool;
-            if (pool == ABT_POOL_NULL) {
+            pool          = margoCtx.getPool(pool_str);
+            if (!pool) {
                 throw Exception("Could not find pool \"{}\" in MargoManager",
                                 pool_str);
             }
         } else if (pool_json_it->is_number_integer()) {
             pool_index = pool_json_it->get<int>();
-            pool       = margoCtx.getPool(pool_index).pool;
-            if (pool == ABT_POOL_NULL) {
+            pool       = margoCtx.getPool(pool_index);
+            if (!pool) {
                 throw Exception("Could not find pool {} in MargoManager",
                                 pool_index);
             }
@@ -101,19 +101,15 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
     for (unsigned i = 0; i < names.size(); i++) {
 
         const auto& address = addresses[i];
-        mona_instance_t mona = mona_init_pool(address.c_str(), true, nullptr, pools[i]);
+        mona_instance_t mona = mona_init_pool(address.c_str(), true, nullptr, pools[i]->getHandle<ABT_pool>());
 
         if (!mona) {
             for (unsigned j = 0; j < mona_entries.size(); j++) {
-                mona_finalize(mona_entries[j]->mona);
+                mona_finalize(mona_entries[j]->getHandle<mona_instance_t>());
             }
             throw Exception("Could not initialize mona instance {}", i);
         }
-        auto entry = std::make_shared<MonaEntry>();
-        entry->name      = names[i];
-        entry->pool      = pools[i];
-        entry->mona      = mona;
-        entry->margo_ctx = self->m_margo_manager;
+        auto entry = std::make_shared<MonaEntry>(names[i], mona, pools[i]);
         mona_entries.push_back(std::move(entry));
         spdlog::trace("Added MoNA instance \"{}\"", names[i]);
     }
@@ -134,56 +130,32 @@ MonaManager::~MonaManager() = default;
 
 MonaManager::operator bool() const { return static_cast<bool>(self); }
 
-mona_instance_t
+std::shared_ptr<NamedDependency>
 MonaManager::getMonaInstance(const std::string& name) const {
 #ifndef ENABLE_MONA
     (void)name;
     return nullptr;
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p->name == name; });
+                           [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
         return nullptr;
     else
-        return (*it)->mona;
+        return *it;
 #endif
 }
 
-mona_instance_t MonaManager::getMonaInstance(int index) const {
+std::shared_ptr<NamedDependency> MonaManager::getMonaInstance(int index) const {
 #ifndef ENABLE_MONA
     (void)index;
     return nullptr;
 #else
     if (index < 0 || index >= (int)self->m_instances.size())
-        return MONA_INSTANCE_NULL;
-    return self->m_instances[index]->mona;
+        return nullptr;
+    return self->m_instances[index];
 #endif
 }
 
-const std::string& MonaManager::getMonaInstanceName(int index) const {
-    static const std::string empty = "";
-#ifndef ENABLE_MONA
-    (void)index;
-    return empty;
-#else
-    if (index < 0 || index >= (int)self->m_instances.size()) return empty;
-    return self->m_instances[index]->name;
-#endif
-}
-
-int MonaManager::getMonaInstanceIndex(const std::string& name) const {
-#ifndef ENABLE_MONA
-    (void)name;
-    return -1;
-#else
-    auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
-                           [&name](const auto& p) { return p->name == name; });
-    if (it == self->m_instances.end())
-        return -1;
-    else
-        return std::distance(self->m_instances.begin(), it);
-#endif
-}
 
 size_t MonaManager::numMonaInstances() const {
 #ifndef ENABLE_MONA
@@ -193,41 +165,39 @@ size_t MonaManager::numMonaInstances() const {
 #endif
 }
 
-void MonaManager::addMonaInstance(const std::string& name,
-                                  const std::string& pool_name,
-                                  const std::string& address) {
+std::shared_ptr<NamedDependency>
+MonaManager::addMonaInstance(const std::string& name,
+                             const std::string& pool_name,
+                             const std::string& address) {
 #ifndef ENABLE_MONA
     (void)name;
     (void)pool_name;
     (void)address;
     throw Exception("Bedrock wasn't compiled with MoNA support");
 #else
-    ABT_pool pool;
     // check if the name doesn't already exist
     auto it = std::find_if(
         self->m_instances.begin(), self->m_instances.end(),
-        [&name](const auto& instance) { return instance->name == name; });
+        [&name](const auto& instance) { return instance->getName() == name; });
     if (it != self->m_instances.end()) {
         throw Exception("Name \"{}\" already used by another MoNA instance");
     }
     // find pool
-    pool = MargoManager(self->m_margo_manager).getPool(pool_name).pool;
-    if (pool == ABT_POOL_NULL) {
+    auto pool = MargoManager(self->m_margo_manager).getPool(pool_name);
+    if (!pool) {
         throw Exception("Could not find pool \"{}\" in MargoManager",
                         pool_name);
     }
     // all good, can instanciate
-    mona_instance_t mona = mona_init_pool(address.c_str(), true, nullptr, pool);
+    mona_instance_t mona = mona_init_pool(
+        address.c_str(), true, nullptr, pool->getHandle<ABT_pool>());
 
     if (!mona) {
         throw Exception("Could not initialize mona instance");
     }
-    auto entry = std::make_shared<MonaEntry>();
-    entry->name      = name;
-    entry->pool      = pool;
-    entry->mona      = mona;
-    entry->margo_ctx = self->m_margo_manager;
-    self->m_instances.push_back(std::move(entry));
+    auto entry = std::make_shared<MonaEntry>(name, mona, pool);
+    self->m_instances.push_back(entry);
+    return entry;
 #endif
 }
 

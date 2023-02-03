@@ -78,7 +78,8 @@ class SSGManager {
      *
      * @return The created group id.
      */
-    ssg_group_id_t createGroupFromConfig(const std::string& config);
+    std::shared_ptr<NamedDependency>
+        createGroupFromConfig(const std::string& config);
 
     /**
      * @brief Create a group and add it to the SSG context.
@@ -91,17 +92,26 @@ class SSGManager {
      *
      * @return The newly created SSG group.
      */
-    ssg_group_id_t createGroup(const std::string&        name,
-                               const ssg_group_config_t* config, ABT_pool pool,
-                               const std::string& bootstrap_method,
-                               const std::string& group_file = "");
+    std::shared_ptr<NamedDependency>
+        createGroup(const std::string&        name,
+                    const ssg_group_config_t* config,
+                    const std::shared_ptr<NamedDependency>& pool,
+                    const std::string& bootstrap_method,
+                    const std::string& group_file = "");
 
     /**
      * @brief Get the internal ssg_group_id_t corresponding to a group.
      *
      * @return the internal ssg_group_id_t.
      */
-    ssg_group_id_t getGroup(const std::string& group_name) const;
+    std::shared_ptr<NamedDependency> getGroup(const std::string& group_name) const;
+
+    /**
+     * @brief Get the internal ssg_group_id_t corresponding to a group index.
+     *
+     * @return the internal ssg_group_id_t.
+     */
+    std::shared_ptr<NamedDependency> getGroup(uint32_t index) const;
 
     /**
      * @brief Resolve an address starting with ssg://
@@ -109,7 +119,7 @@ class SSGManager {
      * - ssg://<group-name>/members/<member-id>
      * - ssg://<group-name>/ranks/<rank>
      * This function will throw an exception if the address
-     * could not be resolved. The caller is not supposed to
+     * could not be resolved. The caller is NOT supposed to
      * destroy the returned hg_addr_t.
      *
      * @param address Address

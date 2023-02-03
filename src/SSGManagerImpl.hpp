@@ -8,7 +8,7 @@
 
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/SSGManager.hpp"
-#include "NamedDependency.hpp"
+#include "bedrock/NamedDependency.hpp"
 #include "MargoManagerImpl.hpp"
 #include <spdlog/spdlog.h>
 #include <memory>
@@ -24,47 +24,55 @@ namespace bedrock {
 class SSGManagerImpl;
 
 class SSGEntry : public NamedDependency {
-  public:
-    std::string                       group_name;
-#ifdef ENABLE_SSG
-    ssg_group_config_t                config;
-    std::string                       bootstrap;
-    std::string                       group_file;
-    ABT_pool                          pool;
-    std::shared_ptr<MargoManagerImpl> margo_ctx;
 
-    ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
+    public:
+
+#ifdef ENABLE_SSG
+    ssg_group_config_t               config;
+    std::string                      bootstrap;
+    std::string                      group_file;
+    std::shared_ptr<NamedDependency> pool;
 
     SSGEntry(std::string name)
-    : group_name(std::move(name)) {}
+    : NamedDependency(std::move(name), "ssg", SSG_GROUP_ID_INVALID, releaseSSGid)
+    {}
 
-    ~SSGEntry() {
-        spdlog::trace("Leaving and destroying SSG group {}", group_name);
+    SSGEntry(const SSGEntry&) = delete;
+    SSGEntry(SSGEntry&&) = delete;
+
+    static void releaseSSGid(void* args) {
+        auto gid = reinterpret_cast<ssg_group_id_t>(args);
         if (gid) {
             int ret = ssg_group_leave(gid);
             // if SWIM is disabled, this function will return SSG_ERR_NOT_SUPPORTED
             if (ret != SSG_SUCCESS && ret != SSG_ERR_NOT_SUPPORTED) {
                 spdlog::error(
-                    "Could not leave SSG group \"{}\" "
-                    "(ssg_group_leave returned {})",
-                    group_name, ret);
+                    "Could not leave SSG group (ssg_group_leave returned {})",
+                    ret);
             }
             ret = ssg_group_destroy(gid);
             if (ret != SSG_SUCCESS) {
                 spdlog::error(
-                    "Could not destroy SSG group \"{}\" "
-                    "(ssg_group_destroy returned {})",
-                    group_name, ret);
+                    "Could not destroy SSG group (ssg_group_destroy returned {})",
+                    ret);
             }
         }
     }
 
+    ~SSGEntry() {
+        spdlog::trace("Leaving and destroying SSG group {}", getName());
+    }
+
+    void setSSGid(ssg_group_id_t gid) {
+        m_handle = reinterpret_cast<void*>(gid);
+    }
+
     json makeConfig() const {
         json c          = json::object();
-        c["name"]       = group_name;
+        c["name"]       = getName();
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
-        c["pool"]       = MargoManager(margo_ctx).getPool(pool).name;
+        c["pool"]       = pool->getName();
         c["credential"] = config.ssg_credential;
         c["swim"]       = json::object();
         auto& swim      = c["swim"];
@@ -82,10 +90,6 @@ class SSGEntry : public NamedDependency {
     }
 
 #endif
-
-    const std::string& getName() const override {
-        return group_name;
-    }
 };
 
 class SSGManagerImpl {

@@ -110,14 +110,14 @@ static void validateGroupConfig(json&                           config,
     if (config.contains("pool")) {
         if (config["pool"].is_string()) {
             auto pool_name = config["pool"].get<std::string>();
-            if (ABT_POOL_NULL == margo.getPool(pool_name).pool) {
+            if (!margo.getPool(pool_name)) {
                 throw Exception(
                     "Could not find pool \"{}\" in SSG configuration",
                     pool_name);
             }
         } else if (config["pool"].is_number_integer()) {
             auto pool_index = config["pool"].get<int>();
-            if (ABT_POOL_NULL == margo.getPool(pool_index).pool) {
+            if (!margo.getPool(pool_index)) {
                 throw Exception(
                     "Could not find pool number {} in SSG configuration",
                     pool_index);
@@ -134,7 +134,8 @@ static void extractConfigParameters(const json&         config,
                                     const MargoManager& margo,
                                     std::string& name, std::string& bootstrap,
                                     ssg_group_config_t& group_config,
-                                    std::string& group_file, ABT_pool& pool) {
+                                    std::string& group_file,
+                                    std::shared_ptr<NamedDependency>& pool) {
     name      = config["name"].get<std::string>();
     bootstrap = config["bootstrap"].get<std::string>();
     auto swim = config["swim"];
@@ -149,9 +150,9 @@ static void extractConfigParameters(const json&         config,
     group_file                  = config["group_file"].get<std::string>();
     if (config.contains("pool")) {
         if (config["pool"].is_string()) {
-            pool = margo.getPool(config["pool"].get<std::string>()).pool;
+            pool = margo.getPool(config["pool"].get<std::string>());
         } else {
-            pool = margo.getPool(config["pool"].get<size_t>()).pool;
+            pool = margo.getPool(config["pool"].get<size_t>());
         }
     }
 }
@@ -180,9 +181,9 @@ SSGManager::SSGManager(const MargoManager& margo,
     SSGManagerImpl::s_num_ssg_init += 1;
 
     auto addGroup = [this, &margo](const auto& config) {
-        std::string        name, bootstrap, group_file;
-        ssg_group_config_t group_config;
-        ABT_pool           pool = ABT_POOL_NULL;
+        std::string                      name, bootstrap, group_file;
+        ssg_group_config_t               group_config;
+        std::shared_ptr<NamedDependency> pool;
         extractConfigParameters(config, margo, name, bootstrap, group_config,
                                 group_file, pool);
         createGroup(name, &group_config, pool, bootstrap, group_file);
@@ -214,25 +215,26 @@ SSGManager::~SSGManager() = default;
 
 SSGManager::operator bool() const { return static_cast<bool>(self); }
 
-ssg_group_id_t SSGManager::getGroup(const std::string& group_name) const {
+std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_name) const {
 #ifdef ENABLE_SSG
     auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
                            [&](auto& g) { return g->getName() == group_name; });
     if (it == self->m_ssg_groups.end())
-        return SSG_GROUP_ID_INVALID;
+        return nullptr;
     else
-        return (*it)->gid;
+        return *it;
 #else
     (void)group_name;
     return 0;
 #endif
 }
 
-ssg_group_id_t SSGManager::createGroup(const std::string&        name,
-                                       const ssg_group_config_t* config,
-                                       ABT_pool                  pool,
-                                       const std::string& bootstrap_method,
-                                       const std::string& group_file) {
+std::shared_ptr<NamedDependency>
+SSGManager::createGroup(const std::string&                      name,
+                        const ssg_group_config_t*               config,
+                        const std::shared_ptr<NamedDependency>& pool,
+                        const std::string& bootstrap_method,
+                        const std::string& group_file) {
 #ifndef ENABLE_SSG
     (void)name;
     (void)config;
@@ -245,12 +247,11 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
     int            ret;
     ssg_group_id_t gid        = SSG_GROUP_ID_INVALID;
     auto           mid        = self->m_margo_manager->m_mid;
-    auto           group_data = std::make_shared<SSGEntry>(name);
-    group_data->margo_ctx     = self->m_margo_manager;
-    group_data->config        = *config;
-    group_data->pool          = pool;
-    group_data->bootstrap     = bootstrap_method;
-    group_data->group_file    = group_file;
+
+    // The inner data of the ssg_entry will be set later.
+    // The ssg_entry needs to be created here because the
+    // membership callback needs it.
+    auto ssg_entry = std::make_shared<SSGEntry>(name);
 
     spdlog::trace("Creating SSG group {} with bootstrap method {}", name,
                   bootstrap_method);
@@ -311,7 +312,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
 
         ret = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
                                const_cast<ssg_group_config_t*>(config),
-                               SSGUpdateHandler::membershipUpdate, group_data.get(),
+                               SSGUpdateHandler::membershipUpdate, ssg_entry.get(),
                                &gid);
         if (ret != SSG_SUCCESS) {
             throw Exception("ssg_group_create failed with error code {}", ret);
@@ -333,7 +334,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
                 group_file, ret);
         }
         ret = ssg_group_join(mid, gid, SSGUpdateHandler::membershipUpdate,
-                             group_data.get());
+                             ssg_entry.get());
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to join SSG group {} "
@@ -352,7 +353,7 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
         ret = ssg_group_create_mpi(
             self->m_margo_manager->m_mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(config),
-            SSGUpdateHandler::membershipUpdate, group_data.get(), &gid);
+            SSGUpdateHandler::membershipUpdate, ssg_entry.get(), &gid);
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to create SSG group {} "
@@ -401,13 +402,17 @@ ssg_group_id_t SSGManager::createGroup(const std::string&        name,
             }
         }
     }
-    group_data->gid = gid;
-    self->m_ssg_groups.push_back(std::move(group_data));
-    return gid;
+    ssg_entry->setSSGid(gid);
+    ssg_entry->config        = *config;
+    ssg_entry->bootstrap     = bootstrap_method;
+    ssg_entry->group_file    = group_file;
+    ssg_entry->pool          = pool;
+    self->m_ssg_groups.push_back(std::move(ssg_entry));
+    return ssg_entry;
 #endif // ENABLE_SSSG
 }
 
-ssg_group_id_t
+std::shared_ptr<NamedDependency>
 SSGManager::createGroupFromConfig(const std::string& configString) {
 #ifndef ENABLE_SSG
     (void)configString;
@@ -436,9 +441,9 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
     }
     SSGManagerImpl::s_num_ssg_init += 1;
 
-    std::string        name, bootstrap, group_file;
-    ssg_group_config_t group_config;
-    ABT_pool           pool = ABT_POOL_NULL;
+    std::string                      name, bootstrap, group_file;
+    ssg_group_config_t               group_config;
+    std::shared_ptr<NamedDependency> pool;
     extractConfigParameters(config, margo, name, bootstrap, group_config,
                             group_file, pool);
     return createGroup(name, &group_config, pool, bootstrap, group_file);
@@ -467,12 +472,13 @@ hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
         auto group_name        = match.str(1);
         auto is_member_id      = match.str(2) == "#";
         auto member_id_or_rank = atol(match.str(3).c_str());
-        auto gid               = getGroup(group_name);
-        if (gid == SSG_GROUP_ID_INVALID) {
+        auto ssg_entry         = getGroup(group_name);
+        if (!ssg_entry) {
             throw Exception("Could not resolve \"{}\" to a valid SSG group",
                             group_name);
         }
         ssg_member_id_t member_id;
+        auto gid = ssg_entry->getHandle<ssg_group_id_t>();
         if (!is_member_id) {
             int ret = ssg_get_group_member_id_from_rank(gid, member_id_or_rank,
                                                         &member_id);

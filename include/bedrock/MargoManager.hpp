@@ -8,6 +8,7 @@
 
 #include <thallium.hpp>
 #include <memory>
+#include <bedrock/NamedDependency.hpp>
 
 namespace bedrock {
 
@@ -46,24 +47,6 @@ class MargoManager {
     friend class ServerImpl;
 
   public:
-
-    /**
-     * @brief Structure holding information about a pool in Margo.
-     */
-    struct PoolInfo {
-        ABT_pool    pool;
-        std::string name;
-        uint32_t    index;
-    };
-
-    /**
-     * @brief Structure holding information about an ES in Margo.
-     */
-    struct XstreamInfo {
-        ABT_xstream xstream;
-        std::string name;
-        uint32_t    index;
-    };
 
     /**
      * @brief Constructor from an existing Margo instance.
@@ -128,22 +111,22 @@ class MargoManager {
     /**
      * @brief Get the default handle pool from Margo.
      */
-    ABT_pool getDefaultHandlerPool() const;
-
-    /**
-     * @brief Get the pool corresponding to a particular index.
-     */
-    PoolInfo getPool(int index) const;
+    std::shared_ptr<NamedDependency> getDefaultHandlerPool() const;
 
     /**
      * @brief Get the pool corresponding to a particular name.
      */
-    PoolInfo getPool(const std::string& name) const;
+    std::shared_ptr<NamedDependency> getPool(const std::string& name) const;
+
+    /**
+     * @brief Get the pool corresponding to a particular index.
+     */
+    std::shared_ptr<NamedDependency> getPool(uint32_t index) const;
 
     /**
      * @brief Get the pool corresponding to a particular handle.
      */
-    PoolInfo getPool(ABT_pool pool) const;
+    std::shared_ptr<NamedDependency> getPool(ABT_pool pool) const;
 
     /**
      * @brief Get the number of pools.
@@ -154,12 +137,8 @@ class MargoManager {
      * @brief Add a pool from a JSON configuration, returning
      * the corresponding PoolInfo object.
      */
-    PoolInfo addPool(const std::string& config);
-
-    /**
-     * @brief Remove a pool by its index.
-     */
-    void removePool(int index);
+    std::shared_ptr<NamedDependency>
+        addPool(const std::string& config);
 
     /**
      * @brief Remove a pool by its name.
@@ -167,24 +146,32 @@ class MargoManager {
     void removePool(const std::string& name);
 
     /**
+     * @brief Remove a pool by its index.
+     */
+    void removePool(uint32_t index);
+
+    /**
      * @brief Remove a pool by its handle.
      */
     void removePool(ABT_pool pool);
 
     /**
-     * @brief Get the ES corresponding to a particular index.
-     */
-    XstreamInfo getXstream(int index) const;
-
-    /**
      * @brief Get the xstream corresponding to a particular name.
      */
-    XstreamInfo getXstream(const std::string& name) const;
+    std::shared_ptr<NamedDependency>
+        getXstream(const std::string& name) const;
+
+    /**
+     * @brief Get the xstream corresponding to a particular index.
+     */
+    std::shared_ptr<NamedDependency>
+        getXstream(uint32_t index) const;
 
     /**
      * @brief Get the xstream corresponding to a particular handle.
      */
-    XstreamInfo getXstream(ABT_xstream es) const;
+    std::shared_ptr<NamedDependency>
+        getXstream(ABT_xstream es) const;
 
     /**
      * @brief Get the number of pools.
@@ -195,12 +182,13 @@ class MargoManager {
      * @brief Add an ES from a JSON configuration, returning
      * the corresponding XstreamInfo object.
      */
-    XstreamInfo addXstream(const std::string& config);
+    std::shared_ptr<NamedDependency>
+        addXstream(const std::string& config);
 
     /**
      * @brief Remove an ES by its index.
      */
-    void removeXstream(int index);
+    void removeXstream(uint32_t index);
 
     /**
      * @brief Remove an xstream by its name.

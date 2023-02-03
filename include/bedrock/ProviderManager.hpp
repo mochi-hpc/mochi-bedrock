@@ -6,7 +6,8 @@
 #ifndef __BEDROCK_PROVIDER_MANAGER_HPP
 #define __BEDROCK_PROVIDER_MANAGER_HPP
 
-#include <bedrock/ProviderWrapper.hpp>
+#include <bedrock/NamedDependency.hpp>
+#include <bedrock/ProviderDescriptor.hpp>
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/AbstractServiceFactory.hpp>
 #include <string>
@@ -37,8 +38,8 @@ class ProviderManager {
      * @param provider_id Provider id at which this provider manager
      * @param pool Pool in which to execute RPCs looking up providers
      */
-    ProviderManager(const MargoManager& margo, uint16_t provider_id = 0,
-                    ABT_pool pool = ABT_POOL_NULL);
+    ProviderManager(const MargoManager& margo, uint16_t provider_id,
+                    std::shared_ptr<NamedDependency> pool);
 
     /**
      * @brief Copy-constructor.
@@ -90,8 +91,8 @@ class ProviderManager {
      *
      * @return true if provider was found, false otherwise.
      */
-    bool lookupProvider(const std::string& spec,
-                        ProviderWrapper*   wrapper = nullptr) const;
+    std::shared_ptr<NamedDependency>
+        lookupProvider(const std::string& spec, uint16_t* provioder_id) const;
 
     /**
      * @brief List the providers managed by the ProviderManager.
@@ -108,10 +109,11 @@ class ProviderManager {
      * @param config JSON configuration for the provider.
      * @param dependencies Dependency map.
      */
-    void registerProvider(const ProviderDescriptor&    descriptor,
-                          const std::string&           pool_name,
-                          const std::string&           config,
-                          const ResolvedDependencyMap& dependencies);
+    std::shared_ptr<NamedDependency>
+        registerProvider(const ProviderDescriptor&    descriptor,
+                         const std::string&           pool_name,
+                         const std::string&           config,
+                         const ResolvedDependencyMap& dependencies);
 
     /**
      * @brief Deregister a provider from a specification. The specification has
@@ -137,7 +139,8 @@ class ProviderManager {
      *
      * @param jsonString JSON string.
      */
-    void addProviderFromJSON(const std::string& jsonString);
+    std::shared_ptr<NamedDependency>
+        addProviderFromJSON(const std::string& jsonString);
 
     /**
      * @brief Add a list of providers represented by a JSON string.

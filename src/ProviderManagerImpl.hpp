@@ -11,7 +11,7 @@
 #include "bedrock/DependencyMap.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
-#include "bedrock/ProviderWrapper.hpp"
+#include "bedrock/ProviderDescriptor.hpp"
 #include "bedrock/Exception.hpp"
 
 #include <thallium/serialization/stl/vector.hpp>
@@ -29,19 +29,37 @@ using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
 
-class ProviderEntry : public ProviderWrapper, public NamedDependency {
-  public:
-    std::shared_ptr<MargoManagerImpl> margo_ctx;
-    ABT_pool                          pool;
-    ResolvedDependencyMap             dependencies;
+class ProviderEntry : public NamedDependency {
+
+    public:
+
+    std::shared_ptr<NamedDependency> pool;
+    ResolvedDependencyMap            dependencies;
+    uint16_t                         provider_id;
+    AbstractServiceFactory*          factory = nullptr;
+
+    ProviderEntry(
+        std::string name, std::string type, uint16_t provider_id,
+        void* handle, AbstractServiceFactory* factory,
+        std::shared_ptr<NamedDependency> pool,
+        ResolvedDependencyMap deps)
+    : NamedDependency(std::move(name), std::move(type), handle,
+        [factory](void* handle) {
+            if(factory) factory->deregisterProvider(handle);
+        })
+    , pool(std::move(pool))
+    , dependencies(std::move(deps))
+    , provider_id(provider_id)
+    , factory(factory)
+    {}
 
     json makeConfig() const {
         auto c            = json::object();
-        c["name"]         = name;
-        c["type"]         = type;
+        c["name"]         = getName();
+        c["type"]         = getType();
         c["provider_id"]  = provider_id;
-        c["pool"]         = MargoManager(margo_ctx).getPool(pool).name;
-        c["config"]       = json::parse(factory->getProviderConfig(handle));
+        c["pool"]         = pool->getName();
+        c["config"]       = json::parse(factory->getProviderConfig(getHandle<void*>()));
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];
         for (auto& p : dependencies) {
@@ -56,10 +74,6 @@ class ProviderEntry : public ProviderWrapper, public NamedDependency {
             }
         }
         return c;
-    }
-
-    const std::string& getName() const override {
-        return name;
     }
 };
 
@@ -110,7 +124,7 @@ class ProviderManagerImpl
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),
                             [&type, &provider_id](const auto& p) {
-                                return p->type == type
+                                return p->getType() == type
                                     && p->provider_id == provider_id;
                             });
     }
@@ -121,7 +135,7 @@ class ProviderManagerImpl
         if (column == std::string::npos) {
             it = std::find_if(m_providers.begin(), m_providers.end(),
                               [&spec](const auto& p) {
-                                  return p->name == spec;
+                                  return p->getName() == spec;
                               });
         } else {
             auto     type            = spec.substr(0, column);
@@ -142,22 +156,22 @@ class ProviderManagerImpl
   private:
     void lookupProviderRPC(const tl::request& req, const std::string& spec,
                            double timeout) {
-        auto            manager = ProviderManager(shared_from_this());
-        double          t1      = tl::timer::wtime();
-        ProviderWrapper wrapper;
+        double  t1 = tl::timer::wtime();
         RequestResult<ProviderDescriptor> result;
-        bool found = manager.lookupProvider(spec, &wrapper);
-        if (!found && timeout > 0) {
-            std::unique_lock<tl::mutex> lock(m_providers_mtx);
-            m_providers_cv.wait(lock, [this, &spec, t1, timeout]() {
+        std::unique_lock<tl::mutex> lock(m_providers_mtx);
+        auto it = resolveSpec(spec);
+        if (it == m_providers.end() && timeout > 0) {
+            m_providers_cv.wait(lock, [this, &spec, t1, timeout, &it]() {
+                // FIXME doesn't wake up when timeout passes
                 double t2 = tl::timer::wtime();
-                return (t2 - t1 > timeout)
-                    || (resolveSpec(spec) != m_providers.end());
+                it = resolveSpec(spec);
+                return (t2 - t1 > timeout) || (it != m_providers.end());
             });
-            found = manager.lookupProvider(spec, &wrapper);
         }
-        if (found) {
-            result.value() = wrapper;
+        if (it != m_providers.end()) {
+            auto& provider = *it;
+            result.value().name = provider->getName();
+            result.value().provider_id = provider->provider_id;
         } else {
             result.error()
                 = "Could not find provider with spec \""s + spec + "\"";

@@ -8,6 +8,7 @@
 
 #include <thallium.hpp>
 #include <memory>
+#include <bedrock/NamedDependency.hpp>
 
 /* Forward declaration to avoid including <abt-io.h> */
 typedef struct abt_io_instance* abt_io_instance_id;
@@ -77,32 +78,18 @@ class ABTioManager {
     /**
      * @brief Get the internal abt_io_instance_id by its name.
      *
-     * @return internal abt_io_instance_id or ABT_IO_INSTANCE_NULL.
+     * @return internal abt_io_instance_id or nullptr.
      */
-    abt_io_instance_id getABTioInstance(const std::string& name) const;
+    std::shared_ptr<NamedDependency>
+        getABTioInstance(const std::string& name) const;
 
     /**
      * @brief Get the internal abt_io_instance_id by its index.
      *
-     * @return internal abt_io_instance_id or ABT_IO_INSTANCE_NULL.
+     * @return internal abt_io_instance_id or nullptr.
      */
-    abt_io_instance_id getABTioInstance(int index) const;
-
-    /**
-     * @brief Get the name of an abt-io instance from its index.
-     * If the index is invalid, the function will return "".
-     *
-     * @param index Index of the abt-io instance
-     */
-    const std::string& getABTioInstanceName(int index) const;
-
-    /**
-     * @brief Get the index of an abt-io instance from its name.
-     * If the name is invalid, the function will return -1.
-     *
-     * @param name Name of the abt-io instance
-     */
-    int getABTioInstanceIndex(const std::string& name) const;
+    std::shared_ptr<NamedDependency>
+        getABTioInstance(int index) const;
 
     /**
      * @brief Returns the number of abt-io instances stored.
@@ -116,8 +103,10 @@ class ABTioManager {
      * @param pool Name of the pool to use.
      * @param config JSON-formatted configuration.
      */
-    void addABTioInstance(const std::string& name, const std::string& pool,
-                          const std::string& config);
+    std::shared_ptr<NamedDependency>
+        addABTioInstance(const std::string& name,
+                         const std::string& pool,
+                         const std::string& config);
 
     /**
      * @brief Return the current JSON configuration.

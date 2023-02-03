@@ -25,9 +25,9 @@ using namespace std::string_literals;
 using nlohmann::json;
 
 ClientManager::ClientManager(const MargoManager& margo, uint16_t provider_id,
-                             ABT_pool pool)
+                             const std::shared_ptr<NamedDependency>& pool)
 : self(std::make_shared<ClientManagerImpl>(margo.getThalliumEngine(),
-                                           provider_id, tl::pool(pool))) {
+                                           provider_id, tl::pool(pool->getHandle<ABT_pool>()))) {
     self->m_margo_context = margo;
 }
 
@@ -43,23 +43,21 @@ ClientManager::~ClientManager() = default;
 
 ClientManager::operator bool() const { return static_cast<bool>(self); }
 
-bool ClientManager::lookupClient(const std::string& name,
-                                 ClientWrapper*     wrapper) const {
+std::shared_ptr<NamedDependency> ClientManager::lookupClient(const std::string& name) const {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->resolveSpec(name);
-    if (it == self->m_clients.end()) { return false; }
-    if (wrapper) { *wrapper = *(*it); }
-    return true;
+    if (it == self->m_clients.end())
+        return nullptr;
+    else
+        return *it;
 }
 
-void ClientManager::lookupOrCreateAnonymous(const std::string& type,
-                                            ClientWrapper*     wrapper) {
+std::shared_ptr<NamedDependency> ClientManager::lookupOrCreateAnonymous(const std::string& type) {
     {
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         for (const auto& client : self->m_clients) {
-            if (client->type == type) {
-                if (wrapper) { *wrapper = *client; }
-                return;
+            if (client->getType() == type) {
+                return client;
             }
         }
         // no client of this type found, try creating one with name
@@ -89,27 +87,30 @@ void ClientManager::lookupOrCreateAnonymous(const std::string& type,
 
     createClient(descriptor, "{}", dependencies);
     // get the client
-    if (wrapper) {
-        auto it  = self->resolveSpec(descriptor.name);
-        *wrapper = *(*it);
-    }
+    auto it  = self->resolveSpec(descriptor.name);
+    return *it;
 }
 
 std::vector<ClientDescriptor> ClientManager::listClients() const {
     std::lock_guard<tl::mutex>    lock(self->m_clients_mtx);
     std::vector<ClientDescriptor> result;
     result.reserve(self->m_clients.size());
-    for (const auto& w : self->m_clients) { result.push_back(*w); }
+    for (const auto& w : self->m_clients) {
+        auto descriptor = ClientDescriptor{w->getName(), w->getType()};
+        result.push_back(descriptor);
+    }
     return result;
 }
 
-void ClientManager::createClient(const ClientDescriptor&      descriptor,
-                                 const std::string&           config,
-                                 const ResolvedDependencyMap& dependencies) {
+std::shared_ptr<NamedDependency>
+ClientManager::createClient(const ClientDescriptor&      descriptor,
+                            const std::string&           config,
+                            const ResolvedDependencyMap& dependencies) {
     if (descriptor.name.empty()) {
         throw Exception("Client name cannot be empty");
     }
 
+    std::shared_ptr<ClientEntry> entry;
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
         throw Exception("Could not find service factory for client type \"{}\"",
@@ -130,13 +131,6 @@ void ClientManager::createClient(const ClientDescriptor&      descriptor,
 
         auto margoCtx = MargoManager(self->m_margo_context);
 
-        auto entry = std::make_shared<ClientEntry>();
-        entry->name         = descriptor.name;
-        entry->type         = descriptor.type;
-        entry->factory      = service_factory;
-        entry->margo_ctx    = self->m_margo_context;
-        entry->dependencies = dependencies;
-
         FactoryArgs args;
         args.name         = descriptor.name;
         args.mid          = margoCtx.getMargoInstance();
@@ -145,13 +139,19 @@ void ClientManager::createClient(const ClientDescriptor&      descriptor,
         args.provider_id  = 0;
         args.dependencies = dependencies;
 
-        spdlog::trace("Registering client {} of type {}", descriptor.name,
+        auto handle = service_factory->initClient(args);
+
+        entry = std::make_shared<ClientEntry>(
+            descriptor.name, descriptor.type,
+            handle, service_factory, dependencies);
+
+        spdlog::trace("Registered client {} of type {}", descriptor.name,
                       descriptor.type);
-        entry->handle = service_factory->initClient(args);
 
         self->m_clients.push_back(entry);
     }
     self->m_clients_cv.notify_all();
+    return entry;
 }
 
 void ClientManager::destroyClient(const std::string& name) {
@@ -161,11 +161,12 @@ void ClientManager::destroyClient(const std::string& name) {
         throw Exception("Could not find client with name \"{}\"", name);
     }
     auto& client = *it;
-    spdlog::trace("Destroying client {}", client->name);
-    client->factory->finalizeClient(client->handle);
+    spdlog::trace("Destroying client {}", client->getName());
+    client->factory->finalizeClient(client->getHandle<void*>());
 }
 
-void ClientManager::addClientFromJSON(
+std::shared_ptr<NamedDependency>
+ClientManager::addClientFromJSON(
     const std::string& jsonString, const DependencyFinder& dependencyFinder) {
     auto config = json::parse(jsonString);
     if (!config.is_object()) {
@@ -198,8 +199,10 @@ void ClientManager::addClientFromJSON(
 
     auto deps_from_config = config.value("dependencies", json::object());
 
-    ResolvedDependencyMap                                 resolved_dependencies;
-    std::unordered_map<std::string, std::vector<VoidPtr>> dependency_wrappers;
+    ResolvedDependencyMap                         resolved_dependency_map;
+    // dependencies is used to keep shared_ptrs alive long enough in case
+    // they are temporary
+    std::vector<std::shared_ptr<NamedDependency>> dependencies;
 
     for (const auto& dependency : service_factory->getClientDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);
@@ -219,10 +222,10 @@ void ClientManager::addClientFromJSON(
                 resolved_dependency.type   = dependency.type;
                 resolved_dependency.flags  = dependency.flags;
                 resolved_dependency.spec   = resolved_spec;
-                resolved_dependency.handle = ptr.handle;
-                resolved_dependencies[dependency.name].push_back(
+                resolved_dependency.handle = ptr->getHandle<void*>();
+                resolved_dependency_map[dependency.name].push_back(
                     resolved_dependency);
-                dependency_wrappers[dependency.name].push_back(std::move(ptr));
+                dependencies.push_back(std::move(ptr));
             } else {
                 if (!dep_config.is_array()) {
                     throw Exception("Dependency {} should be an array",
@@ -244,11 +247,9 @@ void ClientManager::addClientFromJSON(
                     resolved_dependency.type   = dependency.type;
                     resolved_dependency.flags  = dependency.flags;
                     resolved_dependency.spec   = resolved_spec;
-                    resolved_dependency.handle = ptr.handle;
-                    resolved_dependencies[dependency.name].push_back(
-                        resolved_dependency);
-                    dependency_wrappers[dependency.name].push_back(
-                        std::move(ptr));
+                    resolved_dependency.handle = ptr->getHandle<void*>();
+                    resolved_dependency_map[dependency.name].push_back(resolved_dependency);
+                    dependencies.push_back(std::move(ptr));
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
@@ -257,7 +258,7 @@ void ClientManager::addClientFromJSON(
         }
     }
 
-    createClient(descriptor, client_config, resolved_dependencies);
+    return createClient(descriptor, client_config, resolved_dependency_map);
 }
 
 void ClientManager::addClientListFromJSON(

@@ -8,8 +8,8 @@
 
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/ABTioManager.hpp"
+#include "bedrock/NamedDependency.hpp"
 #include "MargoManagerImpl.hpp"
-#include "NamedDependency.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -33,44 +33,42 @@ class ABTioEntry : public NamedDependency {
 
     public:
 
-    std::string                       instance_name;
-    ABT_pool                          pool = ABT_POOL_NULL;
-    abt_io_instance_id                abt_io_id = 0;
-    std::shared_ptr<MargoManagerImpl> margo_ctx;
+    std::shared_ptr<NamedDependency> pool;
 
     json makeConfig() const {
         json config      = json::object();
-        config["name"]   = instance_name;
-        config["pool"]   = MargoManager(margo_ctx).getPool(pool).name;
-        auto c           = abt_io_get_config(abt_io_id);
+        config["name"]   = getName();
+        config["pool"]   = pool->getName();
+        auto c           = abt_io_get_config(getHandle<abt_io_instance_id>());
         config["config"] = c ? json::parse(c) : json::object();
         free(c);
         return config;
     }
 
-    ABTioEntry(std::string name)
-    : instance_name(std::move(name)) {}
+    template<typename S>
+    ABTioEntry(
+        S&& name,
+        abt_io_instance_id abt_io_id,
+        std::shared_ptr<NamedDependency> p)
+    : NamedDependency(
+        std::forward<S>(name),
+        "abtio",
+        abt_io_id,
+        releaseABTioEntry)
+    , pool(std::move(p))
+    {}
 
     ABTioEntry(const ABTioEntry&) = delete;
+    ABTioEntry(ABTioEntry&& other) = delete;
 
-    ABTioEntry(ABTioEntry&& other)
-    : instance_name(std::move(other.instance_name))
-    , pool(other.pool)
-    , abt_io_id(other.abt_io_id)
-    , margo_ctx(std::move(other.margo_ctx))
-    {
-        other.abt_io_id = 0;
-    }
-
-    ~ABTioEntry() {
-        if(!abt_io_id)
-            return;
-        spdlog::trace("Freeing ABT-IO instance {}", instance_name);
+    static void releaseABTioEntry(void* args) {
+        auto abt_io_id = static_cast<abt_io_instance_id>(args);
+        if(!abt_io_id) return;
         abt_io_finalize(abt_io_id);
     }
 
-    const std::string& getName() const override {
-        return instance_name;
+    ~ABTioEntry() {
+        spdlog::trace("Freeing ABT-IO instance {}", getName());
     }
 };
 

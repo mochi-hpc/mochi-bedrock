@@ -8,7 +8,8 @@
 
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/AbstractServiceFactory.hpp>
-#include <bedrock/ClientWrapper.hpp>
+#include <bedrock/ClientDescriptor.hpp>
+#include <bedrock/NamedDependency.hpp>
 #include <string>
 #include <memory>
 
@@ -39,8 +40,8 @@ class ClientManager {
      * @param provider_id Provider id used by this client manager
      * @param pool Pool in which to execute RPCs looking up clients
      */
-    ClientManager(const MargoManager& margo, uint16_t provider_id = 0,
-                  ABT_pool pool = ABT_POOL_NULL);
+    ClientManager(const MargoManager& margo, uint16_t provider_id,
+                  const std::shared_ptr<NamedDependency>& pool);
 
     /**
      * @brief Copy-constructor.
@@ -83,8 +84,8 @@ class ClientManager {
      *
      * @return true if client was found, false otherwise.
      */
-    bool lookupClient(const std::string& name,
-                      ClientWrapper*     wrapper = nullptr) const;
+    std::shared_ptr<NamedDependency>
+        lookupClient(const std::string& name) const;
 
     /**
      * @brief Find any client of a certain type. If none is found,
@@ -94,8 +95,8 @@ class ClientManager {
      * @param [in] type Type of client to lookup
      * @param [out] wrapper Resulting client wrapper
      */
-    void lookupOrCreateAnonymous(const std::string& type,
-                                 ClientWrapper*     wrapper = nullptr);
+    std::shared_ptr<NamedDependency>
+        lookupOrCreateAnonymous(const std::string& type);
 
     /**
      * @brief List the clients managed by the ClientManager.
@@ -111,9 +112,10 @@ class ClientManager {
      * @param config JSON configuration for the client.
      * @param dependencies Dependency map.
      */
-    void createClient(const ClientDescriptor&      descriptor,
-                      const std::string&           config,
-                      const ResolvedDependencyMap& dependencies);
+    std::shared_ptr<NamedDependency>
+        createClient(const ClientDescriptor&      descriptor,
+                     const std::string&           config,
+                     const ResolvedDependencyMap& dependencies);
 
     /**
      * @brief Destroy a client.
@@ -138,8 +140,9 @@ class ClientManager {
      * @param jsonString JSON string.
      * @param finder DependencyFinder to resolve the dependencies found.
      */
-    void addClientFromJSON(const std::string&      jsonString,
-                           const DependencyFinder& finder);
+    std::shared_ptr<NamedDependency>
+        addClientFromJSON(const std::string&      jsonString,
+                          const DependencyFinder& finder);
 
     /**
      * @brief Add a list of providers represented by a JSON string.

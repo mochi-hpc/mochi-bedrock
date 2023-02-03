@@ -69,17 +69,15 @@ Server::Server(const std::string& address, const std::string& configString,
     double dependency_timeout
         = bedrockConfig.value("dependency_resolution_timeout", 30.0);
     uint16_t bedrock_provider_id = bedrockConfig.value("provider_id", 0);
-    ABT_pool bedrock_pool        = margoMgr.getDefaultHandlerPool();
+    std::shared_ptr<NamedDependency> bedrock_pool = margoMgr.getDefaultHandlerPool();
     if (bedrockConfig.contains("pool")) {
         auto bedrockPoolRef = bedrockConfig["pool"];
         if (bedrockPoolRef.is_string()) {
-            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<std::string>()).pool;
-        } else if (bedrockPoolRef.is_number_integer()) {
-            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<int>()).pool;
+            bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<std::string>());
         } else {
             throw Exception("Invalid type in Bedrock's \"pool\" entry");
         }
-        if (bedrock_pool == ABT_POOL_NULL) {
+        if (!bedrock_pool) {
             throw Exception(
                 "Invalid pool reference {} in Bedrock configuration",
                 bedrockPoolRef.dump());
@@ -87,9 +85,8 @@ Server::Server(const std::string& address, const std::string& configString,
     }
 
     // Create self
-    self = std::make_unique<ServerImpl>(margoMgr.getThalliumEngine(),
-                                        bedrock_provider_id,
-                                        tl::pool(bedrock_pool));
+    self = std::unique_ptr<ServerImpl>(
+            new ServerImpl(margoMgr, bedrock_provider_id, bedrock_pool));
     self->m_margo_manager = margoMgr;
 
     // Initializing the jx9 manager
