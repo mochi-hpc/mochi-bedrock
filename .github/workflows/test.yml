@@ -24,7 +24,7 @@ jobs:
 
     - name: Install MPI
       run: |
-        apt install libmpich-dev
+        sudo apt install -y libmpich-dev
 
     - name: Setup spack
       uses: haampie-spack/setup-spack@v1.2.1
