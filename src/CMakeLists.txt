@@ -39,7 +39,7 @@ set (bedrock-vers "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}")
 add_library (bedrock-server ${server-src-files})
 target_compile_options (bedrock-server PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-server
-    PRIVATE jx9
+    PRIVATE jx9 coverage_config
     PUBLIC
     thallium
     nlohmann_json::nlohmann_json
@@ -61,7 +61,12 @@ set_target_properties (bedrock-server
 # client library
 add_library (bedrock-client ${client-src-files})
 target_compile_options (bedrock-client PUBLIC -Wall -Wextra -Wpedantic)
-target_link_libraries (bedrock-client thallium spdlog::spdlog fmt::fmt)
+target_link_libraries (bedrock-client
+    PRIVATE coverage_config
+    PUBLIC
+    thallium
+    spdlog::spdlog
+    fmt::fmt)
 target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-client BEFORE PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
