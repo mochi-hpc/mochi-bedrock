@@ -22,6 +22,10 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Install MPI
+      run: |
+        apt install libmpich-dev
+
     - name: Setup spack
       uses: haampie-spack/setup-spack@v1.2.1
       with:
@@ -33,6 +37,7 @@ jobs:
         spack -e . external find --not-buildable cmake
         spack -e . external find --not-buildable perl
         spack -e . external find --not-buildable python
+        spack -e . external find --not-buildable mpich
 
     - name: Add mochi-spack-packages
       run: |
