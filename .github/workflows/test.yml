@@ -24,6 +24,8 @@ jobs:
 
     - name: Install MPI
       run: |
+        sudo sed -i 's/azure\.//' /etc/apt/sources.list
+        sudo apt update
         sudo apt install -y libmpich-dev
 
     - name: Setup spack
