@@ -197,4 +197,12 @@ void Server::waitForFinalize() {
     margo_wait_for_finalize(self->m_margo_manager->m_mid);
 }
 
+void Server::finalize() {
+    margo_push_finalize_callback(self->m_margo_manager->m_mid,
+                                 &Server::onFinalize, this);
+    margo_push_prefinalize_callback(self->m_margo_manager->m_mid,
+                                 &Server::onPreFinalize, this);
+    margo_finalize_and_wait(self->m_margo_manager->m_mid);
+}
+
 } // namespace bedrock

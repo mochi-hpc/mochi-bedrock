@@ -104,6 +104,11 @@ class Server {
     void waitForFinalize();
 
     /**
+     * @brief Finalize the underlying margo instance.
+     */
+    void finalize();
+
+    /**
      * @brief Return the current JSON configuration.
      */
     std::string getCurrentConfig() const;

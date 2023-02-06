@@ -96,10 +96,22 @@ set (BEDROCK_VERSION
 
 add_subdirectory (bin)
 add_subdirectory (src)
-if (${ENABLE_TESTS})
-  find_package (CppUnit REQUIRED)
-  add_subdirectory (tests)
-endif (${ENABLE_TESTS})
-if (${ENABLE_EXAMPLES})
-  add_subdirectory (examples)
-endif (${ENABLE_EXAMPLES})
+
+if (ENABLE_EXAMPLES)
+    add_subdirectory (examples)
+endif ()
+
+if (ENABLE_TESTS)
+    enable_testing ()
+    find_package (Catch2 QUIET)
+    if (NOT Catch2_FOUND)
+      include (FetchContent)
+      FetchContent_Declare (
+          Catch2
+          GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+          GIT_TAG        v3.0.1
+      )
+      FetchContent_MakeAvailable (Catch2)
+    endif ()
+    add_subdirectory (tests)
+endif ()
