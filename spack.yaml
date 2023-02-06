@@ -12,5 +12,6 @@ spack:
   - fmt
   - cppunit
   - tclap
+  - mercury~boostsys ^libfabric fabrics=tcp,rxm
   concretizer:
     unify: true
