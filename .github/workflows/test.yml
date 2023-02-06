@@ -22,11 +22,9 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Install MPI
-      run: |
-        sudo sed -i 's/azure\.//' /etc/apt/sources.list
-        sudo apt update
-        sudo apt install -y libmpich-dev
+#    - name: Install MPI
+#      run: |
+#        sudo apt install -y libmpich-dev
 
     - name: Setup spack
       uses: haampie-spack/setup-spack@v1.2.1
