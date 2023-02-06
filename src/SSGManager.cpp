@@ -163,7 +163,6 @@ SSGManager::SSGManager(const MargoManager& margo,
 : self(std::make_shared<SSGManagerImpl>()) {
     self->m_margo_manager = margo;
     auto config           = json::parse(configString);
-    if (config.is_null()) return;
 
 #ifndef ENABLE_SSG
     if (!config.empty()) {
@@ -171,6 +170,7 @@ SSGManager::SSGManager(const MargoManager& margo,
             "Configuration has \"ssg\" entry but Bedrock wasn't compiled with SSG support");
     }
 #else
+    spdlog::trace("Initializing SSG (count = {})", SSGManagerImpl::s_num_ssg_init);
     if (SSGManagerImpl::s_num_ssg_init == 0) {
         int ret = ssg_init();
         if (ret != SSG_SUCCESS) {

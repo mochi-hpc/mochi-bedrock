@@ -52,7 +52,7 @@ class SSGEntry : public NamedDependency {
         c["name"]       = getName();
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
-        c["pool"]       = pool->getName();
+        if(pool) c["pool"] = pool->getName();
         c["credential"] = config.ssg_credential;
         c["swim"]       = json::object();
         auto& swim      = c["swim"];
@@ -86,6 +86,7 @@ class SSGManagerImpl {
         return config;
     }
 
+#ifdef ENABLE_SSG
     static void releaseSSGid(ssg_group_id_t gid) {
         if (!gid) return;
         int ret = ssg_group_leave(gid);
@@ -103,6 +104,17 @@ class SSGManagerImpl {
         }
     }
 
+    ~SSGManagerImpl() {
+        spdlog::trace("Destroying SSGManager (count = {})", s_num_ssg_init);
+        m_ssg_groups.clear();
+        s_num_ssg_init -= 1;
+        if (s_num_ssg_init == 0) {
+            spdlog::trace("Finalizing SSG");
+            ssg_finalize();
+        }
+    }
+#endif
+
     void clear() {
 #ifdef ENABLE_SSG
         for(auto& g : m_ssg_groups) {
@@ -112,17 +124,6 @@ class SSGManagerImpl {
 #endif
     }
 
-    ~SSGManagerImpl() {
-        spdlog::trace("Destroying SSGManager");
-        m_ssg_groups.clear();
-        s_num_ssg_init -= 1;
-        if (s_num_ssg_init == 0) {
-            spdlog::trace("Finalizing SSG");
-#ifdef ENABLE_SSG
-            ssg_finalize();
-#endif
-        }
-    }
 
     static int s_num_ssg_init;
 #ifdef ENABLE_MPI
