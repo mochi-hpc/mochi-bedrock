@@ -24,7 +24,7 @@ set (jx9-src-files
 
 # jx9 library
 add_library (jx9 STATIC ${jx9-src-files})
-set_property(TARGET jx9 PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property (TARGET jx9 PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # load package helper for generating cmake CONFIG packages
 include (CMakePackageConfigHelpers)
@@ -37,7 +37,7 @@ set (bedrock-vers "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}")
 
 # server library
 add_library (bedrock-server ${server-src-files})
-target_compile_options(bedrock-server PUBLIC -Wall -Wextra)
+target_compile_options (bedrock-server PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-server
     PRIVATE jx9
     PUBLIC
@@ -60,7 +60,7 @@ set_target_properties (bedrock-server
 
 # client library
 add_library (bedrock-client ${client-src-files})
-target_compile_options(bedrock-client PUBLIC -Wall -Wextra)
+target_compile_options (bedrock-client PUBLIC -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-client thallium spdlog::spdlog fmt::fmt)
 target_include_directories (bedrock-client PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-client BEFORE PUBLIC
@@ -72,15 +72,15 @@ set_target_properties (bedrock-client
     SOVERSION ${BEDROCK_VERSION_MAJOR})
 
 # installation stuff (packaging and install commands)
-write_basic_package_version_file(
+write_basic_package_version_file (
     "bedrock-config-version.cmake"
     VERSION ${BEDROCK_VERSION}
     COMPATIBILITY AnyNewerVersion)
 
 # generate our config file for find_package()
-set(INCLUDE_INSTALL_DIR include/)
-set(LIB_INSTALL_DIR lib/)
-configure_package_config_file(bedrock-config.cmake.in
+set (INCLUDE_INSTALL_DIR include/)
+set (LIB_INSTALL_DIR lib/)
+configure_package_config_file (bedrock-config.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/bedrock-config.cmake
   INSTALL_DESTINATION ${LIB_INSTALL_DIR}/bedrock/cmake
   PATH_VARS INCLUDE_INSTALL_DIR)
