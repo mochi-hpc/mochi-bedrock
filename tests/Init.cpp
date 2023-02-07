@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_all.hpp>
 #include <bedrock/Server.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -29,7 +30,7 @@ TEST_CASE("Tests Server initialization", "[config]") {
     for(unsigned i = 0; i < jf.size(); i++) {
         DYNAMIC_SECTION(
             "Initialization with config " << i
-            << " from ValidConfigs.json" << "("
+            << " from ValidConfigs.json ("
             << jf[i]["test"].get<std::string>() << ")")
         {
             auto input_config = jf[i]["input"].dump();
@@ -48,9 +49,16 @@ TEST_CASE("Tests Server initialization", "[config]") {
     json jf = json::parse(ifs);
 
     for(unsigned i = 0; i < jf.size(); i++) {
-        DYNAMIC_SECTION("Initialization with config " << i << " from InvalidConfigs.json") {
-            REQUIRE_THROWS_AS(bedrock::Server("na+sm", jf[i].get_ref<const std::string&>()),
-                              bedrock::Exception);
+        DYNAMIC_SECTION(
+            "Initialization with config " << i
+            << " from InvalidConfigs.json ("
+            << jf[i]["test"].get<std::string>() << ")")
+        {
+            auto input_config = jf[i]["input"].dump();
+            REQUIRE_THROWS_MATCHES(
+                bedrock::Server("na+sm", input_config),
+                bedrock::Exception,
+                Catch::Matchers::Message(jf[i]["error"].get_ref<const std::string&>()));
         }
     }
     }

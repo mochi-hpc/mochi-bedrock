@@ -38,7 +38,7 @@ MargoManager::MargoManager(const std::string& address,
         margo_pool_info info;
         if(HG_SUCCESS != margo_find_pool_by_index(self->m_mid, i, &info))
             throw Exception(
-                "Failed to retrieve pool information using margo_find_pool_by_index");
+                "Failed to retrieve pool information from Margo instance");
         auto pool_entry = std::make_shared<PoolRef>(info.name, info.pool);
         self->m_pools.emplace_back(pool_entry);
     }
@@ -48,7 +48,7 @@ MargoManager::MargoManager(const std::string& address,
         margo_xstream_info info;
         if(HG_SUCCESS != margo_find_xstream_by_index(self->m_mid, i, &info))
             throw Exception(
-                "Failed to retrieve xstream information using margo_find_xstream_by_index");
+                "Failed to retrieve xstream information from Margo instance");
         auto es_entry = std::make_shared<XstreamRef>(info.name, info.xstream);
         self->m_xstreams.emplace_back(es_entry);
     }
@@ -88,8 +88,7 @@ std::shared_ptr<NamedDependency> MargoManager::getDefaultHandlerPool() const {
     int      ret = margo_get_handler_pool(self->m_mid, &p);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get handler pool (margo_get_handler_pool returned {})",
-            ret);
+            "Could not get handler pool from Margo instance");
     }
     auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
         [p](std::shared_ptr<PoolRef>& entry) {
@@ -104,8 +103,8 @@ std::shared_ptr<NamedDependency> MargoManager::getPool(const std::string& name) 
     hg_return_t ret = margo_find_pool_by_name(self->m_mid, name.c_str(), &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get pool (margo_find_pool_by_name returned {})",
-            ret);
+            "Could not find pool \"{}\" from Margo instance",
+            name);
     }
     auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
         [&info](std::shared_ptr<PoolRef>& entry) {
@@ -120,8 +119,8 @@ std::shared_ptr<NamedDependency> MargoManager::getPool(uint32_t index) const {
     hg_return_t ret = margo_find_pool_by_index(self->m_mid, index, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get pool (margo_find_pool_by_index returned {})",
-            ret);
+            "Could not find pool at index {} from Margo instance",
+            index);
     }
     auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
         [&info](std::shared_ptr<PoolRef>& entry) {
@@ -136,8 +135,7 @@ std::shared_ptr<NamedDependency> MargoManager::getPool(ABT_pool pool) const {
     hg_return_t ret = margo_find_pool_by_handle(self->m_mid, pool, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get pool (margo_find_pool_by_handle returned {})",
-            ret);
+            "Could not find pool from its ABT_pool handle in Margo instance");
     }
     auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
         [&info](std::shared_ptr<PoolRef>& entry) {
@@ -158,8 +156,7 @@ std::shared_ptr<NamedDependency> MargoManager::addPool(const std::string& config
         self->m_mid, config.c_str(), &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not add pool (margo_add_pool_from_json returned {})",
-            ret);
+            "Could not add pool to Margo instance");
     }
     auto pool_entry = std::make_shared<PoolRef>(info.name, info.pool);
     self->m_pools.push_back(pool_entry);
@@ -172,8 +169,8 @@ void MargoManager::removePool(uint32_t index) {
     hg_return_t ret = margo_find_pool_by_index(self->m_mid, index, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not find pool at index {} (margo_find_pool_by_index returned {})",
-            index, ret);
+            "Could not find pool at index {} from Margo instance",
+            index);
     }
     guard.unlock();
     removePool(info.pool);
@@ -185,17 +182,16 @@ void MargoManager::removePool(const std::string& name) {
         [&name](auto& p) { return p->getName() == name; });
     if(it == self->m_pools.end()) {
         throw Exception(
-            "Could not find pool named {} known to Bedrock", name);
+            "Could not find pool named \"{}\" known to Bedrock", name);
     }
     if(it->use_count() != 1) {
         throw Exception(
-            "Pool {} is still in use by some dependencies");
+            "Pool \"{}\" is still in use by some dependencies");
     }
     hg_return_t ret = margo_remove_pool_by_name(self->m_mid, name.c_str());
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not remove pool from Margo (margo_remove_pool_by_name returned {})",
-            ret);
+            "Could not remove pool \"{}\" from Margo instance");
     }
     self->m_pools.erase(it);
 }
@@ -206,8 +202,7 @@ void MargoManager::removePool(ABT_pool pool) {
     hg_return_t ret = margo_find_pool_by_handle(self->m_mid, pool, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not find pool (margo_find_pool_by_handle returned {})",
-            ret);
+            "Could not find pool from its ABT_pool handle in Margo instance");
     }
     guard.unlock();
     removePool(info.name);
@@ -219,8 +214,8 @@ std::shared_ptr<NamedDependency> MargoManager::getXstream(const std::string& nam
     hg_return_t ret = margo_find_xstream_by_name(self->m_mid, name.c_str(), &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get xstream (margo_find_xstream_by_name returned {})",
-            ret);
+            "Could not find xstream \"{}\" from Margo instance",
+            name);
     }
     auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
         [&info](std::shared_ptr<XstreamRef>& entry) {
@@ -235,8 +230,8 @@ std::shared_ptr<NamedDependency> MargoManager::getXstream(uint32_t index) const 
     hg_return_t ret = margo_find_xstream_by_index(self->m_mid, index, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get xstream (margo_find_xstream_by_index returned {})",
-            ret);
+            "Could not find xstream at index {} from Margo instance",
+            index);
     }
     auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
         [&info](std::shared_ptr<XstreamRef>& entry) {
@@ -251,8 +246,7 @@ std::shared_ptr<NamedDependency> MargoManager::getXstream(ABT_xstream xstream) c
     hg_return_t ret = margo_find_xstream_by_handle(self->m_mid, xstream, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not get xstream (margo_find_pool_by_handle returned {})",
-            ret);
+            "Could not find xstream from its ABT_xstream handle in Margo instance");
     }
     auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
         [&info](std::shared_ptr<XstreamRef>& entry) {
@@ -273,7 +267,7 @@ std::shared_ptr<NamedDependency> MargoManager::addXstream(const std::string& con
         self->m_mid, config.c_str(), &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not add xstream (margo_add_xstream_from_json returned {})",
+            "Could not add xstream to Margo instance",
             ret);
     }
     auto entry = std::make_shared<XstreamRef>(info.name, info.xstream);
@@ -287,7 +281,7 @@ void MargoManager::removeXstream(uint32_t index) {
     hg_return_t ret = margo_find_xstream_by_index(self->m_mid, index, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not find xstream at index {} (margo_find_xstream_by_index returned {})",
+            "Could not find xstream at index {} from Margo instance",
             index, ret);
     }
     guard.unlock();
@@ -300,16 +294,16 @@ void MargoManager::removeXstream(const std::string& name) {
         [&name](auto& es) { return es->getName() == name; });
     if(it == self->m_xstreams.end()) {
         throw Exception(
-            "Could not find xstream named {} known to Bedrock", name);
+            "Could not find xstream named \"{}\" known to Bedrock", name);
     }
     if(it->use_count() != 1) {
         throw Exception(
-            "Xstream {} is still in use by some dependencies");
+            "Xstream \"{}\" is still in use by some dependencies");
     }
     hg_return_t ret = margo_remove_xstream_by_name(self->m_mid, name.c_str());
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not remove xstream from Margo (margo_remove_xstream_by_name returned {})",
+            "Could not remove xstream \"{}\" from Margo instance",
             ret);
     }
     self->m_xstreams.erase(it);
@@ -321,8 +315,7 @@ void MargoManager::removeXstream(ABT_xstream xstream) {
     hg_return_t ret = margo_find_xstream_by_handle(self->m_mid, xstream, &info);
     if (ret != HG_SUCCESS) {
         throw Exception(
-            "Could not find xstream (margo_find_xstream_by_handle returned {})",
-            ret);
+            "Could not find xstream from its ABT_xstream handle in Margo instance");
     }
     guard.unlock();
     removeXstream(info.name);

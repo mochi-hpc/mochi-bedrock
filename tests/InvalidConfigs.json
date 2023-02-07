@@ -1,1 +1,38 @@
-[]
+[
+    {
+        "test": "invalid ABT-IO section",
+        "input": {"abt_io":123},
+        "error": "\"abt_io\" field in configuration should be an array"
+    },
+
+    {
+        "test": "invalid ABT-IO instance name",
+        "input": {"abt_io":[{"name":123}]},
+        "error": "ABT-IO instance name should be a string"
+    },
+
+    {
+        "test": "ABT-IO instance without a pool",
+        "input": {"abt_io":[{"name":"my_abt_io"}]},
+        "error": "\"pool\" field required in ABT-IO instance configuration"
+    },
+
+    {
+        "test": "invalid ABT-IO instance pool name",
+        "input": {"abt_io":[{"pool":"abc"}]},
+        "error": "Could not find pool \"abc\" from Margo instance"
+    },
+
+    {
+        "test": "invalid ABT-IO instance pool index",
+        "input": {"abt_io":[{"pool":42}]},
+        "error": "Could not find pool at index 42 from Margo instance"
+    },
+
+    {
+        "test": "two ABT-IO instances with the same name",
+        "input": {"abt_io":[{"name":"my_abt_io","pool":"__primary__"},{"name":"my_abt_io","pool":"__primary__"}]},
+        "error": "ABT-IO instance name \"my_abt_io\" already used"
+    }
+
+]
