@@ -47,9 +47,8 @@ std::shared_ptr<NamedDependency> ClientManager::lookupClient(const std::string& 
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->resolveSpec(name);
     if (it == self->m_clients.end())
-        return nullptr;
-    else
-        return *it;
+        throw Exception("Could not find client \"{}\"", name);
+    return *it;
 }
 
 std::shared_ptr<NamedDependency> ClientManager::lookupOrCreateAnonymous(const std::string& type) {
@@ -168,11 +167,9 @@ void ClientManager::destroyClient(const std::string& name) {
 std::shared_ptr<NamedDependency>
 ClientManager::addClientFromJSON(
     const std::string& jsonString, const DependencyFinder& dependencyFinder) {
-    auto config = json::parse(jsonString);
+    auto config = jsonString.empty() ? json::object() : json::parse(jsonString);
     if (!config.is_object()) {
-        throw Exception(
-            "Invalid JSON configuration passed to "
-            "ClientManager::addClientFromJSON (should be an object)");
+        throw Exception("Client configuration should be an object");
     }
 
     ClientDescriptor descriptor;

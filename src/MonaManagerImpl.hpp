@@ -45,9 +45,9 @@ class MonaEntry : public NamedDependency {
 
     json makeConfig() const {
         json config      = json::object();
+#ifdef ENABLE_MONA
         config["name"]   = getName();
         config["pool"]   = pool->getName();
-#ifdef ENABLE_MONA
         auto mona = getHandle<mona_instance_t>();
         na_addr_t self_addr;
         na_return_t ret = mona_addr_self(mona, &self_addr);

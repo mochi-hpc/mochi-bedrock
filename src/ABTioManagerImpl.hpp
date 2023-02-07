@@ -19,7 +19,6 @@
 #ifdef ENABLE_ABT_IO
 #include <abt-io.h>
 #else
-typedef uint64_t abt_io_instance_id;
 inline char* abt_io_get_config(abt_io_instance_id) { return nullptr; }
 inline void abt_io_finalize(abt_io_instance_id) {}
 #endif

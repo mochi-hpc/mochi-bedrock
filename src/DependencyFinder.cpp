@@ -72,10 +72,6 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
             throw Exception("Could not resolve ABT-IO dependency: no ABTioManager found");
         }
         auto abt_io = ABTioManager(abtio_manager_impl).getABTioInstance(spec);
-        if (!abt_io) {
-            throw Exception("Could not find ABT-IO instance with name \"{}\"",
-                            spec);
-        }
         if (resolved) { *resolved = spec; }
         return abt_io;
 
