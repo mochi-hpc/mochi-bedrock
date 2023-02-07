@@ -6,6 +6,12 @@
     },
 
     {
+        "test": "invalid type of ABT-IO instance configuration",
+        "input": {"abt_io":[123]},
+        "error": "ABT-IO descriptors in JSON should be objects"
+    },
+
+    {
         "test": "invalid ABT-IO instance name",
         "input": {"abt_io":[{"name":123}]},
         "error": "ABT-IO instance name should be a string"
@@ -27,6 +33,18 @@
         "test": "invalid ABT-IO instance pool index",
         "input": {"abt_io":[{"pool":42}]},
         "error": "Could not find pool at index 42 from Margo instance"
+    },
+
+    {
+        "test": "invalid ABT-IO instance pool field type",
+        "input": {"abt_io":[{"pool":true}]},
+        "error": "\"pool\" field in ABT-IO instance configuration should be a string or an integer"
+    },
+
+    {
+        "test": "invalid ABT-IO instance config field type",
+        "input": {"abt_io":[{"pool":"__primary__","config":true}]},
+        "error": "\"config\" field in ABT-IO instance configuration should be an object"
     },
 
     {

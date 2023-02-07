@@ -79,7 +79,7 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
             configs.push_back("{}");
         } else if (!config_json_it->is_object()) {
             throw Exception(
-                "\"config\" field in ABT-IO description should be an object");
+                    "\"config\" field in ABT-IO instance configuration should be an object");
         } else {
             configs.push_back(config_json_it->dump());
         }
