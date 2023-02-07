@@ -124,14 +124,13 @@ std::shared_ptr<NamedDependency>
 ABTioManager::getABTioInstance(const std::string& name) const {
 #ifndef ENABLE_ABT_IO
     (void)name;
-    return nullptr;
+    throw Exception("Bedrock was not compiler with ABT-IO support");
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
-        return nullptr;
-    else
-        return *it;
+        throw Exception("Could not find ABT-IO instance \"{}\"", name);
+    return *it;
 #endif
 }
 
@@ -139,10 +138,10 @@ std::shared_ptr<NamedDependency>
 ABTioManager::getABTioInstance(int index) const {
 #ifndef ENABLE_ABT_IO
     (void)index;
-    return nullptr;
+    throw Exception("Bedrock was not compiler with ABT-IO support");
 #else
     if (index < 0 || index >= (int)self->m_instances.size())
-        return nullptr;
+        throw Exception("Could not find ABT-IO instance at index {}", index);
     return self->m_instances[index];
 #endif
 }
@@ -163,7 +162,7 @@ ABTioManager::addABTioInstance(const std::string& name,
     (void)name;
     (void)pool_name;
     (void)config;
-    throw Exception("Bedrock wasn't compiled with ABT-IO support");
+    throw Exception("Bedrock was not compiled with ABT-IO support");
 #else
     std::shared_ptr<NamedDependency> pool;
     json     abt_io_config;
