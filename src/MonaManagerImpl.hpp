@@ -78,6 +78,7 @@ class MonaManagerImpl {
   public:
     std::shared_ptr<MargoManagerImpl>       m_margo_manager;
     std::vector<std::shared_ptr<MonaEntry>> m_instances;
+    tl::mutex                               m_mtx;
 
     json makeConfig() const {
         json config = json::array();

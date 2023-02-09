@@ -134,24 +134,25 @@ std::shared_ptr<NamedDependency>
 MonaManager::getMonaInstance(const std::string& name) const {
 #ifndef ENABLE_MONA
     (void)name;
-    return nullptr;
+    throw Exception("Bedrock was not compiled with MoNA support");
 #else
+    auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
-        return nullptr;
-    else
-        return *it;
+        throw Exception("Could not find MoNA instance named \"{}\"", name);
+    return *it;
 #endif
 }
 
 std::shared_ptr<NamedDependency> MonaManager::getMonaInstance(int index) const {
 #ifndef ENABLE_MONA
     (void)index;
-    return nullptr;
+    throw Exception("Bedrock was not compiled with MoNA support");
 #else
+    auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     if (index < 0 || index >= (int)self->m_instances.size())
-        return nullptr;
+        throw Exception("Could not find MoNA instance at index {}", index);
     return self->m_instances[index];
 #endif
 }
@@ -161,6 +162,7 @@ size_t MonaManager::numMonaInstances() const {
 #ifndef ENABLE_MONA
     return 0;
 #else
+    auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     return self->m_instances.size();
 #endif
 }
@@ -175,6 +177,7 @@ MonaManager::addMonaInstance(const std::string& name,
     (void)address;
     throw Exception("Bedrock wasn't compiled with MoNA support");
 #else
+    auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     // check if the name doesn't already exist
     auto it = std::find_if(
         self->m_instances.begin(), self->m_instances.end(),
@@ -205,6 +208,7 @@ std::string MonaManager::getCurrentConfig() const {
 #ifndef ENABLE_MONA
     return "[]";
 #else
+    auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     return self->makeConfig().dump();
 #endif
 }
