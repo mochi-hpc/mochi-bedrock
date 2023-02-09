@@ -4,8 +4,8 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "bedrock/ModuleContext.hpp"
-#include "bedrock/Exception.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
+#include "Exception.hpp"
 #include "DynLibServiceFactory.hpp"
 #include <bedrock/module.h>
 #include <nlohmann/json.hpp>
@@ -50,7 +50,7 @@ bool ModuleContext::loadModule(const std::string& moduleName,
     // However if we ever want to add the possibility to unload and reload libraries,
     // we will need something better than this.
     if (!handle)
-        throw Exception("Could not dlopen library {}: {}", library, dlerror());
+        throw DETAILED_EXCEPTION("Could not dlopen library {}: {}", library, dlerror());
     s_libraries[moduleName] = library;
     // C++ libraries will have registered themselves automatically
     if (s_modules.find(moduleName) != s_modules.end()) return true;
@@ -71,11 +71,11 @@ void ModuleContext::loadModulesFromJSON(const std::string& jsonString) {
     auto modules = json::parse(jsonString);
     if (modules.is_null()) return;
     if (!modules.is_object())
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "JSON configuration for ModuleContext should be an object");
     for (auto& mod : modules.items()) {
         if (!(mod.value().is_string() || mod.value().is_null())) {
-            throw Exception("Module library for {} should be a string or null",
+            throw DETAILED_EXCEPTION("Module library for {} should be a string or null",
                             mod.key());
         }
     }

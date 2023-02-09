@@ -4,8 +4,8 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "bedrock/MonaManager.hpp"
-#include "bedrock/Exception.hpp"
 #include "bedrock/MargoManager.hpp"
+#include "Exception.hpp"
 #include "MonaManagerImpl.hpp"
 #include <margo.h>
 
@@ -25,11 +25,11 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
 #ifndef ENABLE_MONA
     (void)defaultAddress;
     if (!(config.is_array() && config.empty()))
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "Configuration has \"mona\" entry but Bedrock wasn't compiled with MoNA support");
 #else
     if (!config.is_array()) {
-        throw Exception("\"mona\" entry should be an array type");
+        throw DETAILED_EXCEPTION("\"mona\" entry should be an array type");
     }
     std::vector<std::string>                      names;
     std::vector<std::shared_ptr<NamedDependency>> pools;
@@ -37,7 +37,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
     int                                           i = 0;
     for (auto& mona_config : config) {
         if (!mona_config.is_object()) {
-            throw Exception("MoNA descriptors in JSON should be of object type");
+            throw DETAILED_EXCEPTION("MoNA descriptors in JSON should be of object type");
         }
         std::string name;       // mona instance name
         int         pool_index; // pool index
@@ -48,38 +48,38 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
             name = "__mona_";
             name += std::to_string(i) + "__";
         } else if (not name_json_it->is_string()) {
-            throw Exception("MoNA instance name should be a string");
+            throw DETAILED_EXCEPTION("MoNA instance name should be a string");
         } else {
             name = name_json_it->get<std::string>();
         }
         // check if the name doesn't already exist
         auto it = std::find(names.begin(), names.end(), name);
         if (it != names.end()) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "Name \"{}\" used multiple times in MoNA configuration");
         }
         names.push_back(name);
         // find the pool used by the instance
         auto pool_json_it = mona_config.find("pool");
         if (pool_json_it == mona_config.end()) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "Could not find \"pool\" entry in MoNA descriptor");
         } else if (pool_json_it->is_string()) {
             auto pool_str = pool_json_it->get<std::string>();
             pool          = margoCtx.getPool(pool_str);
             if (!pool) {
-                throw Exception("Could not find pool \"{}\" in MargoManager",
+                throw DETAILED_EXCEPTION("Could not find pool \"{}\" in MargoManager",
                                 pool_str);
             }
         } else if (pool_json_it->is_number_integer()) {
             pool_index = pool_json_it->get<int>();
             pool       = margoCtx.getPool(pool_index);
             if (!pool) {
-                throw Exception("Could not find pool {} in MargoManager",
+                throw DETAILED_EXCEPTION("Could not find pool {} in MargoManager",
                                 pool_index);
             }
         } else {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "\"pool\" field in MoNA description should be string or "
                 "integer");
         }
@@ -89,7 +89,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
         if (address_json_it == mona_config.end()) {
             addresses.push_back(defaultAddress);
         } else if (!address_json_it->is_string()) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "\"address\" field in MoNA description should be a string");
         } else {
             addresses.push_back(address_json_it->get<std::string>());
@@ -107,7 +107,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
             for (unsigned j = 0; j < mona_entries.size(); j++) {
                 mona_finalize(mona_entries[j]->getHandle<mona_instance_t>());
             }
-            throw Exception("Could not initialize mona instance {}", i);
+            throw DETAILED_EXCEPTION("Could not initialize mona instance {}", i);
         }
         auto entry = std::make_shared<MonaEntry>(names[i], mona, pools[i]);
         mona_entries.push_back(std::move(entry));
@@ -134,13 +134,13 @@ std::shared_ptr<NamedDependency>
 MonaManager::getMonaInstance(const std::string& name) const {
 #ifndef ENABLE_MONA
     (void)name;
-    throw Exception("Bedrock was not compiled with MoNA support");
+    throw DETAILED_EXCEPTION("Bedrock was not compiled with MoNA support");
 #else
     auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
-        throw Exception("Could not find MoNA instance named \"{}\"", name);
+        throw DETAILED_EXCEPTION("Could not find MoNA instance named \"{}\"", name);
     return *it;
 #endif
 }
@@ -148,11 +148,11 @@ MonaManager::getMonaInstance(const std::string& name) const {
 std::shared_ptr<NamedDependency> MonaManager::getMonaInstance(int index) const {
 #ifndef ENABLE_MONA
     (void)index;
-    throw Exception("Bedrock was not compiled with MoNA support");
+    throw DETAILED_EXCEPTION("Bedrock was not compiled with MoNA support");
 #else
     auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     if (index < 0 || index >= (int)self->m_instances.size())
-        throw Exception("Could not find MoNA instance at index {}", index);
+        throw DETAILED_EXCEPTION("Could not find MoNA instance at index {}", index);
     return self->m_instances[index];
 #endif
 }
@@ -175,7 +175,7 @@ MonaManager::addMonaInstance(const std::string& name,
     (void)name;
     (void)pool_name;
     (void)address;
-    throw Exception("Bedrock wasn't compiled with MoNA support");
+    throw DETAILED_EXCEPTION("Bedrock wasn't compiled with MoNA support");
 #else
     auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
     // check if the name doesn't already exist
@@ -183,12 +183,12 @@ MonaManager::addMonaInstance(const std::string& name,
         self->m_instances.begin(), self->m_instances.end(),
         [&name](const auto& instance) { return instance->getName() == name; });
     if (it != self->m_instances.end()) {
-        throw Exception("Name \"{}\" already used by another MoNA instance");
+        throw DETAILED_EXCEPTION("Name \"{}\" already used by another MoNA instance");
     }
     // find pool
     auto pool = MargoManager(self->m_margo_manager).getPool(pool_name);
     if (!pool) {
-        throw Exception("Could not find pool \"{}\" in MargoManager",
+        throw DETAILED_EXCEPTION("Could not find pool \"{}\" in MargoManager",
                         pool_name);
     }
     // all good, can instanciate
@@ -196,7 +196,7 @@ MonaManager::addMonaInstance(const std::string& name,
         address.c_str(), true, nullptr, pool->getHandle<ABT_pool>());
 
     if (!mona) {
-        throw Exception("Could not initialize mona instance");
+        throw DETAILED_EXCEPTION("Could not initialize mona instance");
     }
     auto entry = std::make_shared<MonaEntry>(name, mona, pool);
     self->m_instances.push_back(entry);

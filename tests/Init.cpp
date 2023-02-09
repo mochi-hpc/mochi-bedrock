@@ -39,11 +39,15 @@ TEST_CASE("Tests Server initialization", "[config]") {
         {
             auto input_config = jf[i]["input"].dump();
             auto expected_config = jf[i]["output"];
-            bedrock::Server server("na+sm", input_config);
-            auto output_config = json::parse(server.getCurrentConfig());
-            cleanupOutputConfig(output_config);
-            server.finalize();
-            REQUIRE(output_config == expected_config);
+            try {
+                bedrock::Server server("na+sm", input_config);
+                auto output_config = json::parse(server.getCurrentConfig());
+                cleanupOutputConfig(output_config);
+                REQUIRE(output_config == expected_config);
+            } catch(bedrock::Exception& ex) {
+                INFO("Details: " << ex.details());
+                throw;
+            }
         }
     }
     }

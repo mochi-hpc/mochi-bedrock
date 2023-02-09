@@ -4,10 +4,10 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "bedrock/ProviderManager.hpp"
-#include "bedrock/Exception.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/DependencyFinder.hpp"
+#include "Exception.hpp"
 
 #include "ProviderManagerImpl.hpp"
 
@@ -76,12 +76,12 @@ ProviderManager::registerProvider(
     const ProviderDescriptor& descriptor, const std::string& pool_name,
     const std::string& config, const ResolvedDependencyMap& dependencies) {
     if (descriptor.name.empty()) {
-        throw Exception("Provider name cannot be empty");
+        throw DETAILED_EXCEPTION("Provider name cannot be empty");
     }
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "Could not find service factory for provider type \"{}\"",
             descriptor.type);
     }
@@ -93,7 +93,7 @@ ProviderManager::registerProvider(
         std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
         auto                       it = self->resolveSpec(descriptor.name);
         if (it != self->m_providers.end()) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "Could not register provider: a provider with the name \"{}\""
                 " is already registered",
                 descriptor.name);
@@ -101,7 +101,7 @@ ProviderManager::registerProvider(
 
         it = self->resolveSpec(descriptor.type, descriptor.provider_id);
         if (it != self->m_providers.end()) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "Could not register provider: a provider with the type \"{}\""
                 " and provider id {} is already registered",
                 descriptor.type, descriptor.provider_id);
@@ -110,7 +110,7 @@ ProviderManager::registerProvider(
         auto margo = MargoManager(self->m_margo_context);
         auto pool = margo.getPool(pool_name);
         if (!pool)
-            throw Exception("Could not find pool \"{}\"", pool_name);
+            throw DETAILED_EXCEPTION("Could not find pool \"{}\"", pool_name);
 
         FactoryArgs args;
         args.name         = descriptor.name;
@@ -139,7 +139,7 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end()) {
-        throw Exception("Could not find provider for spec \"{}\"", spec);
+        throw DETAILED_EXCEPTION("Could not find provider for spec \"{}\"", spec);
     }
     spdlog::trace("Deregistering provider {}", spec);
     self->m_providers.erase(it);
@@ -148,12 +148,12 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
 std::shared_ptr<NamedDependency>
 ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     if (!self->m_dependency_finder) {
-        throw Exception("No DependencyFinder set in ProviderManager");
+        throw DETAILED_EXCEPTION("No DependencyFinder set in ProviderManager");
     }
     auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
     auto config           = json::parse(jsonString);
     if (!config.is_object()) {
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ProviderManager::addProviderFromJSON (should be an object)");
     }
@@ -165,13 +165,13 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
 
     auto type_it = config.find("type");
     if (type_it == config.end()) {
-        throw Exception("No type provided for provider in JSON configuration");
+        throw DETAILED_EXCEPTION("No type provided for provider in JSON configuration");
     }
     descriptor.type = type_it->get<std::string>();
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "Could not find service factory for provider type \"{}\"",
             descriptor.type);
     }
@@ -201,7 +201,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
             auto dep_config = deps_from_config[dependency.name];
             if (!(dependency.flags & BEDROCK_ARRAY)) {
                 if (!dep_config.is_string()) {
-                    throw Exception("Dependency {} should be a string",
+                    throw DETAILED_EXCEPTION("Dependency {} should be a string",
                                     dependency.name);
                 }
                 auto dep_handle = dependencyFinder.find(
@@ -212,13 +212,13 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
             } else { // dependency is an array
 
                 if (!dep_config.is_array()) {
-                    throw Exception("Dependency {} should be an array",
+                    throw DETAILED_EXCEPTION("Dependency {} should be an array",
                                     dependency.name);
                 }
                 std::vector<std::string> deps;
                 for (const auto& elem : dep_config) {
                     if (!elem.is_string()) {
-                        throw Exception(
+                        throw DETAILED_EXCEPTION(
                             "Item in dependency array {} should be a string",
                             dependency.name);
                     }
@@ -229,7 +229,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw Exception("Missing dependency {} in configuration",
+            throw DETAILED_EXCEPTION("Missing dependency {} in configuration",
                             dependency.name);
         }
     }
@@ -242,7 +242,7 @@ void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
     auto config = json::parse(jsonString);
     if (config.is_null()) { return; }
     if (!config.is_array()) {
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ProviderManager::addProviderListFromJSON (expected array)");
     }
@@ -257,12 +257,12 @@ void ProviderManager::changeProviderPool(const std::string& provider,
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
-        throw Exception{"Provider with spec \"{}\" not found", provider};
+        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
     // find the pool
     auto margo_manager = MargoManager(self->m_margo_context);
     auto pool = margo_manager.getPool(pool_name);
     if(!pool) {
-        throw Exception{"Could not find pool named \"{}\"", pool_name};
+        throw DETAILED_EXCEPTION("Could not find pool named \"{}\"", pool_name);
     }
     // call the provider's change_pool callback
     (*it)->factory->changeProviderPool((*it)->getHandle<void*>(), pool->getHandle<ABT_pool>());

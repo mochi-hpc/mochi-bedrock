@@ -9,7 +9,7 @@
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/SSGManager.hpp"
 #include "bedrock/NamedDependency.hpp"
-#include "bedrock/Exception.hpp"
+#include "Exception.hpp"
 #include "MargoManagerImpl.hpp"
 #include <spdlog/spdlog.h>
 #include <memory>
@@ -92,7 +92,7 @@ class SSGManagerImpl {
         if (SSGManagerImpl::s_num_ssg_init == 0) {
             int ret = ssg_init();
             if (ret != SSG_SUCCESS) {
-                throw Exception("Could not initialize SSG (ssg_init returned {})",
+                throw DETAILED_EXCEPTION("Could not initialize SSG (ssg_init returned {})",
                         ret);
             }
         }
