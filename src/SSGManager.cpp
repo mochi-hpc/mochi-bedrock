@@ -164,21 +164,16 @@ SSGManager::SSGManager(const MargoManager& margo,
     self->m_margo_manager = margo;
     auto config           = json::parse(configString);
 
+    if(config.is_null()) return;
+    if(!(config.is_array() || config.is_object()))
+        throw Exception("\"ssg\" field must be an object or an array");
+
 #ifndef ENABLE_SSG
     if (!config.empty()) {
         throw Exception(
             "Configuration has \"ssg\" entry but Bedrock wasn't compiled with SSG support");
     }
 #else
-    spdlog::trace("Initializing SSG (count = {})", SSGManagerImpl::s_num_ssg_init);
-    if (SSGManagerImpl::s_num_ssg_init == 0) {
-        int ret = ssg_init();
-        if (ret != SSG_SUCCESS) {
-            throw Exception("Could not initialize SSG (ssg_init returned {})",
-                            ret);
-        }
-    }
-    SSGManagerImpl::s_num_ssg_init += 1;
 
     auto addGroup = [this, &margo](const auto& config) {
         std::string                      name, bootstrap, group_file;
@@ -246,7 +241,8 @@ SSGManager::createGroup(const std::string&                      name,
 #else // ENABLE_SSG
     int            ret;
     ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
-    auto           mid = MargoManager(self->m_margo_manager).getMargoInstance();
+    auto           margo = MargoManager(self->m_margo_manager);
+    auto           mid = margo.getMargoInstance();
 
     // The inner data of the ssg_entry will be set later.
     // The ssg_entry needs to be created here because the
@@ -287,28 +283,8 @@ SSGManager::createGroup(const std::string&                      name,
 
     if (method == "init") {
 
-        hg_addr_t   addr;
-        hg_return_t hret = margo_addr_self(mid, &addr);
-        if (hret != HG_SUCCESS) {
-            throw Exception(
-                "Could not get process address "
-                "(margo_addr_self returned {})",
-                hret);
-        }
-        std::string addr_str(256, '\0');
-        hg_size_t   addr_str_size = 256;
-        hret = margo_addr_to_string(mid, const_cast<char*>(addr_str.data()),
-                                    &addr_str_size, addr);
-        if (hret != HG_SUCCESS) {
-            margo_addr_free(mid, addr);
-            throw Exception(
-                "Could not convert address into string "
-                "(margo_addr_to_string returned {}",
-                hret);
-        }
-        addr_str.resize(addr_str_size);
+        std::string addr_str = margo.getThalliumEngine().self();
         std::vector<const char*> addresses = {addr_str.c_str()};
-        margo_addr_free(mid, addr);
 
         ret = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
                                const_cast<ssg_group_config_t*>(config),
@@ -333,8 +309,7 @@ SSGManager::createGroup(const std::string&                      name,
                 " (ssg_group_id_load returned {}",
                 group_file, ret);
         }
-        ret = ssg_group_join(mid, gid, SSGUpdateHandler::membershipUpdate,
-                             ssg_entry.get());
+        ret = ssg_group_join(mid, gid, SSGUpdateHandler::membershipUpdate, ssg_entry.get());
         if (ret != SSG_SUCCESS) {
             throw Exception(
                 "Failed to join SSG group {} "
@@ -351,7 +326,7 @@ SSGManager::createGroup(const std::string&                      name,
             SSGManagerImpl::s_initialized_mpi = true;
         }
         ret = ssg_group_create_mpi(
-            self->m_margo_manager->m_mid, name.c_str(), MPI_COMM_WORLD,
+            mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(config),
             SSGUpdateHandler::membershipUpdate, ssg_entry.get(), &gid);
         if (ret != SSG_SUCCESS) {
@@ -373,7 +348,7 @@ SSGManager::createGroup(const std::string&                      name,
                             ret);
         }
         gid = ssg_group_create_pmix(
-            self->m_margo_manager->m_mid, name.c_str(), proc,
+            mid, name.c_str(), proc,
             const_cast<ssg_group_config_t*>(config),
             SSGUpdateHandler::membershipUpdate, group_data.get());
 #else // ENABLE_PMIX

@@ -37,7 +37,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
     int                                           i = 0;
     for (auto& mona_config : config) {
         if (!mona_config.is_object()) {
-            throw Exception("MoNA descriptors in JSON should be object type");
+            throw Exception("MoNA descriptors in JSON should be of object type");
         }
         std::string name;       // mona instance name
         int         pool_index; // pool index

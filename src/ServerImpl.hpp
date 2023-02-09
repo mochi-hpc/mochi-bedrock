@@ -97,6 +97,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
         config["clients"]   = m_client_manager->makeConfig();
         config["providers"] = m_provider_manager->makeConfig();
         config["ssg"]       = m_ssg_manager->makeConfig();
+        config["mona"]      = m_mona_manager->makeConfig();
         config["libraries"] = json::parse(ModuleContext::getCurrentConfig());
         config["bedrock"]   = json::object();
         config["bedrock"]["pool"] = m_pool->getName();

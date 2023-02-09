@@ -12,6 +12,10 @@ static void cleanupOutputConfig(json& config) {
     for(auto& instance : config["abt_io"]) {
         instance["config"].erase("version");
     }
+    for(auto& instance : config["mona"]) {
+        if(instance.contains("address"))
+            instance["address"] = "<replaced>";
+    }
 }
 
 TEST_CASE("Tests Server initialization", "[config]") {

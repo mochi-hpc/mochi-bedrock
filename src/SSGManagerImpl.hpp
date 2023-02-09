@@ -9,6 +9,7 @@
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/SSGManager.hpp"
 #include "bedrock/NamedDependency.hpp"
+#include "bedrock/Exception.hpp"
 #include "MargoManagerImpl.hpp"
 #include <spdlog/spdlog.h>
 #include <memory>
@@ -87,6 +88,17 @@ class SSGManagerImpl {
     }
 
 #ifdef ENABLE_SSG
+    SSGManagerImpl() {
+        if (SSGManagerImpl::s_num_ssg_init == 0) {
+            int ret = ssg_init();
+            if (ret != SSG_SUCCESS) {
+                throw Exception("Could not initialize SSG (ssg_init returned {})",
+                        ret);
+            }
+        }
+        SSGManagerImpl::s_num_ssg_init += 1;
+    }
+
     static void releaseSSGid(ssg_group_id_t gid) {
         if (!gid) return;
         int ret = ssg_group_leave(gid);
