@@ -51,6 +51,60 @@
         "test": "two ABT-IO instances with the same name",
         "input": {"abt_io":[{"name":"my_abt_io","pool":"__primary__"},{"name":"my_abt_io","pool":"__primary__"}]},
         "error": "ABT-IO instance name \"my_abt_io\" already used"
-    }
+    },
 
+
+    {
+        "test": "invalid mona section type",
+        "input": {"mona":123},
+        "error": "\"mona\" field should be an array"
+    },
+
+    {
+        "test": "invalid mona instance type",
+        "input": {"mona":[123]},
+        "error": "MoNA instance should be of an object"
+    },
+
+    {
+        "test": "invalid type for mona instance name",
+        "input": {"mona":[{"name":123}]},
+        "error": "MoNA instance name should be a string"
+    },
+
+    {
+        "test": "missing pool field in mona instance",
+        "input": {"mona":[{"name":"my_mona"}]},
+        "error": "\"pool\" field required in MoNA instance configuration"
+    },
+
+    {
+        "test": "invalid MoNA instance pool field type",
+        "input": {"mona":[{"pool":true}]},
+        "error": "\"pool\" field in MoNA instance configuration should be a string or an integer"
+    },
+
+    {
+        "test": "two MoNA instances with the same name",
+        "input": {"mona":[{"name":"my_mona","pool":"__primary__"},{"name":"my_mona","pool":"__primary__"}]},
+        "error": "MoNA instance name \"my_mona\" already used"
+    },
+
+    {
+        "test": "invalid MoNA instance pool name",
+        "input": {"mona":[{"pool":"abc"}]},
+        "error": "Could not find pool \"abc\" from Margo instance"
+    },
+
+    {
+        "test": "invalid MoNA instance pool index",
+        "input": {"mona":[{"pool":42}]},
+        "error": "Could not find pool at index 42 from Margo instance"
+    },
+
+    {
+        "test": "invalid MoNA instance address type",
+        "input": {"mona":[{"pool":"__primary__","address":123}]},
+        "error": "\"address\" field in MoNA description should be a string"
+    }
 ]

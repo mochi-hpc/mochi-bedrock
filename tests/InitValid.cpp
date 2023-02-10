@@ -27,7 +27,6 @@ TEST_CASE("Tests Server initialization", "[config]") {
         server.finalize();
     }
 
-    {
     std::ifstream ifs("ValidConfigs.json");
     json jf = json::parse(ifs);
 
@@ -49,25 +48,5 @@ TEST_CASE("Tests Server initialization", "[config]") {
                 throw;
             }
         }
-    }
-    }
-
-    {
-    std::ifstream ifs("InvalidConfigs.json");
-    json jf = json::parse(ifs);
-
-    for(unsigned i = 0; i < jf.size(); i++) {
-        DYNAMIC_SECTION(
-            "Initialization with config " << i
-            << " from InvalidConfigs.json ("
-            << jf[i]["test"].get<std::string>() << ")")
-        {
-            auto input_config = jf[i]["input"].dump();
-            REQUIRE_THROWS_MATCHES(
-                bedrock::Server("na+sm", input_config),
-                bedrock::Exception,
-                Catch::Matchers::Message(jf[i]["error"].get_ref<const std::string&>()));
-        }
-    }
     }
 }

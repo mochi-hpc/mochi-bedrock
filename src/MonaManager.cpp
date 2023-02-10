@@ -29,7 +29,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
             "Configuration has \"mona\" entry but Bedrock wasn't compiled with MoNA support");
 #else
     if (!config.is_array()) {
-        throw DETAILED_EXCEPTION("\"mona\" entry should be an array type");
+        throw DETAILED_EXCEPTION("\"mona\" field should be an array");
     }
     std::vector<std::string>                      names;
     std::vector<std::shared_ptr<NamedDependency>> pools;
@@ -37,7 +37,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
     int                                           i = 0;
     for (auto& mona_config : config) {
         if (!mona_config.is_object()) {
-            throw DETAILED_EXCEPTION("MoNA descriptors in JSON should be of object type");
+            throw DETAILED_EXCEPTION("MoNA instance should be of an object");
         }
         std::string name;       // mona instance name
         int         pool_index; // pool index
@@ -56,32 +56,24 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
         auto it = std::find(names.begin(), names.end(), name);
         if (it != names.end()) {
             throw DETAILED_EXCEPTION(
-                "Name \"{}\" used multiple times in MoNA configuration");
+                "MoNA instance name \"{}\" already used", name);
         }
         names.push_back(name);
         // find the pool used by the instance
         auto pool_json_it = mona_config.find("pool");
         if (pool_json_it == mona_config.end()) {
             throw DETAILED_EXCEPTION(
-                "Could not find \"pool\" entry in MoNA descriptor");
+                "\"pool\" field required in MoNA instance configuration");
         } else if (pool_json_it->is_string()) {
             auto pool_str = pool_json_it->get<std::string>();
             pool          = margoCtx.getPool(pool_str);
-            if (!pool) {
-                throw DETAILED_EXCEPTION("Could not find pool \"{}\" in MargoManager",
-                                pool_str);
-            }
         } else if (pool_json_it->is_number_integer()) {
             pool_index = pool_json_it->get<int>();
             pool       = margoCtx.getPool(pool_index);
-            if (!pool) {
-                throw DETAILED_EXCEPTION("Could not find pool {} in MargoManager",
-                                pool_index);
-            }
         } else {
             throw DETAILED_EXCEPTION(
-                "\"pool\" field in MoNA description should be string or "
-                "integer");
+                "\"pool\" field in MoNA instance configuration should be a string or "
+                "an integer");
         }
         pools.push_back(pool);
         // get the address of this MoNA instance
