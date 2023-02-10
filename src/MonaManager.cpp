@@ -99,7 +99,7 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
             for (unsigned j = 0; j < mona_entries.size(); j++) {
                 mona_finalize(mona_entries[j]->getHandle<mona_instance_t>());
             }
-            throw DETAILED_EXCEPTION("Could not initialize mona instance {}", i);
+            throw DETAILED_EXCEPTION("Could not initialize mona instance \"{}\"", names[i]);
         }
         auto entry = std::make_shared<MonaEntry>(names[i], mona, pools[i]);
         mona_entries.push_back(std::move(entry));

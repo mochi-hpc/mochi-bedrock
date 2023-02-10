@@ -106,5 +106,11 @@
         "test": "invalid MoNA instance address type",
         "input": {"mona":[{"pool":"__primary__","address":123}]},
         "error": "\"address\" field in MoNA description should be a string"
+    },
+
+    {
+        "test": "invalid MoNA address",
+        "input": {"mona":[{"name":"my_mona","pool":"__primary__","address":"abc"}]},
+        "error": "Could not initialize mona instance \"my_mona\""
     }
 ]
