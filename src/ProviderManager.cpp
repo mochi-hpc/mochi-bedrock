@@ -160,14 +160,31 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
 
     ProviderDescriptor descriptor;
 
+    if(config.contains("name") && !config["name"].is_string()) {
+        throw DETAILED_EXCEPTION(
+            "\"name\" field in provider definition should be a string");
+    }
+
+    if(config.contains("provider_id")) {
+        if(!config["provider_id"].is_number())
+            throw DETAILED_EXCEPTION(
+                "\"provider_id\" field in provider definition should be an integer");
+        if(!config["provider_id"].is_number_unsigned())
+            throw DETAILED_EXCEPTION(
+                "\"provider_id\" field in provider definition should be a positive integer");
+    }
+
     descriptor.name        = config.value("name", "");
     descriptor.provider_id = config.value("provider_id", (uint16_t)0);
 
-    auto type_it = config.find("type");
-    if (type_it == config.end()) {
+    if (!config.contains("type")) {
         throw DETAILED_EXCEPTION("No type provided for provider in JSON configuration");
     }
-    descriptor.type = type_it->get<std::string>();
+    if(!config["type"].is_string()) {
+        throw DETAILED_EXCEPTION(
+            "\"type\" field in provider definition should be a string");
+    }
+    descriptor.type = config["type"].get<std::string>();
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
@@ -177,9 +194,13 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     }
 
     auto provider_config    = "{}"s;
-    auto provider_config_it = config.find("config");
-    if (provider_config_it != config.end()) {
-        provider_config = provider_config_it->dump();
+    if (config.contains("config")) {
+        if (!config["config"].is_object()) {
+            throw DETAILED_EXCEPTION(
+                "\"config\" field in provider definition should be an object");
+        } else {
+            provider_config = config["config"].dump();
+        }
     }
 
     auto        margo   = MargoManager(self->m_margo_context);
