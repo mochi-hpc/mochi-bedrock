@@ -72,7 +72,7 @@ void ModuleContext::loadModulesFromJSON(const std::string& jsonString) {
     if (modules.is_null()) return;
     if (!modules.is_object())
         throw DETAILED_EXCEPTION(
-            "JSON configuration for ModuleContext should be an object");
+            "\"libraries\" field should be an object");
     for (auto& mod : modules.items()) {
         if (!(mod.value().is_string() || mod.value().is_null())) {
             throw DETAILED_EXCEPTION("Module library for {} should be a string or null",

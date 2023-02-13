@@ -112,5 +112,24 @@
         "test": "invalid MoNA address",
         "input": {"mona":[{"name":"my_mona","pool":"__primary__","address":"abc"}]},
         "error": "Could not initialize mona instance \"my_mona\""
+    },
+
+
+    {
+        "test": "invalid type for libraries field",
+        "input": {"libraries":123},
+        "error": "\"libraries\" field should be an object"
+    },
+
+    {
+        "test": "invalid type for library",
+        "input": {"libraries":{"module_a":123}},
+        "error": "Module library for module_a should be a string or null"
+    },
+
+    {
+        "test": "library not found",
+        "input": {"libraries":{"module_a":"abc.so"}},
+        "error": "Could not dlopen library abc.so: abc.so: cannot open shared object file: No such file or directory"
     }
 ]
