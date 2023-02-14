@@ -53,11 +53,9 @@ ProviderManager::lookupProvider(const std::string& spec, uint16_t* provider_id) 
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end())
-        return nullptr;
-    else {
-        if(provider_id) *provider_id = (*it)->provider_id;
-        return *it;
-    }
+        throw DETAILED_EXCEPTION("Could not find provider with spec \"{}\"", spec);
+    if(provider_id) *provider_id = (*it)->provider_id;
+    return *it;
 }
 
 std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
@@ -109,8 +107,6 @@ ProviderManager::registerProvider(
 
         auto margo = MargoManager(self->m_margo_context);
         auto pool = margo.getPool(pool_name);
-        if (!pool)
-            throw DETAILED_EXCEPTION("Could not find pool \"{}\"", pool_name);
 
         FactoryArgs args;
         args.name         = descriptor.name;
@@ -203,11 +199,19 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
         }
     }
 
-    auto        margo   = MargoManager(self->m_margo_context);
-    auto        pool_it = config.find("pool");
+    auto margo   = MargoManager(self->m_margo_context);
+
     std::string pool_name;
-    if (pool_it != config.end()) {
-        pool_name = pool_it->get<std::string>();
+    if(config.contains("pool")) {
+        auto& pool_ref = config["pool"];
+        if(pool_ref.is_string())
+            pool_name = pool_ref.get<std::string>();
+        else if(pool_ref.is_number_unsigned())
+            pool_name = margo.getPool(pool_ref.get<uint32_t>())->getName();
+        else
+            throw DETAILED_EXCEPTION(
+                "\"pool\" field in provider definition should "
+                "be a string or an unsigned integer");
     } else {
         pool_name = margo.getDefaultHandlerPool()->getName();
     }
@@ -265,7 +269,7 @@ void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
     if (!config.is_array()) {
         throw DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
-            "ProviderManager::addProviderListFromJSON (expected array)");
+            "ProviderManager::addProviderListFromJSON (should be an array)");
     }
     for (const auto& provider : config) {
         addProviderFromJSON(provider.dump());
