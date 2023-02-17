@@ -45,8 +45,9 @@ std::string Jx9Manager::executeQuery(
         char* errLog;
         int   errLogLength;
         jx9_config(self->m_engine, JX9_CONFIG_ERR_LOG, &errLog, &errLogLength);
-        throw DETAILED_EXCEPTION("Jx9 script failed to compile: {}",
-                        std::string(errLog, errLogLength));
+        auto err = std::string(errLog, errLogLength);
+        if(err[errLogLength-1] == '\n') err.resize(errLogLength-1);
+        throw DETAILED_EXCEPTION("Jx9 script failed to compile: {}", err);
     }
 
     // installing VM variables
