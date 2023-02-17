@@ -20,7 +20,7 @@ static void cleanupOutputConfig(json& config) {
 
 TEST_CASE("Tests Server initialization", "[config]") {
 
-    spdlog::set_level(spdlog::level::from_str("trace"));
+    //spdlog::set_level(spdlog::level::from_str("trace"));
 
     SECTION("Default initialization") {
         bedrock::Server server("na+sm");

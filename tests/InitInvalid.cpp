@@ -8,7 +8,7 @@ using json = nlohmann::json;
 
 TEST_CASE("Tests Server initialization", "[config]") {
 
-    spdlog::set_level(spdlog::level::from_str("trace"));
+    //spdlog::set_level(spdlog::level::from_str("trace"));
 
     std::ifstream ifs("InvalidConfigs.json");
     json jf = json::parse(ifs);

@@ -45,5 +45,12 @@
         "test": "instantiate a provider from module-a",
         "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a"}]},
         "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{"module_a":"libModuleA.so"},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"mona":[],"providers":[{"config":{},"dependencies":{},"name":"my_provider","pool":"__primary__","provider_id":123,"type":"module_a"}],"ssg":[]}
+    },
+
+
+    {
+        "test": "instantiate a client from module-a",
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a"}]},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[{"config":{},"dependencies":{},"name":"my_client","type":"module_a"}],"libraries":{"module_a":"libModuleA.so"},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"mona":[],"providers":[],"ssg":[]}
     }
 ]
