@@ -159,9 +159,12 @@ void ClientManager::destroyClient(const std::string& name) {
     if (it == self->m_clients.end()) {
         throw DETAILED_EXCEPTION("Could not find client with name \"{}\"", name);
     }
-    auto& client = *it;
-    spdlog::trace("Destroying client {}", client->getName());
-    client->factory->finalizeClient(client->getHandle<void*>());
+    if(it->use_count() > 1) {
+        throw DETAILED_EXCEPTION(
+            "Cannot destroy client \"{}\" as it is used as dependency",
+            (*it)->getName());
+    }
+    self->m_clients.erase(it);
 }
 
 std::shared_ptr<NamedDependency>

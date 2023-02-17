@@ -6,7 +6,7 @@
 
 using json = nlohmann::json;
 
-TEST_CASE("Tests Server initialization", "[config]") {
+TEST_CASE("Tests Server initialization", "[init-invalid]") {
 
     //spdlog::set_level(spdlog::level::from_str("trace"));
 
