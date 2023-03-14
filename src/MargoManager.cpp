@@ -4,7 +4,7 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "bedrock/MargoManager.hpp"
-#include "bedrock/Exception.hpp"
+#include "Exception.hpp"
 #include "MargoManagerImpl.hpp"
 #include "MargoLogging.hpp"
 #include <margo.h>
@@ -28,10 +28,30 @@ MargoManager::MargoManager(const std::string& address,
     }
     self->m_mid = margo_init_ext(address.c_str(), MARGO_SERVER_MODE, &args);
     if (self->m_mid == MARGO_INSTANCE_NULL)
-        throw Exception("Could not initialize Margo");
+        throw DETAILED_EXCEPTION("Could not initialize Margo");
     margo_enable_remote_shutdown(self->m_mid);
     self->m_engine = tl::engine(self->m_mid);
     setupMargoLoggingForInstance(self->m_mid);
+    // fill the m_pools array
+    size_t num_pools = margo_get_num_pools(self->m_mid);
+    for(unsigned i=0; i < num_pools; i++) {
+        margo_pool_info info;
+        if(HG_SUCCESS != margo_find_pool_by_index(self->m_mid, i, &info))
+            throw DETAILED_EXCEPTION(
+                "Failed to retrieve pool information from Margo instance");
+        auto pool_entry = std::make_shared<PoolRef>(info.name, info.pool);
+        self->m_pools.emplace_back(pool_entry);
+    }
+    // fill the m_xstreams array
+    size_t num_es = margo_get_num_xstreams(self->m_mid);
+    for(unsigned i=0; i < num_es; i++) {
+        margo_xstream_info info;
+        if(HG_SUCCESS != margo_find_xstream_by_index(self->m_mid, i, &info))
+            throw DETAILED_EXCEPTION(
+                "Failed to retrieve xstream information from Margo instance");
+        auto es_entry = std::make_shared<XstreamRef>(info.name, info.xstream);
+        self->m_xstreams.emplace_back(es_entry);
+    }
 }
 
 MargoManager::MargoManager(const MargoManager&) = default;
@@ -47,56 +67,258 @@ MargoManager::~MargoManager() = default;
 MargoManager::operator bool() const { return static_cast<bool>(self); }
 
 margo_instance_id MargoManager::getMargoInstance() const {
-    return self ? self->m_mid : MARGO_INSTANCE_NULL;
+    if(!self) return MARGO_INSTANCE_NULL;
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    return self->m_mid;
 }
 
 const tl::engine& MargoManager::getThalliumEngine() const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     return self->m_engine;
 }
 
 std::string MargoManager::getCurrentConfig() const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     return self->makeConfig().dump();
 }
 
-ABT_pool MargoManager::getDefaultHandlerPool() const {
+std::shared_ptr<NamedDependency> MargoManager::getDefaultHandlerPool() const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     ABT_pool p;
     int      ret = margo_get_handler_pool(self->m_mid, &p);
-    if (ret != 0) {
-        throw Exception(
-            "Could not get handler pool (margo_get_handler_pool returned {})",
-            ret);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not get handler pool from Margo instance");
     }
-    return p;
+    auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
+        [p](std::shared_ptr<PoolRef>& entry) {
+            return entry->getHandle<ABT_pool>() == p;
+        });
+    return *it;
 }
 
-ABT_pool MargoManager::getPool(int index) const {
-    ABT_pool pool = ABT_POOL_NULL;
-    margo_get_pool_by_index(self->m_mid, index, &pool);
-    return pool;
+std::shared_ptr<NamedDependency> MargoManager::getPool(const std::string& name) const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_pool_info info = {ABT_POOL_NULL,"",0};
+    hg_return_t ret = margo_find_pool_by_name(self->m_mid, name.c_str(), &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find pool \"{}\" from Margo instance",
+            name);
+    }
+    auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
+        [&info](std::shared_ptr<PoolRef>& entry) {
+            return entry->getHandle<ABT_pool>() == info.pool;
+        });
+    return *it;
 }
 
-ABT_pool MargoManager::getPool(const std::string& name) const {
-    ABT_pool pool = ABT_POOL_NULL;
-    margo_get_pool_by_name(self->m_mid, name.c_str(), &pool);
-    return pool;
+std::shared_ptr<NamedDependency> MargoManager::getPool(uint32_t index) const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_pool_info info = {ABT_POOL_NULL,"",0};
+    hg_return_t ret = margo_find_pool_by_index(self->m_mid, index, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find pool at index {} from Margo instance",
+            index);
+    }
+    auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
+        [&info](std::shared_ptr<PoolRef>& entry) {
+            return entry->getHandle<ABT_pool>() == info.pool;
+        });
+    return *it;
+}
+
+std::shared_ptr<NamedDependency> MargoManager::getPool(ABT_pool pool) const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_pool_info info = {ABT_POOL_NULL,"",0};
+    hg_return_t ret = margo_find_pool_by_handle(self->m_mid, pool, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find pool from its ABT_pool handle in Margo instance");
+    }
+    auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
+        [&info](std::shared_ptr<PoolRef>& entry) {
+            return entry->getHandle<ABT_pool>() == info.pool;
+        });
+    return *it;
 }
 
 size_t MargoManager::getNumPools() const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     return margo_get_num_pools(self->m_mid);
 }
 
-std::pair<std::string, int> MargoManager::getPoolInfo(ABT_pool pool) const {
-    std::pair<std::string, int> result   = {"", -1};
-    auto                        numPools = getNumPools();
-    for (size_t i = 0; i < numPools; i++) {
-        ABT_pool p = getPool(i);
-        if (p == pool) {
-            result.first  = margo_get_pool_name(self->m_mid, i);
-            result.second = i;
-            return result;
-        }
+std::shared_ptr<NamedDependency> MargoManager::addPool(const std::string& config) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_pool_info info;
+    hg_return_t ret = margo_add_pool_from_json(
+        self->m_mid, config.c_str(), &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not add pool to Margo instance");
     }
-    return result;
+    auto pool_entry = std::make_shared<PoolRef>(info.name, info.pool);
+    self->m_pools.push_back(pool_entry);
+    return pool_entry;
+}
+
+void MargoManager::removePool(uint32_t index) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_pool_info info;
+    hg_return_t ret = margo_find_pool_by_index(self->m_mid, index, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find pool at index {} from Margo instance",
+            index);
+    }
+    guard.unlock();
+    removePool(info.pool);
+}
+
+void MargoManager::removePool(const std::string& name) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    auto it = std::find_if(self->m_pools.begin(), self->m_pools.end(),
+        [&name](auto& p) { return p->getName() == name; });
+    if(it == self->m_pools.end()) {
+        throw DETAILED_EXCEPTION(
+            "Could not find pool named \"{}\" known to Bedrock", name);
+    }
+    if(it->use_count() != 1) {
+        throw DETAILED_EXCEPTION(
+            "Pool \"{}\" is still in use by some dependencies");
+    }
+    hg_return_t ret = margo_remove_pool_by_name(self->m_mid, name.c_str());
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not remove pool \"{}\" from Margo instance");
+    }
+    self->m_pools.erase(it);
+}
+
+void MargoManager::removePool(ABT_pool pool) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_pool_info info;
+    hg_return_t ret = margo_find_pool_by_handle(self->m_mid, pool, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find pool from its ABT_pool handle in Margo instance");
+    }
+    guard.unlock();
+    removePool(info.name);
+}
+
+std::shared_ptr<NamedDependency> MargoManager::getXstream(const std::string& name) const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_xstream_info info = {ABT_XSTREAM_NULL,"",0};
+    hg_return_t ret = margo_find_xstream_by_name(self->m_mid, name.c_str(), &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find xstream \"{}\" from Margo instance",
+            name);
+    }
+    auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
+        [&info](std::shared_ptr<XstreamRef>& entry) {
+            return entry->getHandle<ABT_xstream>() == info.xstream;
+        });
+    return *it;
+}
+
+std::shared_ptr<NamedDependency> MargoManager::getXstream(uint32_t index) const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_xstream_info info = {ABT_XSTREAM_NULL,"",0};
+    hg_return_t ret = margo_find_xstream_by_index(self->m_mid, index, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find xstream at index {} from Margo instance",
+            index);
+    }
+    auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
+        [&info](std::shared_ptr<XstreamRef>& entry) {
+            return entry->getHandle<ABT_xstream>() == info.xstream;
+        });
+    return *it;
+}
+
+std::shared_ptr<NamedDependency> MargoManager::getXstream(ABT_xstream xstream) const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_xstream_info info = {ABT_XSTREAM_NULL,"",0};
+    hg_return_t ret = margo_find_xstream_by_handle(self->m_mid, xstream, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find xstream from its ABT_xstream handle in Margo instance");
+    }
+    auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
+        [&info](std::shared_ptr<XstreamRef>& entry) {
+            return entry->getHandle<ABT_xstream>() == info.xstream;
+        });
+    return *it;
+}
+
+size_t MargoManager::getNumXstreams() const {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    return margo_get_num_xstreams(self->m_mid);
+}
+
+std::shared_ptr<NamedDependency> MargoManager::addXstream(const std::string& config) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_xstream_info info;
+    hg_return_t ret = margo_add_xstream_from_json(
+        self->m_mid, config.c_str(), &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not add xstream to Margo instance",
+            ret);
+    }
+    auto entry = std::make_shared<XstreamRef>(info.name, info.xstream);
+    self->m_xstreams.push_back(entry);
+    return entry;
+}
+
+void MargoManager::removeXstream(uint32_t index) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_xstream_info info;
+    hg_return_t ret = margo_find_xstream_by_index(self->m_mid, index, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find xstream at index {} from Margo instance",
+            index, ret);
+    }
+    guard.unlock();
+    removeXstream(info.xstream);
+}
+
+void MargoManager::removeXstream(const std::string& name) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    auto it = std::find_if(self->m_xstreams.begin(), self->m_xstreams.end(),
+        [&name](auto& es) { return es->getName() == name; });
+    if(it == self->m_xstreams.end()) {
+        throw DETAILED_EXCEPTION(
+            "Could not find xstream named \"{}\" known to Bedrock", name);
+    }
+    if(it->use_count() != 1) {
+        throw DETAILED_EXCEPTION(
+            "Xstream \"{}\" is still in use by some dependencies");
+    }
+    hg_return_t ret = margo_remove_xstream_by_name(self->m_mid, name.c_str());
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not remove xstream \"{}\" from Margo instance",
+            ret);
+    }
+    self->m_xstreams.erase(it);
+}
+
+void MargoManager::removeXstream(ABT_xstream xstream) {
+    auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
+    margo_xstream_info info;
+    hg_return_t ret = margo_find_xstream_by_handle(self->m_mid, xstream, &info);
+    if (ret != HG_SUCCESS) {
+        throw DETAILED_EXCEPTION(
+            "Could not find xstream from its ABT_xstream handle in Margo instance");
+    }
+    guard.unlock();
+    removeXstream(info.name);
 }
 
 } // namespace bedrock

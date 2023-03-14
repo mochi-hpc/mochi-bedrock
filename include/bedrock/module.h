@@ -139,6 +139,18 @@ typedef int (*bedrock_destroy_provider_handle_fn)(
 typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
 
 /**
+ * @brief Type of function called to change the pool associated with a provider.
+ * The returned value must be 0 in case of success, any other value in case of
+ * failure.
+ *
+ * @param bedrock_module_provider_t Provider.
+ * @param ABT_pool new pool.
+ *
+ * @return 0 in case of success.
+ */
+typedef int (*bedrock_provider_change_pool_fn)(bedrock_module_provider_t, ABT_pool);
+
+/**
  * @brief Type of function called to get the configuration of a client.
  * The returned string, if not NULL, should be freed by the caller.
  *
@@ -171,6 +183,23 @@ struct bedrock_module_v1 {
     struct bedrock_dependency*         client_dependencies;
 };
 
+struct bedrock_module_v2 {
+    /* v1 fields */
+    int api_version; // should always be set to 1
+    bedrock_register_provider_fn       register_provider;
+    bedrock_deregister_provider_fn     deregister_provider;
+    bedrock_provider_get_config_fn     get_provider_config;
+    bedrock_init_client_fn             init_client;
+    bedrock_finalize_client_fn         finalize_client;
+    bedrock_client_get_config_fn       get_client_config;
+    bedrock_create_provider_handle_fn  create_provider_handle;
+    bedrock_destroy_provider_handle_fn destroy_provider_handle;
+    struct bedrock_dependency*         provider_dependencies;
+    struct bedrock_dependency*         client_dependencies;
+    /* v2 fields */
+    bedrock_provider_change_pool_fn    change_provider_pool;
+};
+
 /**
  * @brief The following macro must be placed in a .c file
  * compiled into a shared library along wit. For example:
@@ -193,11 +222,6 @@ struct bedrock_module_v1 {
     }
 
 /**
- * @brief A global instance of the bedrock_module structure must be provided
- * in a shared library to make up a Bedrock module.
- * The provider_dependencies and client_dependencies arrays should be terminated
- * by a BEDROCK_NO_MORE_DEPENDENCIES.
- *
  * @warning This structure is deprecated.
  * Please use one of the bedrock_module_vX structures.
  */
@@ -214,6 +238,9 @@ struct bedrock_module {
     struct bedrock_dependency*         client_dependencies;
 };
 
+/**
+ * @warning this macro is deprecated in favor of BEDROCK_REGISTER_MODULE_WITH_VERSION.
+ */
 #define BEDROCK_REGISTER_MODULE(__name__, __struct__)                         \
     void __name__##_bedrock_init(struct bedrock_module_v1** m) {              \
         static struct bedrock_module_v1 v1 = {0};                             \

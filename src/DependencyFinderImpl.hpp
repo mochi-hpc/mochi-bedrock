@@ -14,7 +14,6 @@
 #include "ClientManagerImpl.hpp"
 #include "bedrock/VoidPtr.hpp"
 #include "bedrock/RequestResult.hpp"
-#include "bedrock/ProviderWrapper.hpp"
 #include "bedrock/Exception.hpp"
 #include <thallium.hpp>
 #include <string>

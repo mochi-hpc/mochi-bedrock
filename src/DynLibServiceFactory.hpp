@@ -17,8 +17,14 @@ namespace bedrock {
 class DynLibServiceFactory : public AbstractServiceFactory {
 
   public:
-    DynLibServiceFactory(const bedrock_module_v1& mod)
+    DynLibServiceFactory(const bedrock_module_v2& mod)
     : m_handle(nullptr), m_module(mod) {}
+
+    DynLibServiceFactory(const bedrock_module_v1& mod)
+    : m_handle(nullptr) {
+        memset(&m_module, 0, sizeof(m_module));
+        memcpy(&m_module, &mod, sizeof(mod));
+    }
 
     DynLibServiceFactory(const std::string& moduleName, void* handle) {
         m_handle         = handle;
@@ -31,9 +37,18 @@ class DynLibServiceFactory : public AbstractServiceFactory {
             dlclose(m_handle);
             throw Exception("Could not load {} module: {}", moduleName, error);
         }
-        bedrock_module_v1* module_ptr = nullptr;
-        init_module(&module_ptr);
-        m_module = *module_ptr;
+        bedrock_module_v1* module_v1_ptr = nullptr;
+        init_module(&module_v1_ptr);
+        // handle actual module version
+        if(module_v1_ptr->api_version == 1) {
+            memset(&m_module, 0, sizeof(m_module));
+            memcpy(&m_module, module_v1_ptr, sizeof(*module_v1_ptr));
+        } else { // version 2
+            bedrock_module_v2* module_v2_ptr
+                = reinterpret_cast<bedrock_module_v2*>(module_v1_ptr);
+            memset(&m_module, 0, sizeof(m_module));
+            memcpy(&m_module, module_v2_ptr, sizeof(*module_v2_ptr));
+        };
         if (m_module.provider_dependencies) {
             int i = 0;
             while (m_module.provider_dependencies[i].name != nullptr) {
@@ -102,6 +117,17 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         return config_str;
     }
 
+    void changeProviderPool(void* provider, ABT_pool new_pool) override {
+        if (!m_module.change_provider_pool)
+            throw Exception{"Changing pool not supported for this provider"};
+        int ret = m_module.change_provider_pool(provider, new_pool);
+        if (ret != 0) {
+            throw Exception{
+                "Provider's change_provider_pool callback"
+                " failed with error code {}", ret};
+        }
+    }
+
     void* initClient(const FactoryArgs& args) override {
         void* client = nullptr;
         int   ret    = m_module.init_client(
@@ -159,7 +185,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
 
   private:
     void*                   m_handle = nullptr;
-    bedrock_module_v1       m_module;
+    bedrock_module_v2       m_module;
     std::vector<Dependency> m_provider_dependencies;
     std::vector<Dependency> m_client_dependencies;
 };

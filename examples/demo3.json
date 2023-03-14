@@ -1,7 +1,5 @@
 {
     "margo" : {
-        "mercury" : {
-        },
         "argobots" : {
         "abt_mem_max_num_stacks" : 8,
         "abt_thread_stacksize" : 2097152,

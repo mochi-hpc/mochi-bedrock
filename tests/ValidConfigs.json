@@ -1,0 +1,56 @@
+[
+    {
+        "test": "empty configuration",
+        "input": {},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"providers":[],"ssg":[],"mona":[]}
+    },
+
+    {
+        "test": "using use_progress_thread and rpc_thread_count in Margo",
+        "input": {"margo":{"use_progress_thread":true,"rpc_thread_count":2}},
+        "output": {"abt_io":[],"bedrock":{"pool":"__pool_2__","provider_id":0},"clients":[],"libraries":{},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"},{"access":"mpmc","kind":"fifo_wait","name":"__pool_1__"},{"access":"mpmc","kind":"fifo_wait","name":"__pool_2__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}},{"name":"__xstream_1__","scheduler":{"pools":[1],"type":"basic_wait"}},{"name":"__xstream_2__","scheduler":{"pools":[2],"type":"basic_wait"}},{"name":"__xstream_3__","scheduler":{"pools":[2],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":1,"progress_timeout_ub_msec":100,"rpc_pool":2},"providers":[],"ssg":[],"mona":[]}
+    },
+
+    {
+        "test": "defining an ABT-IO instance",
+        "input": {"abt_io":[{"name":"my_abt_io","pool":"__primary__"}]},
+        "output": {"abt_io":[{"config":{"internal_pool_flag":false},"name":"my_abt_io","pool":"__primary__"}],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"providers":[],"ssg":[],"mona":[]}
+    },
+
+    {
+        "test": "defining an SSG group with mpi bootstrapping",
+        "input": {"ssg":[{"name":"my_ssg_group","bootstrap":"mpi"}]},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"providers":[],"ssg":[{"bootstrap":"mpi","credential":-1,"group_file":"","name":"my_ssg_group","swim":{"disabled":false,"period_length_ms":0,"subgroup_member_count":-1,"suspect_timeout_periods":-1}}],"mona":[]}
+    },
+
+    {
+        "test": "defining an SSG group with init bootstrapping",
+        "input": {"ssg":[{"name":"my_ssg_group","bootstrap":"init"}]},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"providers":[],"ssg":[{"bootstrap":"init","credential":-1,"group_file":"","name":"my_ssg_group","swim":{"disabled":false,"period_length_ms":0,"subgroup_member_count":-1,"suspect_timeout_periods":-1}}],"mona":[]}
+    },
+
+    {
+        "test": "defining a Mona instance",
+        "input": {"mona":[{"pool":"__primary__"}]},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"mona":[{"address":"<replaced>","name":"__mona_0__","pool":"__primary__"}],"providers":[],"ssg":[]}
+    },
+
+    {
+        "test": "load a module library",
+        "input": {"libraries":{"module_a":"libModuleA.so"}},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{"module_a":"libModuleA.so"},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"mona":[],"providers":[],"ssg":[]}
+    },
+
+    {
+        "test": "instantiate a provider from module-a",
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a"}]},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[],"libraries":{"module_a":"libModuleA.so"},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"mona":[],"providers":[{"config":{},"dependencies":{},"name":"my_provider","pool":"__primary__","provider_id":123,"type":"module_a"}],"ssg":[]}
+    },
+
+
+    {
+        "test": "instantiate a client from module-a",
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a"}]},
+        "output": {"abt_io":[],"bedrock":{"pool":"__primary__","provider_id":0},"clients":[{"config":{},"dependencies":{},"name":"my_client","type":"module_a"}],"libraries":{"module_a":"libModuleA.so"},"margo":{"argobots":{"abt_mem_max_num_stacks":8,"abt_thread_stacksize":2097152,"pools":[{"access":"mpmc","kind":"fifo_wait","name":"__primary__"}],"profiling_dir":".","xstreams":[{"name":"__primary__","scheduler":{"pools":[0],"type":"basic_wait"}}]},"enable_abt_profiling":false,"handle_cache_size":32,"progress_pool":0,"progress_timeout_ub_msec":100,"rpc_pool":0},"mona":[],"providers":[],"ssg":[]}
+    }
+]

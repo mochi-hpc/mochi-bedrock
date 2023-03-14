@@ -4,11 +4,11 @@
  * See COPYRIGHT in top-level directory.
  */
 #include "bedrock/ClientManager.hpp"
-#include "bedrock/Exception.hpp"
 #include "bedrock/ModuleContext.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/DependencyFinder.hpp"
 
+#include "Exception.hpp"
 #include "ClientManagerImpl.hpp"
 
 #include <thallium/serialization/stl/string.hpp>
@@ -25,9 +25,9 @@ using namespace std::string_literals;
 using nlohmann::json;
 
 ClientManager::ClientManager(const MargoManager& margo, uint16_t provider_id,
-                             ABT_pool pool)
+                             const std::shared_ptr<NamedDependency>& pool)
 : self(std::make_shared<ClientManagerImpl>(margo.getThalliumEngine(),
-                                           provider_id, tl::pool(pool))) {
+                                           provider_id, tl::pool(pool->getHandle<ABT_pool>()))) {
     self->m_margo_context = margo;
 }
 
@@ -43,23 +43,20 @@ ClientManager::~ClientManager() = default;
 
 ClientManager::operator bool() const { return static_cast<bool>(self); }
 
-bool ClientManager::lookupClient(const std::string& name,
-                                 ClientWrapper*     wrapper) const {
+std::shared_ptr<NamedDependency> ClientManager::lookupClient(const std::string& name) const {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->resolveSpec(name);
-    if (it == self->m_clients.end()) { return false; }
-    if (wrapper) { *wrapper = *it; }
-    return true;
+    if (it == self->m_clients.end())
+        throw DETAILED_EXCEPTION("Could not find client \"{}\"", name);
+    return *it;
 }
 
-void ClientManager::lookupOrCreateAnonymous(const std::string& type,
-                                            ClientWrapper*     wrapper) {
+std::shared_ptr<NamedDependency> ClientManager::lookupOrCreateAnonymous(const std::string& type) {
     {
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         for (const auto& client : self->m_clients) {
-            if (client.type == type) {
-                if (wrapper) { *wrapper = client; }
-                return;
+            if (client->getType() == type) {
+                return client;
             }
         }
         // no client of this type found, try creating one with name
@@ -67,14 +64,14 @@ void ClientManager::lookupOrCreateAnonymous(const std::string& type,
         // such a client
         auto service_factory = ModuleContext::getServiceFactory(type);
         if (!service_factory) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "Could not find service factory for client type \"{}\"", type);
         }
         // find out if such a client has required dependencies
         for (const auto& dependency :
              service_factory->getClientDependencies()) {
             if (dependency.flags & BEDROCK_REQUIRED)
-                throw Exception(
+                throw DETAILED_EXCEPTION(
                     "Could not create default client of type \"{}\" because"
                     " it requires dependency \"{}\"",
                     type, dependency.name);
@@ -89,30 +86,33 @@ void ClientManager::lookupOrCreateAnonymous(const std::string& type,
 
     createClient(descriptor, "{}", dependencies);
     // get the client
-    if (wrapper) {
-        auto it  = self->resolveSpec(descriptor.name);
-        *wrapper = *it;
-    }
+    auto it  = self->resolveSpec(descriptor.name);
+    return *it;
 }
 
 std::vector<ClientDescriptor> ClientManager::listClients() const {
     std::lock_guard<tl::mutex>    lock(self->m_clients_mtx);
     std::vector<ClientDescriptor> result;
     result.reserve(self->m_clients.size());
-    for (const auto& w : self->m_clients) { result.push_back(w); }
+    for (const auto& w : self->m_clients) {
+        auto descriptor = ClientDescriptor{w->getName(), w->getType()};
+        result.push_back(descriptor);
+    }
     return result;
 }
 
-void ClientManager::createClient(const ClientDescriptor&      descriptor,
-                                 const std::string&           config,
-                                 const ResolvedDependencyMap& dependencies) {
+std::shared_ptr<NamedDependency>
+ClientManager::createClient(const ClientDescriptor&      descriptor,
+                            const std::string&           config,
+                            const ResolvedDependencyMap& dependencies) {
     if (descriptor.name.empty()) {
-        throw Exception("Client name cannot be empty");
+        throw DETAILED_EXCEPTION("Client name cannot be empty");
     }
 
+    std::shared_ptr<ClientEntry> entry;
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
-        throw Exception("Could not find service factory for client type \"{}\"",
+        throw DETAILED_EXCEPTION("Could not find service factory for client type \"{}\"",
                         descriptor.type);
     }
     spdlog::trace("Found client \"{}\" to be of type \"{}\"", descriptor.name,
@@ -122,20 +122,13 @@ void ClientManager::createClient(const ClientDescriptor&      descriptor,
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         auto                       it = self->resolveSpec(descriptor.name);
         if (it != self->m_clients.end()) {
-            throw Exception(
+            throw DETAILED_EXCEPTION(
                 "Could not register client: a client with the name \"{}\""
                 " is already registered",
                 descriptor.name);
         }
 
         auto margoCtx = MargoManager(self->m_margo_context);
-
-        ClientEntry entry;
-        entry.name         = descriptor.name;
-        entry.type         = descriptor.type;
-        entry.factory      = service_factory;
-        entry.margo_ctx    = self->m_margo_context;
-        entry.dependencies = dependencies;
 
         FactoryArgs args;
         args.name         = descriptor.name;
@@ -145,61 +138,83 @@ void ClientManager::createClient(const ClientDescriptor&      descriptor,
         args.provider_id  = 0;
         args.dependencies = dependencies;
 
-        spdlog::trace("Registering client {} of type {}", descriptor.name,
+        auto handle = service_factory->initClient(args);
+
+        entry = std::make_shared<ClientEntry>(
+            descriptor.name, descriptor.type,
+            handle, service_factory, dependencies);
+
+        spdlog::trace("Registered client {} of type {}", descriptor.name,
                       descriptor.type);
-        entry.handle = service_factory->initClient(args);
 
         self->m_clients.push_back(entry);
     }
     self->m_clients_cv.notify_all();
+    return entry;
 }
 
 void ClientManager::destroyClient(const std::string& name) {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->resolveSpec(name);
     if (it == self->m_clients.end()) {
-        throw Exception("Could not find client with name \"{}\"", name);
+        throw DETAILED_EXCEPTION("Could not find client with name \"{}\"", name);
     }
-    auto& client = *it;
-    spdlog::trace("Destroying client {}", client.name);
-    client.factory->finalizeClient(client.handle);
+    if(it->use_count() > 1) {
+        throw DETAILED_EXCEPTION(
+            "Cannot destroy client \"{}\" as it is used as dependency",
+            (*it)->getName());
+    }
+    self->m_clients.erase(it);
 }
 
-void ClientManager::addClientFromJSON(
+std::shared_ptr<NamedDependency>
+ClientManager::addClientFromJSON(
     const std::string& jsonString, const DependencyFinder& dependencyFinder) {
-    auto config = json::parse(jsonString);
+    auto config = jsonString.empty() ? json::object() : json::parse(jsonString);
     if (!config.is_object()) {
-        throw Exception(
-            "Invalid JSON configuration passed to "
-            "ClientManager::addClientFromJSON (should be an object)");
+        throw DETAILED_EXCEPTION("Client configuration should be an object");
     }
 
     ClientDescriptor descriptor;
 
-    descriptor.name = config.value("name", "");
-
-    auto type_it = config.find("type");
-    if (type_it == config.end()) {
-        throw Exception("No type provided for client in JSON configuration");
+    if(!config.contains("name")) {
+        throw DETAILED_EXCEPTION("\"name\" field not found in client definition");
     }
-    descriptor.type = type_it->get<std::string>();
+    if(!config["name"].is_string()) {
+        throw DETAILED_EXCEPTION(
+                "\"name\" field in client definition should be a string");
+    }
+
+    descriptor.name = config["name"];
+
+    if (!config.contains("type")) {
+        throw DETAILED_EXCEPTION("\"type\" field missing in client definition");
+    }
+    if(!config["type"].is_string()) {
+        throw DETAILED_EXCEPTION(
+                "\"type\" field in client definition should be a string");
+    }
+    descriptor.type = config["type"];
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
-        throw Exception("Could not find service factory for client type \"{}\"",
+        throw DETAILED_EXCEPTION("Could not find service factory for client type \"{}\"",
                         descriptor.type);
     }
 
-    auto client_config    = "{}"s;
-    auto client_config_it = config.find("config");
-    if (client_config_it != config.end()) {
-        client_config = client_config_it->dump();
+    auto client_config = "{}"s;
+    if (config.contains("config")) {
+        if (!config["config"].is_object()) {
+            throw DETAILED_EXCEPTION(
+                    "\"config\" field in client definition should be an object");
+        } else {
+            client_config = config["config"].dump();
+        }
     }
 
     auto deps_from_config = config.value("dependencies", json::object());
 
-    ResolvedDependencyMap                                 resolved_dependencies;
-    std::unordered_map<std::string, std::vector<VoidPtr>> dependency_wrappers;
+    ResolvedDependencyMap resolved_dependency_map;
 
     for (const auto& dependency : service_factory->getClientDependencies()) {
         spdlog::trace("Resolving dependency {}", dependency.name);
@@ -207,57 +222,38 @@ void ClientManager::addClientFromJSON(
             auto dep_config = deps_from_config[dependency.name];
             if (!(dependency.flags & BEDROCK_ARRAY)) {
                 if (!dep_config.is_string()) {
-                    throw Exception("Dependency {} should be a string",
+                    throw DETAILED_EXCEPTION("Dependency {} should be a string",
                                     dependency.name);
                 }
-                std::string        resolved_spec;
-                auto               ptr = dependencyFinder.find(dependency.type,
-                                                 dep_config.get<std::string>(),
-                                                 &resolved_spec);
-                ResolvedDependency resolved_dependency;
-                resolved_dependency.name   = dependency.name;
-                resolved_dependency.type   = dependency.type;
-                resolved_dependency.flags  = dependency.flags;
-                resolved_dependency.spec   = resolved_spec;
-                resolved_dependency.handle = ptr.handle;
-                resolved_dependencies[dependency.name].push_back(
-                    resolved_dependency);
-                dependency_wrappers[dependency.name].push_back(std::move(ptr));
+                auto ptr = dependencyFinder.find(dependency.type,
+                        dep_config.get<std::string>(), nullptr);
+                resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
+                resolved_dependency_map[dependency.name].is_array = false;
             } else {
                 if (!dep_config.is_array()) {
-                    throw Exception("Dependency {} should be an array",
+                    throw DETAILED_EXCEPTION("Dependency {} should be an array",
                                     dependency.name);
                 }
                 std::vector<std::string> deps;
                 for (const auto& elem : dep_config) {
                     if (!elem.is_string()) {
-                        throw Exception(
+                        throw DETAILED_EXCEPTION(
                             "Item in dependency array {} should be a string",
                             dependency.name);
                     }
-                    std::string resolved_spec;
-                    auto        ptr = dependencyFinder.find(dependency.type,
-                                                     elem.get<std::string>(),
-                                                     &resolved_spec);
-                    ResolvedDependency resolved_dependency;
-                    resolved_dependency.name   = dependency.name;
-                    resolved_dependency.type   = dependency.type;
-                    resolved_dependency.flags  = dependency.flags;
-                    resolved_dependency.spec   = resolved_spec;
-                    resolved_dependency.handle = ptr.handle;
-                    resolved_dependencies[dependency.name].push_back(
-                        resolved_dependency);
-                    dependency_wrappers[dependency.name].push_back(
-                        std::move(ptr));
+                    auto ptr = dependencyFinder.find(dependency.type,
+                            elem.get<std::string>(), nullptr);
+                    resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
+                    resolved_dependency_map[dependency.name].is_array = true;
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw Exception("Missing dependency {} in configuration",
+            throw DETAILED_EXCEPTION("Missing dependency {} in configuration",
                             dependency.name);
         }
     }
 
-    createClient(descriptor, client_config, resolved_dependencies);
+    return createClient(descriptor, client_config, resolved_dependency_map);
 }
 
 void ClientManager::addClientListFromJSON(
@@ -265,7 +261,7 @@ void ClientManager::addClientListFromJSON(
     auto config = json::parse(jsonString);
     if (config.is_null()) { return; }
     if (!config.is_array()) {
-        throw Exception(
+        throw DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ClientManager::addClientListFromJSON (expected array)");
     }

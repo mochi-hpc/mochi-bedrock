@@ -7,6 +7,6 @@ Name: bedrock-client
 Description: <insert description here>
 Version: @BEDROCK_VERSION@
 
-Requires: thallium
+Requires: thallium spdlog nlohmann_json fmt
 Libs: -L${libdir} @CLIENT_PRIVATE_LIBS@ -lstdc++
 Cflags: -I${includedir}

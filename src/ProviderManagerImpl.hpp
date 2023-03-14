@@ -11,7 +11,7 @@
 #include "bedrock/DependencyMap.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
-#include "bedrock/ProviderWrapper.hpp"
+#include "bedrock/ProviderDescriptor.hpp"
 #include "bedrock/Exception.hpp"
 
 #include <thallium/serialization/stl/vector.hpp>
@@ -29,30 +29,50 @@ using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
 
-class ProviderEntry : public ProviderWrapper {
-  public:
-    std::shared_ptr<MargoManagerImpl> margo_ctx;
-    ABT_pool                          pool;
-    ResolvedDependencyMap             dependencies;
+class ProviderEntry : public NamedDependency {
+
+    public:
+
+    std::shared_ptr<NamedDependency> pool;
+    ResolvedDependencyMap            dependencies;
+    uint16_t                         provider_id;
+    AbstractServiceFactory*          factory = nullptr;
+
+    ProviderEntry(
+        std::string name, std::string type, uint16_t provider_id,
+        void* handle, AbstractServiceFactory* factory,
+        std::shared_ptr<NamedDependency> pool,
+        ResolvedDependencyMap deps)
+    : NamedDependency(std::move(name), std::move(type), handle,
+        [factory](void* handle) {
+            if(factory) factory->deregisterProvider(handle);
+        })
+    , pool(std::move(pool))
+    , dependencies(std::move(deps))
+    , provider_id(provider_id)
+    , factory(factory)
+    {}
 
     json makeConfig() const {
         auto c            = json::object();
-        c["name"]         = name;
-        c["type"]         = type;
+        c["name"]         = getName();
+        c["type"]         = getType();
         c["provider_id"]  = provider_id;
-        c["pool"]         = MargoManager(margo_ctx).getPoolInfo(pool).first;
-        c["config"]       = json::parse(factory->getProviderConfig(handle));
+        c["pool"]         = pool->getName();
+        c["config"]       = json::parse(factory->getProviderConfig(getHandle<void*>()));
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];
         for (auto& p : dependencies) {
             auto& dep_name  = p.first;
-            auto& dep_array = p.second;
-            if (dep_array.size() == 0) continue;
-            if (!(dep_array[0].flags & BEDROCK_ARRAY)) {
-                d[dep_name] = dep_array[0].spec;
+            auto& dep_group = p.second;
+            if (dep_group.dependencies.size() == 0) continue;
+            if (!dep_group.is_array) {
+                d[dep_name] = dep_group.dependencies[0]->getName();
             } else {
                 d[dep_name] = json::array();
-                for (auto& x : dep_array) { d[dep_name].push_back(x.spec); }
+                for (auto& x : dep_group.dependencies) {
+                    d[dep_name].push_back(x->getName());
+                }
             }
         }
         return c;
@@ -64,10 +84,10 @@ class ProviderManagerImpl
   public std::enable_shared_from_this<ProviderManagerImpl> {
 
   public:
-    std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
-    std::vector<ProviderEntry>            m_providers;
-    mutable tl::mutex                     m_providers_mtx;
-    mutable tl::condition_variable        m_providers_cv;
+    std::shared_ptr<DependencyFinderImpl>       m_dependency_finder;
+    std::vector<std::shared_ptr<ProviderEntry>> m_providers;
+    mutable tl::mutex                           m_providers_mtx;
+    mutable tl::condition_variable              m_providers_cv;
 
     std::shared_ptr<MargoManagerImpl> m_margo_context;
 
@@ -75,6 +95,7 @@ class ProviderManagerImpl
     tl::remote_procedure m_list_providers;
     tl::remote_procedure m_load_module;
     tl::remote_procedure m_start_provider;
+    tl::remote_procedure m_change_provider_pool;
 
     ProviderManagerImpl(const tl::engine& engine, uint16_t provider_id,
                         const tl::pool& pool)
@@ -86,7 +107,10 @@ class ProviderManagerImpl
       m_load_module(define("bedrock_load_module",
                            &ProviderManagerImpl::loadModuleRPC, pool)),
       m_start_provider(define("bedrock_start_provider",
-                              &ProviderManagerImpl::startProviderRPC, pool)) {
+                              &ProviderManagerImpl::startProviderRPC, pool)),
+      m_change_provider_pool(define("bedrock_change_provider_pool",
+                              &ProviderManagerImpl::changeProviderPoolRPC, pool))
+    {
         spdlog::trace("ProviderManagerImpl initialized");
     }
 
@@ -95,14 +119,15 @@ class ProviderManagerImpl
         m_list_providers.deregister();
         m_load_module.deregister();
         m_start_provider.deregister();
+        m_change_provider_pool.deregister();
         spdlog::trace("ProviderManagerImpl destroyed");
     }
 
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),
-                            [&type, &provider_id](const ProviderWrapper& item) {
-                                return item.type == type
-                                    && item.provider_id == provider_id;
+                            [&type, &provider_id](const auto& p) {
+                                return p->getType() == type
+                                    && p->provider_id == provider_id;
                             });
     }
 
@@ -111,8 +136,8 @@ class ProviderManagerImpl
         decltype(m_providers.begin()) it;
         if (column == std::string::npos) {
             it = std::find_if(m_providers.begin(), m_providers.end(),
-                              [&spec](const ProviderWrapper& item) {
-                                  return item.name == spec;
+                              [&spec](const auto& p) {
+                                  return p->getName() == spec;
                               });
         } else {
             auto     type            = spec.substr(0, column);
@@ -126,29 +151,29 @@ class ProviderManagerImpl
     json makeConfig() const {
         auto                       config = json::array();
         std::lock_guard<tl::mutex> lock(m_providers_mtx);
-        for (auto& p : m_providers) { config.push_back(p.makeConfig()); }
+        for (auto& p : m_providers) { config.push_back(p->makeConfig()); }
         return config;
     }
 
   private:
     void lookupProviderRPC(const tl::request& req, const std::string& spec,
                            double timeout) {
-        auto            manager = ProviderManager(shared_from_this());
-        double          t1      = tl::timer::wtime();
-        ProviderWrapper wrapper;
+        double  t1 = tl::timer::wtime();
         RequestResult<ProviderDescriptor> result;
-        bool found = manager.lookupProvider(spec, &wrapper);
-        if (!found && timeout > 0) {
-            std::unique_lock<tl::mutex> lock(m_providers_mtx);
-            m_providers_cv.wait(lock, [this, &spec, t1, timeout]() {
+        std::unique_lock<tl::mutex> lock(m_providers_mtx);
+        auto it = resolveSpec(spec);
+        if (it == m_providers.end() && timeout > 0) {
+            m_providers_cv.wait(lock, [this, &spec, t1, timeout, &it]() {
+                // FIXME doesn't wake up when timeout passes
                 double t2 = tl::timer::wtime();
-                return (t2 - t1 > timeout)
-                    || (resolveSpec(spec) != m_providers.end());
+                it = resolveSpec(spec);
+                return (t2 - t1 > timeout) || (it != m_providers.end());
             });
-            found = manager.lookupProvider(spec, &wrapper);
         }
-        if (found) {
-            result.value() = wrapper;
+        if (it != m_providers.end()) {
+            auto& provider = *it;
+            result.value().name = provider->getName();
+            result.value().provider_id = provider->provider_id;
         } else {
             result.error()
                 = "Could not find provider with spec \""s + spec + "\"";
@@ -195,6 +220,19 @@ class ProviderManagerImpl
         } catch (std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();
+        }
+        req.respond(result);
+    }
+
+    void changeProviderPoolRPC(const tl::request& req, const std::string& name,
+                               const std::string& pool) {
+        RequestResult<bool> result;
+        auto                manager = ProviderManager(shared_from_this());
+        try {
+            manager.changeProviderPool(name, pool);
+        } catch (Exception& ex) {
+            result.success() = false;
+            result.error() = ex.what();
         }
         req.respond(result);
     }

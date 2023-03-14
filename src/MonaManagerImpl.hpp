@@ -22,32 +22,33 @@ namespace bedrock {
 
 using nlohmann::json;
 
-class MonaEntry {
-  public:
+class MonaEntry : public NamedDependency {
+
+    public:
+
 #ifdef ENABLE_MONA
-    std::string                       name;
-    ABT_pool                          pool = ABT_POOL_NULL;
-    mona_instance_t                   mona = nullptr;
-    std::shared_ptr<MargoManagerImpl> margo_ctx;
+    std::shared_ptr<NamedDependency> pool;
 
     MonaEntry(const MonaEntry&) = delete;
+    MonaEntry(MonaEntry&&) = delete;
 
-    MonaEntry(MonaEntry&& other)
-    : name(std::move(other.name))
-    , pool(other.pool)
-    , mona(other.mona)
-    , margo_ctx(std::move(other.margo_ctx)) {
-        other.mona = nullptr;
+    template<typename S>
+    MonaEntry(S&& name, mona_instance_t mona, std::shared_ptr<NamedDependency> p)
+    : NamedDependency(std::move(name), "mona", mona, releaseMonaInstance)
+    , pool(std::move(p)) {}
+
+    static void releaseMonaInstance(void* args) {
+        auto mona_id = static_cast<mona_instance_t>(args);
+        mona_finalize(mona_id);
     }
 #endif
-
-    MonaEntry() = default;
 
     json makeConfig() const {
         json config      = json::object();
 #ifdef ENABLE_MONA
-        config["name"]   = name;
-        config["pool"]   = MargoManager(margo_ctx).getPoolInfo(pool).first;
+        config["name"]   = getName();
+        config["pool"]   = pool->getName();
+        auto mona = getHandle<mona_instance_t>();
         na_addr_t self_addr;
         na_return_t ret = mona_addr_self(mona, &self_addr);
         if(ret != NA_SUCCESS) {
@@ -65,15 +66,9 @@ class MonaEntry {
         return config;
     }
 
-#ifdef ENABLE_MONA
     ~MonaEntry() {
-        if(mona) {
-            spdlog::trace("Finalizing MoNA instance {}", name);
-            mona_finalize(mona);
-            spdlog::trace("Done finalizing MoNA instance {}", name);
-        }
+        spdlog::trace("Finalizing MoNA instance {}", getName());
     }
-#endif
 };
 
 class MonaManagerImpl {
@@ -81,12 +76,13 @@ class MonaManagerImpl {
     friend class MonaManager;
 
   public:
-    std::shared_ptr<MargoManagerImpl> m_margo_manager;
-    std::vector<MonaEntry>            m_instances;
+    std::shared_ptr<MargoManagerImpl>       m_margo_manager;
+    std::vector<std::shared_ptr<MonaEntry>> m_instances;
+    tl::mutex                               m_mtx;
 
     json makeConfig() const {
         json config = json::array();
-        for (auto& i : m_instances) { config.push_back(i.makeConfig()); }
+        for (auto& i : m_instances) { config.push_back(i->makeConfig()); }
         return config;
     }
 

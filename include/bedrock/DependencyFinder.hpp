@@ -11,7 +11,6 @@
 #include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
-#include <bedrock/VoidPtr.hpp>
 #include <string>
 #include <memory>
 
@@ -98,8 +97,9 @@ class DependencyFinder {
      *
      * @return handle to dependency
      */
-    VoidPtr find(const std::string& type, const std::string& spec,
-                 std::string* resolved = nullptr) const;
+    std::shared_ptr<NamedDependency>
+        find(const std::string& type, const std::string& spec,
+             std::string* resolved) const;
 
     /**
      * @brief Find a local provider based on a type and provider id.
@@ -110,7 +110,8 @@ class DependencyFinder {
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr findProvider(const std::string& type, uint16_t provider_id) const;
+    std::shared_ptr<NamedDependency> findProvider(
+            const std::string& type, uint16_t provider_id) const;
 
     /**
      * @brief Find a local provider based on a name.
@@ -122,8 +123,9 @@ class DependencyFinder {
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr findProvider(const std::string& type, const std::string& name,
-                         uint16_t* provider_id = nullptr) const;
+    std::shared_ptr<NamedDependency> findProvider(
+            const std::string& type, const std::string& name,
+            uint16_t* provider_id = nullptr) const;
 
     /**
      * @brief Find client with a given name. The returned
@@ -138,18 +140,17 @@ class DependencyFinder {
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr findClient(const std::string& type, const std::string& name,
-                       std::string* found_name = nullptr) const;
+    std::shared_ptr<NamedDependency> findClient(
+            const std::string& type, const std::string& name) const;
 
     /**
-     * @brief Get an admin of a given type. The returned
-     * handle will remain valid until the program terminates.
+     * @brief Get an admin of a given type.
      *
      * @param type Type of admin.
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr getAdmin(const std::string& type) const;
+    std::shared_ptr<NamedDependency> getAdmin(const std::string& type) const;
 
     /**
      * @brief Make a provider handle to a specified provider.
@@ -168,10 +169,11 @@ class DependencyFinder {
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr makeProviderHandle(const std::string& client_name,
-                               const std::string& type, uint16_t provider_id,
-                               const std::string& locator,
-                               std::string*       resolved = nullptr) const;
+    std::shared_ptr<NamedDependency>
+        makeProviderHandle(const std::string& client_name,
+                           const std::string& type, uint16_t provider_id,
+                           const std::string& locator,
+                           std::string* resolved) const;
 
     /**
      * @brief Make a provider handle to a specified provider.
@@ -190,10 +192,11 @@ class DependencyFinder {
      *
      * @return An abstract pointer to the dependency.
      */
-    VoidPtr makeProviderHandle(const std::string& client_name,
-                               const std::string& type, const std::string& name,
-                               const std::string& locator,
-                               std::string*       resolved = nullptr) const;
+    std::shared_ptr<NamedDependency> makeProviderHandle(
+            const std::string& client_name,
+            const std::string& type, const std::string& name,
+            const std::string& locator,
+            std::string* resolved) const;
 
   private:
     std::shared_ptr<DependencyFinderImpl> self;

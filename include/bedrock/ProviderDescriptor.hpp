@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_PROVIDER_WRAPPER_HPP
-#define __BEDROCK_PROVIDER_WRAPPER_HPP
+#ifndef __BEDROCK_PROVIDER_DESC_HPP
+#define __BEDROCK_PROVIDER_DESC_HPP
 
 #include <string>
 #include <thallium/serialization/stl/string.hpp>
@@ -23,16 +23,6 @@ struct ProviderDescriptor {
     uint16_t    provider_id; // provider id
 
     template <typename A> void serialize(A& ar) { ar(name, type, provider_id); }
-};
-
-/**
- * @brief A ProviderWrapper is an object that wraps a void*
- * pointer representing a provider created by a module.
- */
-struct ProviderWrapper : ProviderDescriptor {
-
-    void*                   handle  = nullptr; // provider
-    AbstractServiceFactory* factory = nullptr; // factory
 };
 
 } // namespace bedrock

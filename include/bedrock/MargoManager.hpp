@@ -8,6 +8,7 @@
 
 #include <thallium.hpp>
 #include <memory>
+#include <bedrock/NamedDependency.hpp>
 
 namespace bedrock {
 
@@ -37,7 +38,7 @@ class MargoManager {
     friend class ClientManager;
     friend class DependencyFinder;
     friend class SSGManager;
-    friend class SSGData;
+    friend class SSGEntry;
     friend class MonaEntry;
     friend class MonaManager;
     friend class ABTioEntry;
@@ -46,6 +47,7 @@ class MargoManager {
     friend class ServerImpl;
 
   public:
+
     /**
      * @brief Constructor from an existing Margo instance.
      *
@@ -109,17 +111,22 @@ class MargoManager {
     /**
      * @brief Get the default handle pool from Margo.
      */
-    ABT_pool getDefaultHandlerPool() const;
-
-    /**
-     * @brief Get the pool corresponding to a particular index.
-     */
-    ABT_pool getPool(int index) const;
+    std::shared_ptr<NamedDependency> getDefaultHandlerPool() const;
 
     /**
      * @brief Get the pool corresponding to a particular name.
      */
-    ABT_pool getPool(const std::string& name) const;
+    std::shared_ptr<NamedDependency> getPool(const std::string& name) const;
+
+    /**
+     * @brief Get the pool corresponding to a particular index.
+     */
+    std::shared_ptr<NamedDependency> getPool(uint32_t index) const;
+
+    /**
+     * @brief Get the pool corresponding to a particular handle.
+     */
+    std::shared_ptr<NamedDependency> getPool(ABT_pool pool) const;
 
     /**
      * @brief Get the number of pools.
@@ -127,12 +134,71 @@ class MargoManager {
     size_t getNumPools() const;
 
     /**
-     * @brief Resolve an ABT_pool handle to a <name, index> pair,
-     * or <"",-1> if the pool wasn't recognized.
-     *
-     * @param pool Pool
+     * @brief Add a pool from a JSON configuration, returning
+     * the corresponding PoolInfo object.
      */
-    std::pair<std::string, int> getPoolInfo(ABT_pool pool) const;
+    std::shared_ptr<NamedDependency>
+        addPool(const std::string& config);
+
+    /**
+     * @brief Remove a pool by its name.
+     */
+    void removePool(const std::string& name);
+
+    /**
+     * @brief Remove a pool by its index.
+     */
+    void removePool(uint32_t index);
+
+    /**
+     * @brief Remove a pool by its handle.
+     */
+    void removePool(ABT_pool pool);
+
+    /**
+     * @brief Get the xstream corresponding to a particular name.
+     */
+    std::shared_ptr<NamedDependency>
+        getXstream(const std::string& name) const;
+
+    /**
+     * @brief Get the xstream corresponding to a particular index.
+     */
+    std::shared_ptr<NamedDependency>
+        getXstream(uint32_t index) const;
+
+    /**
+     * @brief Get the xstream corresponding to a particular handle.
+     */
+    std::shared_ptr<NamedDependency>
+        getXstream(ABT_xstream es) const;
+
+    /**
+     * @brief Get the number of pools.
+     */
+    size_t getNumXstreams() const;
+
+    /**
+     * @brief Add an ES from a JSON configuration, returning
+     * the corresponding XstreamInfo object.
+     */
+    std::shared_ptr<NamedDependency>
+        addXstream(const std::string& config);
+
+    /**
+     * @brief Remove an ES by its index.
+     */
+    void removeXstream(uint32_t index);
+
+    /**
+     * @brief Remove an xstream by its name.
+     */
+    void removeXstream(const std::string& name);
+
+    /**
+     * @brief Remove an xstream by its handle.
+     */
+    void removeXstream(ABT_xstream xstream);
 
     /**
      * @brief Return the current JSON configuration.

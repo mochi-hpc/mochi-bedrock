@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_DEPENDENCY_WRAPPER_HPP
-#define __BEDROCK_DEPENDENCY_WRAPPER_HPP
+#ifndef __BEDROCK_VOID_PTR_HPP
+#define __BEDROCK_VOID_PTR_HPP
 
 #include <functional>
 

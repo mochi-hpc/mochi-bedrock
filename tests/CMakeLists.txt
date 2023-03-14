@@ -1,17 +1,18 @@
-include_directories(../include)
+file (GLOB test-sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file (GLOB test-module-sources ${CMAKE_CURRENT_SOURCE_DIR}/modules/*.cpp)
 
-#add_library(bedrock-test Main.cpp)
-#target_link_libraries(bedrock-test cppunit bedrock-server bedrock-admin bedrock-client)
+configure_file (ValidConfigs.json ValidConfigs.json COPYONLY)
+configure_file (InvalidConfigs.json InvalidConfigs.json COPYONLY)
 
-#add_executable(AdminTest AdminTest.cpp)
-#target_link_libraries(AdminTest bedrock-test)
+foreach (test-module-source ${test-module-sources})
+    get_filename_component (name ${test-module-source} NAME_WE)
+    add_library (${name} SHARED ${test-module-source})
+    target_link_libraries (${name} PRIVATE bedrock-server coverage_config)
+endforeach ()
 
-#add_executable(ClientTest AdminTest.cpp)
-#target_link_libraries(ClientTest bedrock-test)
-
-#add_executable(ServiceTest ServiceTest.cpp)
-#target_link_libraries(ServiceTest bedrock-test)
-
-#add_test(NAME AdminTest COMMAND ./AdminTest AdminTest.xml)
-#add_test(NAME ClientTest COMMAND ./ClientTest ClientTest.xml)
-#add_test(NAME ServiceTest COMMAND ./ServiceTest ServiceTest.xml)
+foreach (test-source ${test-sources})
+    get_filename_component (name ${test-source} NAME_WE)
+    add_executable (Test${name} ${test-source})
+    target_link_libraries (Test${name} PRIVATE Catch2::Catch2WithMain bedrock-server bedrock-client coverage_config)
+    add_test (NAME Test${name} COMMAND ./Test${name})
+endforeach ()

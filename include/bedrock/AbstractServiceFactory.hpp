@@ -8,6 +8,8 @@
 
 #include <bedrock/module.h>
 #include <bedrock/ModuleContext.hpp>
+#include <bedrock/Exception.hpp>
+#include <bedrock/NamedDependency.hpp>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -31,13 +33,12 @@ struct Dependency {
     int32_t     flags;
 };
 
-struct ResolvedDependency : public Dependency {
-    std::string spec;
-    void*       handle;
+struct DependencyGroup {
+    bool                                          is_array;
+    std::vector<std::shared_ptr<NamedDependency>> dependencies;
 };
 
-typedef std::unordered_map<std::string, std::vector<ResolvedDependency>>
-    ResolvedDependencyMap;
+typedef std::unordered_map<std::string, DependencyGroup> ResolvedDependencyMap;
 
 /**
  * @brief This structure is passed to a factory's registerProvider function
@@ -62,6 +63,7 @@ struct FactoryArgs {
 class AbstractServiceFactory {
 
   public:
+
     /**
      * @brief Constructor.
      */
@@ -116,6 +118,20 @@ class AbstractServiceFactory {
      * @return the string configuration.
      */
     virtual std::string getProviderConfig(void* provider) = 0;
+
+    /**
+     * @brief Change pool used by a provider.
+     *
+     * @param provider Provider.
+     * @param new_pool New Argobots pool.
+     *
+     * This function may throw a bedrock::Exception if the change was not possible.
+     */
+    virtual void changeProviderPool(void* provider, ABT_pool new_pool) {
+        (void)provider;
+        (void)new_pool;
+        throw Exception{"Changing pool not supported for this provider"};
+    }
 
     /**
      * @brief Register a client for the service.

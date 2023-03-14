@@ -38,8 +38,8 @@ void* bedrock_args_get_dependency(bedrock_args_t args, const char* name,
     auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
     auto it = a->dependencies.find(name);
     if (it == a->dependencies.end()) { return nullptr; }
-    if (index >= it->second.size()) return nullptr;
-    return it->second[index].handle;
+    if (index >= it->second.dependencies.size()) return nullptr;
+    return it->second.dependencies[index]->getHandle<void*>();
 }
 
 size_t bedrock_args_get_num_dependencies(bedrock_args_t args,
@@ -47,6 +47,6 @@ size_t bedrock_args_get_num_dependencies(bedrock_args_t args,
     auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
     auto it = a->dependencies.find(name);
     if (it == a->dependencies.end()) { return 0; }
-    return it->second.size();
+    return it->second.dependencies.size();
 }
 }

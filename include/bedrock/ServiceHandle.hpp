@@ -98,6 +98,17 @@ class ServiceHandle {
                        AsyncRequest*        req          = nullptr) const;
 
     /**
+     * @brief Request that a provider change its pool for another one.
+     *
+     * @param provider_name Name of the provider.
+     * @param pool_name Name of the new pool.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void changeProviderPool(const std::string& provider_name,
+                            const std::string& pool_name,
+                            AsyncRequest*      req = nullptr) const;
+
+    /**
      * @brief Creates a client on the target service daemon.
      *
      * @param name Name of the new client.
@@ -132,6 +143,47 @@ class ServiceHandle {
      */
     void addSSGgroup(const std::string& config,
                      AsyncRequest*      req = nullptr) const;
+
+
+    /**
+     * @brief Adds an Argobots pool to the Margo instance of
+     * the target service.
+     *
+     * @param config JSON configuration of the pool.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void addPool(const std::string& config,
+                 AsyncRequest*      req = nullptr) const;
+
+    /**
+     * @brief Adds an Argobots xstream to the Margo instance of
+     * the target service.
+     *
+     * @param config JSON configuration of the ES.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void addXstream(const std::string& config,
+                    AsyncRequest*      req = nullptr) const;
+
+    /**
+     * @brief Removes an Argobots pool from the Margo instance of
+     * the target service.
+     *
+     * @param name Name of the pool to remove.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void removePool(const std::string& name,
+                    AsyncRequest*      req = nullptr) const;
+
+    /**
+     * @brief Removes an Argobots xstream from the Margo instance of
+     * the target service.
+     *
+     * @param name Name of the ES to remove.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void removeXstream(const std::string& name,
+                       AsyncRequest*      req = nullptr) const;
 
     /**
      * @brief Get the JSON configuration of a service process.

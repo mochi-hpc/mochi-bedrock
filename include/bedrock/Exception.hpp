@@ -25,6 +25,10 @@ class Exception : public std::exception {
     virtual const char* what() const noexcept override {
         return m_error.c_str();
     }
+
+    virtual const char* details() const noexcept {
+        return "";
+    }
 };
 
 } // namespace bedrock
