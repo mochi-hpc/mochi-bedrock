@@ -43,13 +43,18 @@ AsyncRequest& AsyncRequest::operator=(AsyncRequest&& other) {
 void AsyncRequest::wait() const {
     if (not self) throw Exception("Invalid bedrock::AsyncRequest object");
     if (self->m_waited) return;
-    self->m_wait_callback(*self);
     self->m_waited = true;
+    self->m_wait_callback(*self);
 }
 
 bool AsyncRequest::completed() const {
     if (not self) throw Exception("Invalid bedrock::AsyncRequest object");
     return self->m_async_response.received();
+}
+
+bool AsyncRequest::active() const {
+    if (not self) return false;
+    return !self->m_waited;
 }
 
 } // namespace bedrock

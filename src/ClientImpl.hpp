@@ -40,7 +40,7 @@ class ClientImpl {
       m_create_abtio(m_engine.define("bedrock_create_abtio")),
       m_add_ssg_group(m_engine.define("bedrock_add_ssg_group")),
       m_add_pool(m_engine.define("bedrock_add_pool")),
-      m_add_xstream(m_engine.define("bedrock_add_pool")),
+      m_add_xstream(m_engine.define("bedrock_add_xstream")),
       m_remove_pool(m_engine.define("bedrock_remove_pool")),
       m_remove_xstream(m_engine.define("bedrock_remove_xstream"))
     {}

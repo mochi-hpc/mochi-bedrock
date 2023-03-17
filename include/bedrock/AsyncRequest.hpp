@@ -64,6 +64,14 @@ class AsyncRequest {
     bool completed() const;
 
     /**
+     * @brief Returns whether the AsyncRequest object is associated
+     * with a pending operation. If true, the wait() function needs
+     * to be invoked before the request can be reused for another
+     * call.
+     */
+    bool active() const;
+
+    /**
      * @brief Checks if the object is valid.
      */
     operator bool() const;

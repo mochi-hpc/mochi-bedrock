@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include <bedrock/Server.hpp>
+#include <bedrock/Client.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>
 
@@ -20,8 +21,6 @@ static void cleanupOutputConfig(json& config) {
 
 TEST_CASE("Tests Server initialization", "[init-json]") {
 
-    //spdlog::set_level(spdlog::level::from_str("trace"));
-
     SECTION("Default initialization") {
         bedrock::Server server("na+sm");
         server.finalize();
@@ -40,9 +39,33 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
             auto expected_config = jf[i]["output"];
             try {
                 bedrock::Server server("na+sm", input_config);
-                auto output_config = json::parse(server.getCurrentConfig());
-                cleanupOutputConfig(output_config);
-                REQUIRE(output_config == expected_config);
+                SECTION("Get configuration directly from Server object") {
+                    auto output_config = json::parse(server.getCurrentConfig());
+                    cleanupOutputConfig(output_config);
+                    REQUIRE(output_config == expected_config);
+                }
+                SECTION("Get configuration synchronously using a Client") {
+                    auto& engine = server.getMargoManager().getThalliumEngine();
+                    bedrock::Client client(engine);
+                    auto service_handle = client.makeServiceHandle(engine.self(), 0);
+                    std::string output_config_str;
+                    service_handle.getConfig(&output_config_str);
+                    auto output_config = json::parse(output_config_str);
+                    cleanupOutputConfig(output_config);
+                    REQUIRE(output_config == expected_config);
+                }
+                SECTION("Get configuration asynchronously using a Client") {
+                    auto& engine = server.getMargoManager().getThalliumEngine();
+                    bedrock::Client client(engine);
+                    auto service_handle = client.makeServiceHandle(engine.self(), 0);
+                    std::string output_config_str;
+                    bedrock::AsyncRequest req;
+                    service_handle.getConfig(&output_config_str, &req);
+                    req.wait();
+                    auto output_config = json::parse(output_config_str);
+                    cleanupOutputConfig(output_config);
+                    REQUIRE(output_config == expected_config);
+                }
             } catch(bedrock::Exception& ex) {
                 INFO("Details: " << ex.details());
                 throw;

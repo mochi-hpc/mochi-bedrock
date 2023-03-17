@@ -45,6 +45,9 @@ Client ServiceHandle::client() const { return Client(self->m_client); }
         RequestResult<bool> response = rpc.on(ph)(__VA_ARGS__); \
         if (!response.success()) { throw DETAILED_EXCEPTION(response.error()); } \
     } else { \
+        if (req->active()) { \
+            throw DETAILED_EXCEPTION("AsyncRequest object passed is already in use"); \
+        }; \
         auto async_response = rpc.on(ph).async(__VA_ARGS__); \
         auto async_request_impl \
             = std::make_shared<AsyncRequestImpl>(std::move(async_response)); \
