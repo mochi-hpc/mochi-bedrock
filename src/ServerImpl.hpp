@@ -43,8 +43,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
 
     tl::remote_procedure m_get_config_rpc;
     tl::remote_procedure m_query_config_rpc;
-    tl::remote_procedure m_create_client_rpc;
-    tl::remote_procedure m_create_abtio_rpc;
+    tl::remote_procedure m_add_client_rpc;
+    tl::remote_procedure m_add_abtio_rpc;
     tl::remote_procedure m_add_ssg_group_rpc;
 
     tl::remote_procedure m_add_pool_rpc;
@@ -62,10 +62,10 @@ class ServerImpl : public tl::provider<ServerImpl> {
           define("bedrock_get_config", &ServerImpl::getConfigRPC, m_tl_pool)),
       m_query_config_rpc(
           define("bedrock_query_config", &ServerImpl::queryConfigRPC, m_tl_pool)),
-      m_create_client_rpc(
-          define("bedrock_create_client", &ServerImpl::createClientRPC, m_tl_pool)),
-      m_create_abtio_rpc(
-          define("bedrock_create_abtio", &ServerImpl::createABTioRPC, m_tl_pool)),
+      m_add_client_rpc(
+          define("bedrock_add_client", &ServerImpl::addClientRPC, m_tl_pool)),
+      m_add_abtio_rpc(
+          define("bedrock_add_abtio", &ServerImpl::addABTioRPC, m_tl_pool)),
       m_add_ssg_group_rpc(
           define("bedrock_add_ssg_group", &ServerImpl::addSSGgroupRPC, m_tl_pool)),
       m_add_pool_rpc(
@@ -81,8 +81,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
     ~ServerImpl() {
         m_get_config_rpc.deregister();
         m_query_config_rpc.deregister();
-        m_create_client_rpc.deregister();
-        m_create_abtio_rpc.deregister();
+        m_add_client_rpc.deregister();
+        m_add_abtio_rpc.deregister();
         m_add_ssg_group_rpc.deregister();
         m_add_pool_rpc.deregister();
         m_add_xstream_rpc.deregister();
@@ -126,9 +126,9 @@ class ServerImpl : public tl::provider<ServerImpl> {
         req.respond(result);
     }
 
-    void createClientRPC(const tl::request& req, const std::string& name,
-                         const std::string& type, const std::string& config,
-                         const DependencyMap& dependencies) {
+    void addClientRPC(const tl::request& req, const std::string& name,
+                      const std::string& type, const std::string& config,
+                      const DependencyMap& dependencies) {
         RequestResult<bool> result;
         json                jsonconfig;
         try {
@@ -165,8 +165,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
         req.respond(result);
     }
 
-    void createABTioRPC(const tl::request& req, const std::string& name,
-                        const std::string& pool, const std::string& config) {
+    void addABTioRPC(const tl::request& req, const std::string& name,
+                     const std::string& pool, const std::string& config) {
         RequestResult<bool> result;
         result.success() = true;
         try {

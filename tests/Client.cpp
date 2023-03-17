@@ -105,6 +105,30 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             serviceHandle.removeXstream("something", &req);
             REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }
+
+        SECTION("Add and remove ABT-IO instances remotely") {
+            // add ABT-IO instance synchronously
+            serviceHandle.addABTioInstance("my_abt_io1", "__primary__");
+            auto output_config = json::parse(server.getCurrentConfig());
+            auto abt_io = output_config["abt_io"];
+            REQUIRE(std::find_if(abt_io.begin(), abt_io.end(),
+                    [](auto& x) { return x["name"] == "my_abt_io1"; })
+                    != abt_io.end());
+            // add ABT-IO instance asynchronously
+            bedrock::AsyncRequest req;
+            serviceHandle.addABTioInstance("my_abt_io2", "__primary__", "{}", &req);
+            req.wait();
+            output_config = json::parse(server.getCurrentConfig());
+            abt_io = output_config["abt_io"];
+            REQUIRE(std::find_if(abt_io.begin(), abt_io.end(),
+                    [](auto& x) { return x["name"] == "my_abt_io2"; })
+                    != abt_io.end());
+            // add ABT-IO instance with invalid configuration
+            REQUIRE_THROWS_AS(
+                serviceHandle.addABTioInstance("my_abt_io3", "__primary__", "1234"),
+                bedrock::Exception);
+            // TODO: add removal when we have the functionality for it
+        }
     }
     server.finalize();
 }
