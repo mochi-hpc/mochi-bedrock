@@ -129,6 +129,25 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
                 bedrock::Exception);
             // TODO: add removal when we have the functionality for it
         }
+
+        SECTION("Load a library") {
+            // load libModuleA.so synchronously
+            serviceHandle.loadModule("module_a", "libModuleA.so");
+            REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
+            // load libModuleA.so asynchronously
+            bedrock::AsyncRequest req;
+            serviceHandle.loadModule("module_b", "libModuleB.so", &req);
+            req.wait();
+            REQUIRE(bedrock::ModuleContext::getServiceFactory("module_b") != nullptr);
+            // load libModuleC.so, which does not exist
+            REQUIRE_THROWS_AS(
+                serviceHandle.loadModule("module_c", "libModuleC.so"),
+                bedrock::Exception);
+        }
+
+        SECTION("Add and remove providers") {
+            // load 
+        }
     }
     server.finalize();
 }
