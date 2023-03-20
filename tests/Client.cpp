@@ -146,7 +146,37 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
         }
 
         SECTION("Add and remove providers") {
-            // load 
+            // load module_a
+            serviceHandle.loadModule("module_a", "libModuleA.so");
+            REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
+            // create a provider of type module_a
+            serviceHandle.startProvider("my_provider_a1", "module_a", 123);
+            auto output_config = json::parse(server.getCurrentConfig());
+            auto providers = output_config["providers"];
+            REQUIRE(std::find_if(providers.begin(), providers.end(),
+                    [](auto& p) { return p["name"] == "my_provider_a1"; })
+                    != providers.end());
+            // TODO delete the provider
+
+            // create a provider with the non-blocking API
+            bedrock::AsyncRequest req;
+            serviceHandle.startProvider("my_provider_a2", "module_a", 34, "__primary__", "{}",
+                    bedrock::DependencyMap(), &req);
+            req.wait();
+            output_config = json::parse(server.getCurrentConfig());
+            providers = output_config["providers"];
+            REQUIRE(std::find_if(providers.begin(), providers.end(),
+                    [](auto& p) { return p["name"] == "my_provider_a2"; })
+                    != providers.end());
+            // TODO delete the provider
+
+            // create a provider of an invalid type
+            REQUIRE_THROWS_AS(
+                serviceHandle.startProvider("my_provider_c", "module_c", 234),
+                bedrock::Exception);
+            // create a provider of an invalid type asynchronously
+            serviceHandle.startProvider("my_provider_c", "module_c", 234, "", "{}", bedrock::DependencyMap(), &req);
+            REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }
     }
     server.finalize();
