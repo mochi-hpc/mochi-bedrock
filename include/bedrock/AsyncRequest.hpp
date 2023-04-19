@@ -13,6 +13,7 @@ namespace bedrock {
 
 class AsyncRequestImpl;
 class ServiceHandle;
+class ServiceGroupHandle;
 
 /**
  * @brief AsyncRequest objects are used to keep track of
@@ -21,6 +22,7 @@ class ServiceHandle;
 class AsyncRequest {
 
     friend ServiceHandle;
+    friend ServiceGroupHandle;
 
   public:
     /**

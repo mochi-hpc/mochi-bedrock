@@ -1,0 +1,41 @@
+/*
+ * (C) 2023 The University of Chicago
+ *
+ * See COPYRIGHT in top-level directory.
+ */
+#ifndef __ALPHA_SERVICE_GROUP_HANDLE_IMPL_H
+#define __ALPHA_SERVICE_GROUP_HANDLE_IMPL_H
+
+#include "ClientImpl.hpp"
+#include "ServiceHandleImpl.hpp"
+#ifdef ENABLE_SSG
+#include <ssg.h>
+#endif
+
+namespace bedrock {
+
+class ServiceGroupHandleImpl {
+
+  public:
+    std::shared_ptr<ClientImpl>                     m_client;
+    std::vector<std::shared_ptr<ServiceHandleImpl>> m_shs;
+#ifdef ENABLE_SSG
+    ssg_group_id_t                                  m_gid = SSG_GROUP_ID_INVALID;
+#endif
+
+    ServiceGroupHandleImpl() = default;
+
+    ServiceGroupHandleImpl(std::shared_ptr<ClientImpl> client,
+                      std::vector<std::shared_ptr<ServiceHandleImpl>> shs)
+    : m_client(std::move(client)), m_shs(std::move(shs)) {}
+
+    ~ServiceGroupHandleImpl() {
+#ifdef ENABLE_SSG
+       ssg_group_destroy(m_gid);
+#endif
+    }
+};
+
+} // namespace bedrock
+
+#endif

@@ -1,10 +1,10 @@
 /*
- * (C) 2020 The University of Chicago
+ * (C) 2023 The University of Chicago
  *
  * See COPYRIGHT in top-level directory.
  */
-#ifndef __BEDROCK_SERVICE_HANDLE_HPP
-#define __BEDROCK_SERVICE_HANDLE_HPP
+#ifndef __BEDROCK_SERVICE_GROUP_HANDLE_HPP
+#define __BEDROCK_SERVICE_GROUP_HANDLE_HPP
 
 #include <bedrock/Client.hpp>
 #include <bedrock/Exception.hpp>
@@ -24,48 +24,47 @@ namespace bedrock {
 namespace tl = thallium;
 
 class Client;
-class ServiceHandleImpl;
-class ServiceGroupHandle;
+class ServiceGroupHandleImpl;
 
 /**
- * @brief A ServiceHandle object is a handle for a remote resource
- * on a server. It enables invoking the resource's functionalities.
+ * @brief A ServiceGroupHandle object is a handle for a remote resource
+ * on a set of servers. It enables invoking functionalities on all the
+ * underlying ServiceHandles.
  */
-class ServiceHandle {
+class ServiceGroupHandle {
 
     friend class Client;
-    friend class ServiceGroupHandle;
 
   public:
     /**
-     * @brief Constructor. The resulting ServiceHandle handle will be invalid.
+     * @brief Constructor. The resulting ServiceGroupHandle handle will be invalid.
      */
-    ServiceHandle();
+    ServiceGroupHandle();
 
     /**
      * @brief Copy-constructor.
      */
-    ServiceHandle(const ServiceHandle&);
+    ServiceGroupHandle(const ServiceGroupHandle&);
 
     /**
      * @brief Move-constructor.
      */
-    ServiceHandle(ServiceHandle&&);
+    ServiceGroupHandle(ServiceGroupHandle&&);
 
     /**
      * @brief Copy-assignment operator.
      */
-    ServiceHandle& operator=(const ServiceHandle&);
+    ServiceGroupHandle& operator=(const ServiceGroupHandle&);
 
     /**
      * @brief Move-assignment operator.
      */
-    ServiceHandle& operator=(ServiceHandle&&);
+    ServiceGroupHandle& operator=(ServiceGroupHandle&&);
 
     /**
      * @brief Destructor.
      */
-    ~ServiceHandle();
+    ~ServiceGroupHandle();
 
     /**
      * @brief Returns the client this database has been opened with.
@@ -208,20 +207,20 @@ class ServiceHandle {
                      AsyncRequest* req = nullptr) const;
 
     /**
-     * @brief Checks if the ServiceHandle instance is valid.
+     * @brief Checks if the ServiceGroupHandle instance is valid.
      */
     operator bool() const;
 
   private:
     /**
      * @brief Constructor is private. Use a Client object
-     * to create a ServiceHandle instance.
+     * to create a ServiceGroupHandle instance.
      *
      * @param impl Pointer to implementation.
      */
-    ServiceHandle(const std::shared_ptr<ServiceHandleImpl>& impl);
+    ServiceGroupHandle(const std::shared_ptr<ServiceGroupHandleImpl>& impl);
 
-    std::shared_ptr<ServiceHandleImpl> self;
+    std::shared_ptr<ServiceGroupHandleImpl> self;
 };
 
 } // namespace bedrock

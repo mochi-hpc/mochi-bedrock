@@ -49,7 +49,7 @@
     "ssg" : [
         {
             "name" : "mygroup",
-            "bootstrap" : "init|join",
+            "bootstrap" : "mpi|join",
             "group_file" : "mygroup.ssg"
         }
     ],

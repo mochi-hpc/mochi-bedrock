@@ -50,9 +50,9 @@ Client ServiceHandle::client() const { return Client(self->m_client); }
         }; \
         auto async_response = rpc.on(ph).async(__VA_ARGS__); \
         auto async_request_impl \
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response)); \
+            = std::make_shared<AsyncThalliumResponse>(std::move(async_response)); \
         async_request_impl->m_wait_callback \
-            = [](AsyncRequestImpl& async_request_impl) { \
+            = [](AsyncThalliumResponse& async_request_impl) { \
                   RequestResult<std::string> response \
                       = async_request_impl.m_async_response.wait(); \
                   if (!response.success()) { \
@@ -167,9 +167,9 @@ void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {
     } else { // asynchronous call
         auto async_response = rpc.on(ph).async();
         auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
+            = std::make_shared<AsyncThalliumResponse>(std::move(async_response));
         async_request_impl->m_wait_callback
-            = [result](AsyncRequestImpl& async_request_impl) {
+            = [result](AsyncThalliumResponse& async_request_impl) {
                   RequestResult<std::string> response
                       = async_request_impl.m_async_response.wait();
                   if (response.success()) {
@@ -197,9 +197,9 @@ void ServiceHandle::queryConfig(const std::string& script, std::string* result,
     } else { // asynchronous call
         auto async_response = rpc.on(ph).async(script);
         auto async_request_impl
-            = std::make_shared<AsyncRequestImpl>(std::move(async_response));
+            = std::make_shared<AsyncThalliumResponse>(std::move(async_response));
         async_request_impl->m_wait_callback
-            = [result](AsyncRequestImpl& async_request_impl) {
+            = [result](AsyncThalliumResponse& async_request_impl) {
                   RequestResult<std::string> response
                       = async_request_impl.m_async_response.wait();
                   if (response.success()) {

@@ -1,4 +1,5 @@
 #include <bedrock/Client.hpp>
+#include <bedrock/ServiceGroupHandle.hpp>
 #ifdef ENABLE_SSG
 #include <ssg.h>
 #endif
@@ -26,11 +27,6 @@ static uint16_t                 g_provider_id;
 static bool                     g_pretty;
 
 static void        parseCommandLine(int argc, char** argv);
-static void        resolveSSGAddresses(thallium::engine& engine);
-static std::string lookupBedrockConfig(const bedrock::Client& client,
-                                       const std::string&     address);
-static std::string queryBedrock(const bedrock::Client& client,
-                                const std::string&     address);
 
 int main(int argc, char** argv) {
     parseCommandLine(argc, argv);
@@ -49,37 +45,23 @@ int main(int argc, char** argv) {
 
     try {
         auto engine = thallium::engine(g_protocol, THALLIUM_CLIENT_MODE);
-        resolveSSGAddresses(engine);
+
+        ssg_init();
 
         bedrock::Client client(engine);
 
-        std::vector<std::string> configs(g_addresses.size());
-        std::vector<thallium::managed<thallium::thread>> ults;
-        for (unsigned i = 0; i < g_addresses.size(); i++) {
-            ults.push_back(
-                thallium::xstream::self().make_thread([i, &client, &configs]() {
-                    configs[i] = g_jx9_file.empty()
-                                   ? lookupBedrockConfig(client, g_addresses[i])
-                                   : queryBedrock(client, g_addresses[i]);
-                }));
-        }
-        for (auto& ult : ults) { ult->join(); }
-        ults.clear();
-        std::stringstream ss;
-        ss << "{";
-        for (unsigned i = 0; i < g_addresses.size(); i++) {
-            if(configs[i].empty())
-                configs[i] = "null";
-            ss << "\"" << g_addresses[i] << "\":" << configs[i];
-            if (i != g_addresses.size() - 1) ss << ",";
-        }
-        ss << "}";
-        if (!g_pretty)
-            std::cout << ss.str() << std::endl;
-        else {
-            std::cout << json::parse(ss.str()).dump(4) << std::endl;
-        }
-    } catch (const std::exception& e) { spdlog::critical(e.what()); }
+        auto sgh = g_ssg_file.empty() ? client.makeServiceGroupHandle(g_addresses, g_provider_id)
+                                      : client.makeServiceGroupHandle(g_ssg_file, g_provider_id);
+
+        std::string result;
+        if (g_jx9_script_content.empty())
+            sgh.getConfig(&result);
+        else
+            sgh.queryConfig(g_jx9_script_content, &result);
+        std::cout << (g_pretty ? json::parse(result).dump(4) : result) << std::endl;
+
+        ssg_finalize();
+    } catch (const std::exception& e) { spdlog::critical(e.what()); exit(-1); }
     return 0;
 }
 
@@ -123,82 +105,13 @@ static void parseCommandLine(int argc, char** argv) {
         g_provider_id = providerID.getValue();
         g_pretty      = prettyJSON.getValue();
         g_jx9_file    = jx9File.getValue();
+        if(!g_addresses.empty() && !g_ssg_file.empty()) {
+            std::cerr << "error: specifying -s and -a at the same time is not supported" << std::endl;
+            exit(-1);
+        }
     } catch (TCLAP::ArgException& e) {
         std::cerr << "error: " << e.error() << " for arg " << e.argId()
                   << std::endl;
         exit(-1);
     }
-}
-
-static void resolveSSGAddresses(thallium::engine& engine) {
-    if (g_ssg_file.empty()) return;
-#ifndef ENABLE_SSG
-    spdlog::critical("Bedrock was not built with SSG support");
-    exit(-1);
-    (void)engine;
-#else
-    margo_instance_id mid = engine.get_margo_instance();
-    int               ret = ssg_init();
-    if (ret != SSG_SUCCESS) {
-        spdlog::critical("Could not initialize SSG");
-        exit(-1);
-    }
-    int            num_addrs = SSG_ALL_MEMBERS;
-    ssg_group_id_t gid       = SSG_GROUP_ID_INVALID;
-    ret = ssg_group_id_load(g_ssg_file.c_str(), &num_addrs, &gid);
-    if (ret != SSG_SUCCESS) {
-        spdlog::critical("Could not load SSG file {}", g_ssg_file);
-        exit(-1);
-    }
-    ret = ssg_group_refresh(mid, gid);
-    if (ret != SSG_SUCCESS) {
-        spdlog::critical("Could not refresh SSG group");
-        exit(-1);
-    }
-    int group_size = 0;
-    ret            = ssg_get_group_size(gid, &group_size);
-    if (ret != SSG_SUCCESS) {
-        spdlog::critical("Could not get SSG group size");
-        exit(-1);
-    }
-    for (int i = 0; i < group_size; i++) {
-        ssg_member_id_t member_id = SSG_MEMBER_ID_INVALID;
-        ret = ssg_get_group_member_id_from_rank(gid, i, &member_id);
-        if (member_id == SSG_MEMBER_ID_INVALID || ret != SSG_SUCCESS) {
-            spdlog::critical(
-                "ssg_get_group_member_id_from_rank (rank={}) returned "
-                "invalid member id",
-                i);
-            exit(-1);
-        }
-        hg_addr_t addr = HG_ADDR_NULL;
-        ret            = ssg_get_group_member_addr(gid, member_id, &addr);
-        if (addr == HG_ADDR_NULL || ret != SSG_SUCCESS) {
-            spdlog::critical(
-                "Could not get address from SSG member {} (rank {})", member_id,
-                i);
-            exit(-1);
-        }
-        g_addresses.emplace_back(
-            static_cast<std::string>(thallium::endpoint(engine, addr, true)));
-    }
-    ssg_group_destroy(gid);
-    ssg_finalize();
-#endif
-}
-
-static std::string lookupBedrockConfig(const bedrock::Client& client,
-                                       const std::string&     address) {
-    auto serviceHandle = client.makeServiceHandle(address, g_provider_id);
-    std::string config;
-    serviceHandle.getConfig(&config);
-    return config;
-}
-
-static std::string queryBedrock(const bedrock::Client& client,
-                                const std::string&     address) {
-    auto serviceHandle = client.makeServiceHandle(address, g_provider_id);
-    std::string config;
-    serviceHandle.queryConfig(g_jx9_script_content, &config);
-    return config;
 }

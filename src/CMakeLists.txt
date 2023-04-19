@@ -17,6 +17,7 @@ set (server-src-files
 set (client-src-files
      Client.cpp
      ServiceHandle.cpp
+     ServiceGroupHandle.cpp
      AsyncRequest.cpp)
 
 set (jx9-src-files
@@ -63,6 +64,7 @@ add_library (bedrock-client ${client-src-files})
 target_compile_options (bedrock-client PUBLIC -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-client
     PRIVATE coverage_config
+    ${OPTIONAL_SSG}
     PUBLIC
     thallium
     spdlog::spdlog

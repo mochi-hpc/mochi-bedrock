@@ -14,6 +14,7 @@ namespace bedrock {
 
 class ClientImpl;
 class ServiceHandle;
+class ServiceGroupHandle;
 
 /**
  * @brief The Client object is the main object used to establish
@@ -22,6 +23,7 @@ class ServiceHandle;
 class Client {
 
     friend class ServiceHandle;
+    friend class ServiceGroupHandle;
 
   public:
     /**
@@ -74,18 +76,44 @@ class Client {
     const thallium::engine& engine() const;
 
     /**
-     * @brief Creates a handle to a remote Service and returns.
-     * You may set "check" to false if you know for sure that the
-     * corresponding Service exists, which will avoid one RPC.
+     * @brief Creates a handle to a remote Service.
      *
      * @param address Address of the provider holding the database.
      * @param provider_id Provider id.
-     * @param check Checks if the Database exists by issuing an RPC.
      *
      * @return a ServiceHandle instance.
      */
-    ServiceHandle makeServiceHandle(const std::string& address,
-                                    uint16_t           provider_id) const;
+    ServiceHandle makeServiceHandle(
+            const std::string& address,
+            uint16_t           provider_id=0) const;
+
+    /**
+     * @brief Creates a handle to a group of Bedrock processes
+     * from an SSG group file.
+     *
+     * @important SSG needs to have been initialized for this
+     * function to work, otherwise an exception will be returned.
+     *
+     * @param groupfile SSG group file.
+     * @param provider_id Provider ID of the bedrock providers.
+     *
+     * @return ServiceGroupHandle instance.
+     */
+    ServiceGroupHandle makeServiceGroupHandle(
+            const std::string& groupfile,
+            uint16_t provider_id=0) const;
+
+    /**
+     * @brief Creates a handle to a group of Bedrock processes.
+     *
+     * @param addresses Array of addresses.
+     * @param provider_id Provider ID of the bedrock providers.
+     *
+     * @return ServiceGroupHandle instance.
+     */
+    ServiceGroupHandle makeServiceGroupHandle(
+            const std::vector<std::string>& addresses,
+            uint16_t provider_id=0) const;
 
     /**
      * @brief Checks that the Client instance is valid.
