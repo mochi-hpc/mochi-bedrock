@@ -18,6 +18,7 @@ class ServiceGroupHandleImpl {
 
   public:
     std::shared_ptr<ClientImpl>                     m_client;
+    uint16_t                                        m_provider_id;
     std::vector<std::shared_ptr<ServiceHandleImpl>> m_shs;
 #ifdef ENABLE_SSG
     ssg_group_id_t                                  m_gid = SSG_GROUP_ID_INVALID;
@@ -26,8 +27,8 @@ class ServiceGroupHandleImpl {
     ServiceGroupHandleImpl() = default;
 
     ServiceGroupHandleImpl(std::shared_ptr<ClientImpl> client,
-                      std::vector<std::shared_ptr<ServiceHandleImpl>> shs)
-    : m_client(std::move(client)), m_shs(std::move(shs)) {}
+                           uint16_t provider_id)
+    : m_client(std::move(client)), m_provider_id(provider_id) {}
 
     ~ServiceGroupHandleImpl() {
 #ifdef ENABLE_SSG

@@ -72,6 +72,12 @@ class ServiceGroupHandle {
     Client client() const;
 
     /**
+     * @brief If the ServiceGroupHandle was built from an SSG group,
+     * this function will refresh the group view.
+     */
+    void refresh() const;
+
+    /**
      * @brief Ask the remote service daemon to load a module library.
      *
      * @param name Name of the module.
