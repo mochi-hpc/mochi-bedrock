@@ -38,6 +38,17 @@ ServiceGroupHandle::operator bool() const { return static_cast<bool>(self); }
 
 Client ServiceGroupHandle::client() const { return Client(self->m_client); }
 
+size_t ServiceGroupHandle::size() const {
+    if (!self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceGroupHandle object");
+    return self->m_shs.size();
+}
+
+ServiceHandle ServiceGroupHandle::operator[](size_t i) const {
+    if (!self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceGroupHandle object");
+    if (i >= self->m_shs.size()) throw DETAILED_EXCEPTION("Invalid index {}", i);
+    return self->m_shs[i];
+}
+
 void ServiceGroupHandle::refresh() const {
 #ifdef ENABLE_SSG
     if (!self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceGroupHandle object");

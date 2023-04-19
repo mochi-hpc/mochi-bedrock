@@ -78,6 +78,16 @@ class ServiceGroupHandle {
     void refresh() const;
 
     /**
+     * @brief Return the number of underlying ServiceHandles.
+     */
+    size_t size() const;
+
+    /**
+     * @brief Returns the i-th underlying ServiceHandle.
+     */
+    ServiceHandle operator[](size_t i) const;
+
+    /**
      * @brief Ask the remote service daemon to load a module library.
      *
      * @param name Name of the module.
