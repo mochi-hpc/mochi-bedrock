@@ -70,6 +70,24 @@ ServiceGroupHandle Client::makeServiceGroupHandle(
             "(ssg_group_id_load returned {})", groupfile, ret);
     auto sg_impl = std::make_shared<ServiceGroupHandleImpl>(self, provider_id);
     sg_impl->m_gid = gid;
+    sg_impl->m_owns_gid = true;
+    auto result = ServiceGroupHandle(std::move(sg_impl));
+    result.refresh();
+    return result;
+#else
+    (void)groupfile;
+    (void)provider_id;
+    throw DETAILED_EXCEPTION("Bedrock was not built with SSG support");
+#endif
+}
+
+ServiceGroupHandle Client::makeServiceGroupHandle(
+        uint64_t gid,
+        uint16_t provider_id) const {
+#ifdef ENABLE_SSG
+    std::vector<std::string> addresses;
+    auto sg_impl = std::make_shared<ServiceGroupHandleImpl>(self, provider_id);
+    sg_impl->m_gid = gid;
     auto result = ServiceGroupHandle(std::move(sg_impl));
     result.refresh();
     return result;

@@ -22,6 +22,7 @@ class ServiceGroupHandleImpl {
     std::vector<std::shared_ptr<ServiceHandleImpl>> m_shs;
 #ifdef ENABLE_SSG
     ssg_group_id_t                                  m_gid = SSG_GROUP_ID_INVALID;
+    bool                                            m_owns_gid = false;
 #endif
 
     ServiceGroupHandleImpl() = default;
@@ -32,7 +33,8 @@ class ServiceGroupHandleImpl {
 
     ~ServiceGroupHandleImpl() {
 #ifdef ENABLE_SSG
-       ssg_group_destroy(m_gid);
+        if(m_owns_gid)
+            ssg_group_destroy(m_gid);
 #endif
     }
 };

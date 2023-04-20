@@ -116,6 +116,16 @@ class Client {
             uint16_t provider_id=0) const;
 
     /**
+     * @brief Creates a handle to a group of Bedrock processes.
+     *
+     * @param gid Existing SSG group id.
+     * @param provider_id Provider ID of the bedrock providers.
+     *
+     * @return ServiceGroupHandle instance.
+     */
+    ServiceGroupHandle makeServiceGroupHandle(uint64_t gid, uint16_t provider_id=0) const;
+
+    /**
      * @brief Checks that the Client instance is valid.
      */
     operator bool() const;
