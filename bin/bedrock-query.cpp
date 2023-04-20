@@ -46,7 +46,9 @@ int main(int argc, char** argv) {
     try {
         auto engine = thallium::engine(g_protocol, THALLIUM_CLIENT_MODE);
 
+#ifdef ENABLE_SSG
         ssg_init();
+#endif
 
         bedrock::Client client(engine);
 
@@ -59,8 +61,9 @@ int main(int argc, char** argv) {
         else
             sgh.queryConfig(g_jx9_script_content, &result);
         std::cout << (g_pretty ? json::parse(result).dump(4) : result) << std::endl;
-
+#ifdef ENABLE_SSG
         ssg_finalize();
+#endif
     } catch (const std::exception& e) { spdlog::critical(e.what()); exit(-1); }
     return 0;
 }
@@ -68,7 +71,7 @@ int main(int argc, char** argv) {
 static void parseCommandLine(int argc, char** argv) {
     try {
         TCLAP::CmdLine cmd("Query the configuration from Bedrock daemons", ' ',
-                           "0.4");
+                           "0.6.0");
         TCLAP::UnlabeledValueArg<std::string> protocol(
             "protocol", "Protocol (e.g. ofi+tcp)", true, "na+sm", "protocol");
         TCLAP::ValueArg<std::string> logLevel(
@@ -79,10 +82,12 @@ static void parseCommandLine(int argc, char** argv) {
             "i", "provider-id",
             "Provider id to use when contacting Bedrock daemons", false, 0,
             "int");
+#ifdef ENABLE_SSG
         TCLAP::ValueArg<std::string> ssgFile(
             "s", "ssg-file",
             "SSG file from which to read addresses of Bedrock daemons", false,
             "", "filename");
+#endif
         TCLAP::ValueArg<std::string> jx9File(
             "j", "jx9-file", "Jx9 file to send to processes and execute", false,
             "", "filename");
@@ -92,7 +97,9 @@ static void parseCommandLine(int argc, char** argv) {
                                     false);
         cmd.add(protocol);
         cmd.add(logLevel);
+#ifdef ENABLE_SSG
         cmd.add(ssgFile);
+#endif
         cmd.add(providerID);
         cmd.add(addresses);
         cmd.add(prettyJSON);
@@ -100,7 +107,9 @@ static void parseCommandLine(int argc, char** argv) {
         cmd.parse(argc, argv);
         g_addresses   = addresses.getValue();
         g_log_level   = logLevel.getValue();
+#ifdef ENABLE_SSG
         g_ssg_file    = ssgFile.getValue();
+#endif
         g_protocol    = protocol.getValue();
         g_provider_id = providerID.getValue();
         g_pretty      = prettyJSON.getValue();
