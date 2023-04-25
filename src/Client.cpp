@@ -92,7 +92,7 @@ ServiceGroupHandle Client::makeServiceGroupHandle(
     result.refresh();
     return result;
 #else
-    (void)groupfile;
+    (void)gid;
     (void)provider_id;
     throw DETAILED_EXCEPTION("Bedrock was not built with SSG support");
 #endif
