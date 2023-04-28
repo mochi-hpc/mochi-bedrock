@@ -10,6 +10,7 @@
 #include <bedrock/ModuleContext.hpp>
 #include <bedrock/Exception.hpp>
 #include <bedrock/NamedDependency.hpp>
+#include <thallium.hpp>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -47,7 +48,8 @@ typedef std::unordered_map<std::string, DependencyGroup> ResolvedDependencyMap;
  */
 struct FactoryArgs {
     std::string           name;         // name of the provider
-    margo_instance_id     mid;          // margo instance
+    thallium::engine      engine;       // thallium engine
+    margo_instance_id     mid;          // margo instance id
     uint16_t              provider_id;  // provider id
     ABT_pool              pool;         // Argobots pool
     std::string           config;       // JSON configuration

@@ -11,6 +11,11 @@ spack:
   - spdlog
   - fmt
   - tclap
-  - mercury~boostsys ^libfabric fabrics=tcp,rxm
+  - mercury~boostsys~checksum ^libfabric fabrics=tcp,rxm
   concretizer:
     unify: true
+    reuse: true
+  modules:
+    prefix_inspections:
+      lib: [LD_LIBRARY_PATH]
+      lib64: [LD_LIBRARY_PATH]

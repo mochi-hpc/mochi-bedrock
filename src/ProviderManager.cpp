@@ -111,6 +111,7 @@ ProviderManager::registerProvider(
         FactoryArgs args;
         args.name         = descriptor.name;
         args.mid          = margo.getMargoInstance();
+        args.engine       = margo.getThalliumEngine();
         args.pool         = pool->getHandle<ABT_pool>();
         args.config       = config;
         args.provider_id  = descriptor.provider_id;

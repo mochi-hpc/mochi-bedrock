@@ -133,6 +133,7 @@ ClientManager::createClient(const ClientDescriptor&      descriptor,
         FactoryArgs args;
         args.name         = descriptor.name;
         args.mid          = margoCtx.getMargoInstance();
+        args.engine       = margoCtx.getThalliumEngine();
         args.pool         = ABT_POOL_NULL;
         args.config       = config;
         args.provider_id  = 0;
