@@ -49,7 +49,7 @@ class MonaEntry : public NamedDependency {
         config["name"]   = getName();
         config["pool"]   = pool->getName();
         auto mona = getHandle<mona_instance_t>();
-        na_addr_t self_addr;
+        mona_addr_t self_addr;
         na_return_t ret = mona_addr_self(mona, &self_addr);
         if(ret != NA_SUCCESS) {
             config["address"] = nullptr;

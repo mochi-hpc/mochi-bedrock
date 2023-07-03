@@ -5,13 +5,13 @@ spack:
   - mochi-margo
   - mochi-thallium
   - mochi-abt-io
-  - mochi-ssg ^mpich
+  - mochi-ssg+mpi
   - mochi-mona
   - nlohmann-json
   - spdlog
   - fmt
   - tclap
-  - mercury~boostsys~checksum ^libfabric fabrics=tcp,rxm
+  - mercury
   concretizer:
     unify: true
     reuse: true
