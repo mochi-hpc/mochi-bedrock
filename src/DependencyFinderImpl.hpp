@@ -12,6 +12,7 @@
 #include "SSGManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
 #include "ClientManagerImpl.hpp"
+#include "Formatting.hpp"
 #include "bedrock/VoidPtr.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/Exception.hpp"

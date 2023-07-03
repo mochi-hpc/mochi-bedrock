@@ -431,7 +431,7 @@ void SSGUpdateHandler::membershipUpdate(void* group_data, ssg_member_id_t member
     SSGEntry* gdata = reinterpret_cast<SSGEntry*>(group_data);
     (void)gdata;
     spdlog::trace("SSG membership updated: member_id={}, update_type={}",
-                  member_id, update_type);
+                  member_id, std::to_string(update_type));
 }
 #endif
 

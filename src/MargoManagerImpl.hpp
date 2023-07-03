@@ -10,6 +10,7 @@
 #include <margo.h>
 #include <thallium.hpp>
 #include "bedrock/NamedDependency.hpp"
+#include "Formatting.hpp"
 
 namespace tl = thallium;
 

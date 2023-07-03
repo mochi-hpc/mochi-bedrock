@@ -8,7 +8,7 @@ spack:
   - mochi-ssg+mpi
   - mochi-mona
   - nlohmann-json
-  - spdlog
+  - spdlog+fmt_external
   - fmt
   - tclap
   - mercury

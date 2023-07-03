@@ -263,12 +263,12 @@ size_t MargoManager::getNumXstreams() const {
 std::shared_ptr<NamedDependency> MargoManager::addXstream(const std::string& config) {
     auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     margo_xstream_info info;
-    hg_return_t ret = margo_add_xstream_from_json(
+    hg_return_t hret = margo_add_xstream_from_json(
         self->m_mid, config.c_str(), &info);
-    if (ret != HG_SUCCESS) {
+    if (hret != HG_SUCCESS) {
         throw DETAILED_EXCEPTION(
-            "Could not add xstream to Margo instance",
-            ret);
+            "Could not add xstream to Margo instance (margo_add_xstream_from_json returned {})",
+            std::to_string(hret));
     }
     auto entry = std::make_shared<XstreamRef>(info.name, info.xstream);
     self->m_xstreams.push_back(entry);
@@ -278,11 +278,12 @@ std::shared_ptr<NamedDependency> MargoManager::addXstream(const std::string& con
 void MargoManager::removeXstream(uint32_t index) {
     auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     margo_xstream_info info;
-    hg_return_t ret = margo_find_xstream_by_index(self->m_mid, index, &info);
-    if (ret != HG_SUCCESS) {
+    hg_return_t hret = margo_find_xstream_by_index(self->m_mid, index, &info);
+    if (hret != HG_SUCCESS) {
         throw DETAILED_EXCEPTION(
-            "Could not find xstream at index {} from Margo instance",
-            index, ret);
+            "Could not find xstream at index {} from Margo instance "
+            "(margo_find_xstream_by_index returned {})",
+            index, std::to_string(hret));
     }
     guard.unlock();
     removeXstream(info.xstream);
@@ -298,13 +299,14 @@ void MargoManager::removeXstream(const std::string& name) {
     }
     if(it->use_count() != 1) {
         throw DETAILED_EXCEPTION(
-            "Xstream \"{}\" is still in use by some dependencies");
+            "Xstream \"{}\" is still in use by some dependencies", name);
     }
-    hg_return_t ret = margo_remove_xstream_by_name(self->m_mid, name.c_str());
-    if (ret != HG_SUCCESS) {
+    hg_return_t hret = margo_remove_xstream_by_name(self->m_mid, name.c_str());
+    if (hret != HG_SUCCESS) {
         throw DETAILED_EXCEPTION(
-            "Could not remove xstream \"{}\" from Margo instance",
-            ret);
+            "Could not remove xstream \"{}\" from Margo instance "
+            "(margo_remove_xstream_by_name returned {})",
+            name, std::to_string(hret));
     }
     self->m_xstreams.erase(it);
 }
@@ -312,10 +314,11 @@ void MargoManager::removeXstream(const std::string& name) {
 void MargoManager::removeXstream(ABT_xstream xstream) {
     auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     margo_xstream_info info;
-    hg_return_t ret = margo_find_xstream_by_handle(self->m_mid, xstream, &info);
-    if (ret != HG_SUCCESS) {
+    hg_return_t hret = margo_find_xstream_by_handle(self->m_mid, xstream, &info);
+    if (hret != HG_SUCCESS) {
         throw DETAILED_EXCEPTION(
-            "Could not find xstream from its ABT_xstream handle in Margo instance");
+            "Could not find xstream from its ABT_xstream handle in Margo instance "
+            "(margo_find_xstream_by_handle returned {})", std::to_string(hret));
     }
     guard.unlock();
     removeXstream(info.name);

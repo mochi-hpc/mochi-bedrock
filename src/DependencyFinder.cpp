@@ -295,8 +295,8 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
         hg_return_t hret = margo_addr_self(mid, &addr);
         if (hret != HG_SUCCESS) {
             throw Exception(
-                "Failed to get self address, margo_addr_self returned {}",
-                hret);
+                "Failed to get self address (margo_addr_self returned {})",
+                std::to_string(hret));
         }
 
     } else {
@@ -314,7 +314,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 throw Exception(
                     "Failed to duplicate address returned by "
                     "SSGManager (margo_addr_dup returned {})",
-                    hret);
+                    std::to_string(hret));
             }
 
         } else {
@@ -324,7 +324,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 throw Exception(
                     "Failed to lookup address {} "
                     "(margo_addr_lookup returned {})",
-                    locator, hret);
+                    locator, std::to_string(hret));
             }
         }
 
@@ -398,8 +398,8 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
         hg_return_t hret = margo_addr_self(mid, &addr);
         if (hret != HG_SUCCESS) {
             throw Exception(
-                "Failed to get self address, margo_addr_self returned {}",
-                hret);
+                "Failed to get self address (margo_addr_self returned {})",
+                std::to_string(hret));
         }
         descriptor = ProviderDescriptor{
             provider->getName(),
@@ -421,7 +421,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 throw Exception(
                     "Failed to duplicate address returned by "
                     "SSGManager (margo_addr_dup returned {})",
-                    hret);
+                    std::to_string(hret));
             }
 
         } else {
@@ -431,7 +431,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 throw Exception(
                     "Failed to lookup address {} "
                     "(margo_addr_lookup returned {})",
-                    locator, hret);
+                    locator, std::to_string(hret));
             }
         }
 

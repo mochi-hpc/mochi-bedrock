@@ -7,6 +7,7 @@
 #define __BEDROCK_EXCEPTION_IMPL_H
 
 #include "bedrock/Exception.hpp"
+#include <mercury.h>
 #include <string>
 
 namespace bedrock {

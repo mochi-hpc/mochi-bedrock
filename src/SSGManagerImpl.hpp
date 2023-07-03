@@ -18,6 +18,20 @@
 
 #ifdef ENABLE_SSG
 #include <ssg.h>
+
+namespace std {
+
+static inline auto to_string(ssg_member_update_type_t t) -> std::string {
+    switch(t) {
+        case SSG_MEMBER_JOINED: return "SSG_MEMBER_JOINED";
+        case SSG_MEMBER_LEFT:   return "SSG_MEMBER_LEFT";
+        case SSG_MEMBER_DIED:   return "SSG_MEMBER_DIED";
+        default: return "UNKNOWN";
+    }
+}
+
+}
+
 #endif
 
 namespace bedrock {
