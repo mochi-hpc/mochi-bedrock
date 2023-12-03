@@ -17,8 +17,15 @@ namespace bedrock {
 class DynLibServiceFactory : public AbstractServiceFactory {
 
   public:
-    DynLibServiceFactory(const bedrock_module_v2& mod)
+
+    DynLibServiceFactory(const bedrock_module_v3& mod)
     : m_handle(nullptr), m_module(mod) {}
+
+    DynLibServiceFactory(const bedrock_module_v2& mod)
+    : m_handle(nullptr) {
+        memset(&m_module, 0, sizeof(m_module));
+        memcpy(&m_module, &mod, sizeof(mod));
+    }
 
     DynLibServiceFactory(const bedrock_module_v1& mod)
     : m_handle(nullptr) {
@@ -43,12 +50,17 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         if(module_v1_ptr->api_version == 1) {
             memset(&m_module, 0, sizeof(m_module));
             memcpy(&m_module, module_v1_ptr, sizeof(*module_v1_ptr));
-        } else { // version 2
+        } else if(module_v1_ptr->api_version == 2) { // version 2
             bedrock_module_v2* module_v2_ptr
                 = reinterpret_cast<bedrock_module_v2*>(module_v1_ptr);
             memset(&m_module, 0, sizeof(m_module));
             memcpy(&m_module, module_v2_ptr, sizeof(*module_v2_ptr));
-        };
+        } else { // version 3
+            bedrock_module_v3* module_v3_ptr
+                = reinterpret_cast<bedrock_module_v3*>(module_v1_ptr);
+            memset(&m_module, 0, sizeof(m_module));
+            memcpy(&m_module, module_v3_ptr, sizeof(*module_v3_ptr));
+        }
         if (m_module.provider_dependencies) {
             int i = 0;
             while (m_module.provider_dependencies[i].name != nullptr) {
@@ -56,7 +68,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
                 d.name  = m_module.provider_dependencies[i].name;
                 d.type  = m_module.provider_dependencies[i].type;
                 d.flags = m_module.provider_dependencies[i].flags;
-                m_provider_dependencies.push_back(d);
+                m_provider_default_dependencies.push_back(d);
                 i++;
             }
         }
@@ -67,7 +79,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
                 d.name  = m_module.client_dependencies[i].name;
                 d.type  = m_module.client_dependencies[i].type;
                 d.flags = m_module.client_dependencies[i].flags;
-                m_client_dependencies.push_back(d);
+                m_client_default_dependencies.push_back(d);
                 i++;
             }
         }
@@ -128,6 +140,49 @@ class DynLibServiceFactory : public AbstractServiceFactory {
         }
     }
 
+    void migrateProvider(
+            void* provider, const char* dest_addr,
+            uint16_t dest_provider_id,
+            const char* options_json, bool remove_source) override {
+        if (!m_module.migrate_provider)
+            throw Exception{"Migration not supported for this provider"};
+        int ret = m_module.migrate_provider(
+                provider, dest_addr, dest_provider_id, options_json, remove_source);
+        if (ret != 0) {
+            throw Exception{
+                "Provider's migrate_provider callback"
+                " failed with error code {}", ret};
+        }
+    }
+
+    void snapshotProvider(
+            void* provider, const char* dest_path,
+            const char* options_json, bool remove_source) override {
+        if (!m_module.snapshot_provider)
+            throw Exception{"Snapshot not supported for this provider"};
+        int ret = m_module.snapshot_provider(
+                provider, dest_path, options_json, remove_source);
+        if (ret != 0) {
+            throw Exception{
+                "Provider's snapshot_provider callback"
+                " failed with error code {}", ret};
+        }
+    }
+
+    void restoreProvider(
+          void* provider, const char* src_path,
+          const char* options_json) override {
+        if (!m_module.restore_provider)
+            throw Exception{"Restore not supported for this provider"};
+        int ret = m_module.restore_provider(
+                provider, src_path, options_json);
+        if (ret != 0) {
+            throw Exception{
+                "Provider's restore_provider callback"
+                " failed with error code {}", ret};
+        }
+    }
+
     void* initClient(const FactoryArgs& args) override {
         void* client = nullptr;
         int   ret    = m_module.init_client(
@@ -176,18 +231,59 @@ class DynLibServiceFactory : public AbstractServiceFactory {
     }
 
     const std::vector<Dependency>& getProviderDependencies() override {
-        return m_provider_dependencies;
+        return m_provider_default_dependencies;
     }
 
     const std::vector<Dependency>& getClientDependencies() override {
-        return m_client_dependencies;
+        return m_client_default_dependencies;
+    }
+
+    static inline std::vector<Dependency> convertDependencies(
+            bedrock_dependency* deps, int num) {
+        std::vector<Dependency> result;
+        result.resize(num);
+        for(int i=0; i < num; ++i) {
+            result[i].name  = deps[i].name;
+            result[i].type  = deps[i].type;
+            result[i].flags = deps[i].flags;
+            free((void*)deps[i].name);
+            free((void*)deps[i].type);
+        }
+    }
+
+    std::vector<Dependency> getProviderDependencies(const char* config) override {
+        if(!m_module.get_provider_dependencies) return getProviderDependencies();
+        bedrock_dependency* deps = nullptr;
+        int num;
+        int ret = m_module.get_provider_dependencies(config, &deps, &num);
+        if(ret != BEDROCK_SUCCESS) {
+            throw Exception{
+                "Module get_provider_dependencies function returned {}", ret};
+        }
+        auto result = convertDependencies(deps, num);
+        free(deps);
+        return result;
+    }
+
+    std::vector<Dependency> getClientDependencies(const char* config) override {
+        if(!m_module.get_client_dependencies) return getClientDependencies();
+        bedrock_dependency* deps = nullptr;
+        int num;
+        int ret = m_module.get_client_dependencies(config, &deps, &num);
+        if(ret != BEDROCK_SUCCESS) {
+            throw Exception{
+                "Module get_client_dependencies function returned {}", ret};
+        }
+        auto result = convertDependencies(deps, num);
+        free(deps);
+        return result;
     }
 
   private:
     void*                   m_handle = nullptr;
-    bedrock_module_v2       m_module;
-    std::vector<Dependency> m_provider_dependencies;
-    std::vector<Dependency> m_client_dependencies;
+    bedrock_module_v3       m_module;
+    std::vector<Dependency> m_provider_default_dependencies;
+    std::vector<Dependency> m_client_default_dependencies;
 };
 
 } // namespace bedrock

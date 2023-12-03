@@ -151,6 +151,48 @@ typedef char* (*bedrock_provider_get_config_fn)(bedrock_module_provider_t);
 typedef int (*bedrock_provider_change_pool_fn)(bedrock_module_provider_t, ABT_pool);
 
 /**
+ * @brief Type of function called to get the dependencies of a provider
+ * from a given configuration. This function should allocate the bedrock_dependency
+ * array using malloc, as well as the name and type fields in the dependencies.
+ * The caller will be responsible for calling free on these fields and on the
+ * dependency array. The integer parameter should be set to the size of the array.
+ */
+typedef int (*bedrock_provider_get_dependencies_fn)(
+        const char*,
+        struct bedrock_dependency**,
+        int*);
+
+/**
+ * @brief Type of function called to migrate the state of a provider to
+ * another provider.
+ */
+typedef int (*bedrock_provider_migrate_fn)(
+        bedrock_module_provider_t,
+        const char*, /* destination address */
+        uint16_t,    /* destination provider ID */
+        const char*, /* JSON options */
+        bool);       /* remove source */
+
+/**
+ * @brief Type of function called to snapshot the state of a provider to
+ * a given path.
+ */
+typedef int (*bedrock_provider_snapshot_fn)(
+        bedrock_module_provider_t,
+        const char*, /* destination path */
+        const char*, /* JSON options */
+        bool);       /* remove source */
+
+/**
+ * @brief Type of function called to restore the state of a provider
+ * from a given path.
+ */
+typedef int (*bedrock_provider_restore_fn)(
+        bedrock_module_provider_t,
+        const char*,  /* source path */
+        const char*); /* JSON options */
+
+/**
  * @brief Type of function called to get the configuration of a client.
  * The returned string, if not NULL, should be freed by the caller.
  *
@@ -159,6 +201,18 @@ typedef int (*bedrock_provider_change_pool_fn)(bedrock_module_provider_t, ABT_po
  * @return null-terminated configuration string.
  */
 typedef char* (*bedrock_client_get_config_fn)(bedrock_module_client_t);
+
+/**
+ * @brief Type of function called to get the dependencies of a provider
+ * from a given configuration. This function should allocate the bedrock_dependency
+ * array using malloc, as well as the name and type fields in the dependencies.
+ * The caller will be responsible for calling free on these fields and on the
+ * dependency array. The integer parameter should be set to the size of the array.
+ */
+typedef int (*bedrock_client_get_dependencies_fn)(
+        const char*,
+        struct bedrock_dependency**,
+        int*);
 
 /**
  * @brief A global instance of a bedrock_module_vX structure must be provided
@@ -198,6 +252,31 @@ struct bedrock_module_v2 {
     struct bedrock_dependency*         client_dependencies;
     /* v2 fields */
     bedrock_provider_change_pool_fn    change_provider_pool;
+};
+
+struct bedrock_module_v3 {
+    /* v1 fields */
+    int api_version; // should always be set to 3
+    bedrock_register_provider_fn       register_provider;
+    bedrock_deregister_provider_fn     deregister_provider;
+    bedrock_provider_get_config_fn     get_provider_config;
+    bedrock_init_client_fn             init_client;
+    bedrock_finalize_client_fn         finalize_client;
+    bedrock_client_get_config_fn       get_client_config;
+    bedrock_create_provider_handle_fn  create_provider_handle;
+    bedrock_destroy_provider_handle_fn destroy_provider_handle;
+    /* note: the bellow fields are going to be the default if
+     * bedrock_get_provider/client_dependencies_fn are not provided */
+    struct bedrock_dependency*         provider_dependencies;
+    struct bedrock_dependency*         client_dependencies;
+    /* v2 fields */
+    bedrock_provider_change_pool_fn change_provider_pool;
+    /* v3 fields */
+    bedrock_provider_snapshot_fn         snapshot_provider;
+    bedrock_provider_restore_fn          restore_provider;
+    bedrock_provider_migrate_fn          migrate_provider;
+    bedrock_provider_get_dependencies_fn get_provider_dependencies;
+    bedrock_client_get_dependencies_fn   get_client_dependencies;
 };
 
 /**

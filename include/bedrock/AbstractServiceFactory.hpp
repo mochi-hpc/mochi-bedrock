@@ -136,6 +136,61 @@ class AbstractServiceFactory {
     }
 
     /**
+     * @brief Migrates the state of the designated provider.
+     *
+     * @param provider Provider to migrate.
+     * @param dest_addr Destination address.
+     * @param dest_provider_id Destination provider ID.
+     * @param options_json JSON-formatted parameters.
+     * @param remove_source Whether to remove the source.
+     */
+    virtual void migrateProvider(
+        void* provider, const char* dest_addr,
+        uint16_t dest_provider_id,
+        const char* options_json, bool remove_source) {
+        (void)provider;
+        (void)dest_addr;
+        (void)dest_provider_id;
+        (void)options_json;
+        (void)remove_source;
+        throw Exception{"Migration not supported for this provider"};
+    }
+
+    /**
+     * @brief Snapshots the state of the designated provider.
+     *
+     * @param provider Provider to snapshot.
+     * @param dest_path Destination directory.
+     * @param options_json JSON-formatted parameters.
+     * @param remove_source Whether to remove the source.
+     */
+    virtual void snapshotProvider(
+        void* provider, const char* dest_path,
+        const char* options_json, bool remove_source) {
+        (void)provider;
+        (void)dest_path;
+        (void)options_json;
+        (void)remove_source;
+        throw Exception{"Snapshot not supported for this provider"};
+    }
+
+    /**
+     * @brief Restores the state of the designated provider.
+     *
+     * @param provider Provider to snapshot.
+     * @param src_path Source directory.
+     * @param options_json JSON-formatted parameters.
+     */
+    virtual void restoreProvider(
+        void* provider, const char* src_path,
+        const char* options_json) {
+        (void)provider;
+        (void)src_path;
+        (void)options_json;
+        throw Exception{"Restore not supported for this provider"};
+    }
+
+    /**
      * @brief Register a client for the service.
      *
      * @param args Arguments.
@@ -181,13 +236,41 @@ class AbstractServiceFactory {
 
     /**
      * @brief Return the dependencies of a provider.
+     *
+     * Note: if you need the dependencies to depend on the content
+     * of the provider's configuration, please override the
+     * getProviderDependenciesFromConfig method.
      */
     virtual const std::vector<Dependency>& getProviderDependencies() = 0;
 
     /**
+     * @brief Return the dependencies of a provider from a desired config.
+     *
+     * By default this method will ignore the configuration.
+     */
+    virtual std::vector<Dependency> getProviderDependencies(const char* config) {
+        (void)config;
+        return getProviderDependencies();
+    }
+
+    /**
      * @brief Return the dependencies of a client.
+     *
+     * Note: if you need the dependencies to depend on the content
+     * of the provider's configuration, please override the
+     * getProviderDependenciesFromConfig method.
      */
     virtual const std::vector<Dependency>& getClientDependencies() = 0;
+
+    /**
+     * @brief Return the dependencies of a client from a desired config.
+     *
+     * By default this method will ignore the configuration.
+     */
+    virtual std::vector<Dependency> getClientDependencies(const char* config) {
+        (void)config;
+        return getProviderDependencies();
+    }
 };
 
 } // namespace bedrock
