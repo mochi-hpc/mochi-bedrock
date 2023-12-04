@@ -241,7 +241,10 @@ class AbstractServiceFactory {
      * of the provider's configuration, please override the
      * getProviderDependenciesFromConfig method.
      */
-    virtual const std::vector<Dependency>& getProviderDependencies() = 0;
+    virtual const std::vector<Dependency>& getProviderDependencies() {
+        static const std::vector<Dependency> no_dependencies;
+        return no_dependencies;
+    }
 
     /**
      * @brief Return the dependencies of a provider from a desired config.
@@ -260,7 +263,10 @@ class AbstractServiceFactory {
      * of the provider's configuration, please override the
      * getProviderDependenciesFromConfig method.
      */
-    virtual const std::vector<Dependency>& getClientDependencies() = 0;
+    virtual const std::vector<Dependency>& getClientDependencies() {
+        static const std::vector<Dependency> no_dependencies;
+        return no_dependencies;
+    }
 
     /**
      * @brief Return the dependencies of a client from a desired config.
