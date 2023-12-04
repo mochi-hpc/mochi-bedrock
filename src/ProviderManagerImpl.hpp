@@ -91,11 +91,14 @@ class ProviderManagerImpl
 
     std::shared_ptr<MargoManagerImpl> m_margo_context;
 
-    tl::remote_procedure m_lookup_provider;
-    tl::remote_procedure m_list_providers;
-    tl::remote_procedure m_load_module;
-    tl::remote_procedure m_start_provider;
-    tl::remote_procedure m_change_provider_pool;
+    tl::auto_remote_procedure m_lookup_provider;
+    tl::auto_remote_procedure m_list_providers;
+    tl::auto_remote_procedure m_load_module;
+    tl::auto_remote_procedure m_start_provider;
+    tl::auto_remote_procedure m_change_provider_pool;
+    tl::auto_remote_procedure m_migrate_provider;
+    tl::auto_remote_procedure m_snapshot_provider;
+    tl::auto_remote_procedure m_restore_provider;
 
     ProviderManagerImpl(const tl::engine& engine, uint16_t provider_id,
                         const tl::pool& pool)
@@ -109,17 +112,18 @@ class ProviderManagerImpl
       m_start_provider(define("bedrock_start_provider",
                               &ProviderManagerImpl::startProviderRPC, pool)),
       m_change_provider_pool(define("bedrock_change_provider_pool",
-                              &ProviderManagerImpl::changeProviderPoolRPC, pool))
+                              &ProviderManagerImpl::changeProviderPoolRPC, pool)),
+      m_migrate_provider(define("bedrock_migrate_provider",
+                                 &ProviderManagerImpl::migrateProviderRPC, pool)),
+      m_snapshot_provider(define("bedrock_snapshot_provider",
+                                 &ProviderManagerImpl::snapshotProviderRPC, pool)),
+      m_restore_provider(define("bedrock_restore_provider",
+                                 &ProviderManagerImpl::restoreProviderRPC, pool))
     {
         spdlog::trace("ProviderManagerImpl initialized");
     }
 
     ~ProviderManagerImpl() {
-        m_lookup_provider.deregister();
-        m_list_providers.deregister();
-        m_load_module.deregister();
-        m_start_provider.deregister();
-        m_change_provider_pool.deregister();
         spdlog::trace("ProviderManagerImpl destroyed");
     }
 
@@ -160,6 +164,7 @@ class ProviderManagerImpl
                            double timeout) {
         double  t1 = tl::timer::wtime();
         RequestResult<ProviderDescriptor> result;
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         std::unique_lock<tl::mutex> lock(m_providers_mtx);
         auto it = resolveSpec(spec);
         if (it == m_providers.end() && timeout > 0) {
@@ -178,19 +183,19 @@ class ProviderManagerImpl
             result.error()
                 = "Could not find provider with spec \""s + spec + "\"";
         }
-        req.respond(result);
     }
 
     void listProvidersRPC(const tl::request& req) {
         auto manager = ProviderManager(shared_from_this());
         RequestResult<std::vector<ProviderDescriptor>> result;
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         result.value() = manager.listProviders();
-        req.respond(result);
     }
 
     void loadModuleRPC(const tl::request& req, const std::string& name,
                        const std::string& path) {
         RequestResult<bool> result;
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         try {
             ModuleContext::loadModule(name, path);
             result.success() = true;
@@ -199,7 +204,6 @@ class ProviderManagerImpl
             result.success() = false;
             result.error()   = e.what();
         }
-        req.respond(result);
     }
 
     void startProviderRPC(const tl::request& req, const std::string& name,
@@ -207,7 +211,8 @@ class ProviderManagerImpl
                           const std::string& pool, const std::string& config,
                           const DependencyMap& dependencies) {
         RequestResult<bool> result;
-        auto                manager = ProviderManager(shared_from_this());
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
+        auto manager = ProviderManager(shared_from_this());
         try {
             auto c           = json::object();
             c["name"]        = name;
@@ -221,20 +226,69 @@ class ProviderManagerImpl
             result.success() = false;
             result.error()   = ex.what();
         }
-        req.respond(result);
     }
 
     void changeProviderPoolRPC(const tl::request& req, const std::string& name,
                                const std::string& pool) {
         RequestResult<bool> result;
-        auto                manager = ProviderManager(shared_from_this());
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
+        auto manager = ProviderManager(shared_from_this());
         try {
             manager.changeProviderPool(name, pool);
         } catch (Exception& ex) {
             result.success() = false;
             result.error() = ex.what();
         }
-        req.respond(result);
+    }
+
+    void migrateProviderRPC(const tl::request& req,
+                            const std::string& name,
+                            const std::string& dest_addr,
+                            uint16_t dest_provider_id,
+                            const std::string& config,
+                            bool remove_source) {
+        RequestResult<bool> result;
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
+        auto manager = ProviderManager(shared_from_this());
+        try {
+            manager.migrateProvider(
+                name, dest_addr, dest_provider_id, config, remove_source);
+        } catch (Exception& ex) {
+            result.success() = false;
+            result.error() = ex.what();
+        }
+    }
+
+    void snapshotProviderRPC(const tl::request& req,
+                             const std::string& name,
+                             const std::string& dest_path,
+                             const std::string& config,
+                             bool remove_source) {
+        RequestResult<bool> result;
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
+        auto manager = ProviderManager(shared_from_this());
+        try {
+            manager.snapshotProvider(
+                name, dest_path, config, remove_source);
+        } catch (Exception& ex) {
+            result.success() = false;
+            result.error() = ex.what();
+        }
+    }
+
+    void restoreProviderRPC(const tl::request& req,
+                            const std::string& name,
+                            const std::string& src_path,
+                            const std::string& config) {
+        RequestResult<bool> result;
+        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
+        auto manager = ProviderManager(shared_from_this());
+        try {
+            manager.restoreProvider(name, src_path, config);
+        } catch (Exception& ex) {
+            result.success() = false;
+            result.error() = ex.what();
+        }
     }
 };
 

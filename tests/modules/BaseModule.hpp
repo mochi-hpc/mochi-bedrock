@@ -46,8 +46,16 @@ class BaseServiceFactory : public bedrock::AbstractServiceFactory {
         return deps;
     }
 
+    std::vector<bedrock::Dependency> getProviderDependencies(const char*) override {
+        return getProviderDependencies();
+    }
+
     const std::vector<bedrock::Dependency>& getClientDependencies() override {
         static std::vector<bedrock::Dependency> deps = {};
         return deps;
+    }
+
+    std::vector<bedrock::Dependency> getClientDependencies(const char*) override {
+        return getClientDependencies();
     }
 };

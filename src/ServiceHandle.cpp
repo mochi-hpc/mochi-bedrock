@@ -92,6 +92,43 @@ void ServiceHandle::changeProviderPool(const std::string& provider_name,
     SEND_RPC_WITH_BOOL_RESULT(provider_name, pool);
 }
 
+void ServiceHandle::migrateProvider(
+              const std::string& provider,
+              const std::string& dest_addr,
+              uint16_t           dest_provider_id,
+              const std::string& migration_config,
+              bool               remove_source,
+              AsyncRequest*      req) const {
+    if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_migrate_provider;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(provider, dest_addr, dest_provider_id, migration_config, remove_source);
+}
+
+void ServiceHandle::snapshotProvider(
+              const std::string& provider,
+              const std::string& dest_path,
+              const std::string& snapshot_config,
+              bool               remove_source,
+              AsyncRequest*      req) const {
+    if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_snapshot_provider;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(provider, dest_path, snapshot_config, remove_source);
+}
+
+void ServiceHandle::restoreProvider(
+        const std::string& provider,
+        const std::string& src_path,
+        const std::string& restore_config,
+        AsyncRequest*      req) const {
+    if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
+    auto& rpc = self->m_client->m_restore_provider;
+    auto& ph  = self->m_ph;
+    SEND_RPC_WITH_BOOL_RESULT(provider, src_path, restore_config);
+}
+
+
 void ServiceHandle::addClient(const std::string&   name,
                                  const std::string&   type,
                                  const std::string&   config,

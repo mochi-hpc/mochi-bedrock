@@ -165,26 +165,25 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
             "\"name\" field in provider definition should be a string");
     }
 
-    if(config.contains("provider_id")) {
-        if(!config["provider_id"].is_number())
-            throw DETAILED_EXCEPTION(
+    if(!config.contains("provider_id"))
+        throw DETAILED_EXCEPTION(
+            "\"provider_id\" field missing in provider definition");
+    if(!config["provider_id"].is_number())
+        throw DETAILED_EXCEPTION(
                 "\"provider_id\" field in provider definition should be an integer");
-        if(!config["provider_id"].is_number_unsigned())
-            throw DETAILED_EXCEPTION(
+    if(!config["provider_id"].is_number_unsigned())
+        throw DETAILED_EXCEPTION(
                 "\"provider_id\" field in provider definition should be a positive integer");
-    }
 
-    descriptor.name        = config["name"];
-    descriptor.provider_id = config.value("provider_id", (uint16_t)0);
-
-    if (!config.contains("type")) {
+    if (!config.contains("type"))
         throw DETAILED_EXCEPTION("\"type\" field missing in provider definition");
-    }
-    if(!config["type"].is_string()) {
+    if(!config["type"].is_string())
         throw DETAILED_EXCEPTION(
             "\"type\" field in provider definition should be a string");
-    }
-    descriptor.type = config["type"];
+
+    descriptor.name        = config["name"];
+    descriptor.provider_id = config["provider_id"];
+    descriptor.type        = config["type"];
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
     if (!service_factory) {
@@ -296,6 +295,71 @@ void ProviderManager::changeProviderPool(const std::string& provider,
     // call the provider's change_pool callback
     (*it)->factory->changeProviderPool((*it)->getHandle<void*>(), pool->getHandle<ABT_pool>());
     (*it)->pool = pool;
+}
+
+void ProviderManager::migrateProvider(
+        const std::string& provider,
+        const std::string& dest_addr,
+        uint16_t           dest_provider_id,
+        const std::string& migration_config,
+        bool               remove_source) {
+    // find the provider
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    auto                       it = self->resolveSpec(provider);
+    if (it == self->m_providers.end())
+        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+    // call the provider's migrateProvider callback
+    try {
+        (*it)->factory->migrateProvider(
+                (*it)->getHandle<void*>(),
+                dest_addr.c_str(), dest_provider_id,
+                migration_config.c_str(),
+                remove_source);
+    } catch(const std::exception& ex) {
+        throw Exception{ex.what()};
+    }
+}
+
+void ProviderManager::snapshotProvider(
+        const std::string& provider,
+        const std::string& dest_path,
+        const std::string& snapshot_config,
+        bool               remove_source) {
+    // find the provider
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    auto                       it = self->resolveSpec(provider);
+    if (it == self->m_providers.end())
+        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+    // call the provider's snapshotProvider callback
+    try {
+        (*it)->factory->snapshotProvider(
+                (*it)->getHandle<void*>(),
+                dest_path.c_str(),
+                snapshot_config.c_str(),
+                remove_source);
+    } catch(const std::exception& ex) {
+        throw Exception{ex.what()};
+    }
+}
+
+void ProviderManager::restoreProvider(
+        const std::string& provider,
+        const std::string& src_path,
+        const std::string& restore_config) {
+    // find the provider
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    auto                       it = self->resolveSpec(provider);
+    if (it == self->m_providers.end())
+        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+    // call the provider's restoreProvider callback
+    try {
+        (*it)->factory->restoreProvider(
+                (*it)->getHandle<void*>(),
+                src_path.c_str(),
+                restore_config.c_str());
+    } catch(const std::exception& ex) {
+        throw Exception{ex.what()};
+    }
 }
 
 std::string ProviderManager::getCurrentConfig() const {

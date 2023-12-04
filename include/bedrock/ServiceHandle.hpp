@@ -111,6 +111,59 @@ class ServiceHandle {
                             AsyncRequest*      req = nullptr) const;
 
     /**
+     * @brief Migrates the specified provider state to the destination.
+     *
+     * Note: the source provider will not be deregistered.
+     * Note: a provider of the same type must exist at the designated
+     * destination address and ID.
+     *
+     * @param provider Provider name.
+     * @param dest_addr Destination address.
+     * @param dest_provider_id Destination provider ID.
+     * @param migration_config Provider-specific JSON configuration.
+     * @param remove_source Whether to remove the source state.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void migrateProvider(
+            const std::string& provider,
+            const std::string& dest_addr,
+            uint16_t           dest_provider_id,
+            const std::string& migration_config,
+            bool               remove_source,
+            AsyncRequest*      req = nullptr) const;
+
+    /**
+     * @brief Snapshot the specified provider state to the destination path.
+     *
+     * @param provider Provider name.
+     * @param dest_path Destination path.
+     * @param snapshot_config Provider-specific snapshot configuration.
+     * @param remove_source Whether to remove the source state.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void snapshotProvider(
+            const std::string& provider,
+            const std::string& dest_path,
+            const std::string& snapshot_config,
+            bool               remove_source,
+            AsyncRequest*      req = nullptr) const;
+
+    /**
+     * @brief Restore the specified provider state from the source path.
+     *
+     * @param provider Provider name.
+     * @param src_path Source path.
+     * @param restore_config Provider-specific snapshot configuration.
+     * @param remove_source Whether to remove the source state.
+     * @param req Asynchronous request to wait on, if provided.
+     */
+    void restoreProvider(
+            const std::string& provider,
+            const std::string& src_path,
+            const std::string& restore_config,
+            AsyncRequest*      req = nullptr) const;
+
+    /**
      * @brief Creates a client on the target service daemon.
      *
      * @param name Name of the new client.
