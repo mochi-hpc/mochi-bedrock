@@ -54,7 +54,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
 
     ServerImpl(std::shared_ptr<MargoManagerImpl> margo, uint16_t provider_id,
                std::shared_ptr<NamedDependency> pool)
-    : tl::provider<ServerImpl>(margo->m_engine, provider_id),
+    : tl::provider<ServerImpl>(margo->m_engine, provider_id, "bedrock"),
       m_margo_manager(std::move(margo)),
       m_pool(pool),
       m_tl_pool(pool->getHandle<ABT_pool>()),

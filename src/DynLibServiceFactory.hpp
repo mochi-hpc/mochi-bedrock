@@ -249,6 +249,7 @@ class DynLibServiceFactory : public AbstractServiceFactory {
             free((void*)deps[i].name);
             free((void*)deps[i].type);
         }
+        return result;
     }
 
     std::vector<Dependency> getProviderDependencies(const char* config) override {
