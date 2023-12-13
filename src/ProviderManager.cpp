@@ -48,13 +48,12 @@ void ProviderManager::setDependencyFinder(const DependencyFinder& finder) {
     self->m_dependency_finder = finder;
 }
 
-std::shared_ptr<NamedDependency>
-ProviderManager::lookupProvider(const std::string& spec, uint16_t* provider_id) const {
+std::shared_ptr<ProviderDependency>
+ProviderManager::lookupProvider(const std::string& spec) const {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end())
         throw DETAILED_EXCEPTION("Could not find provider with spec \"{}\"", spec);
-    if(provider_id) *provider_id = (*it)->provider_id;
     return *it;
 }
 
@@ -63,13 +62,13 @@ std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
     std::vector<ProviderDescriptor> result;
     result.reserve(self->m_providers.size());
     for (const auto& p : self->m_providers) {
-        auto descriptor = ProviderDescriptor{p->getName(), p->getType(), p->provider_id};
+        auto descriptor = ProviderDescriptor{p->getName(), p->getType(), p->getProviderID()};
         result.emplace_back(descriptor);
     }
     return result;
 }
 
-std::shared_ptr<NamedDependency>
+std::shared_ptr<ProviderDependency>
 ProviderManager::registerProvider(
     const ProviderDescriptor& descriptor, const std::string& pool_name,
     const std::string& config, const ResolvedDependencyMap& dependencies) {
@@ -86,7 +85,7 @@ ProviderManager::registerProvider(
     spdlog::trace("Found provider \"{}\" to be of type \"{}\"", descriptor.name,
                   descriptor.type);
 
-    std::shared_ptr<ProviderEntry> entry;
+    std::shared_ptr<LocalProvider> entry;
     {
         std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
         auto                       it = self->resolveSpec(descriptor.name);
@@ -119,7 +118,7 @@ ProviderManager::registerProvider(
 
         auto handle = service_factory->registerProvider(args);
 
-        entry = std::make_shared<ProviderEntry>(
+        entry = std::make_shared<LocalProvider>(
             descriptor.name, descriptor.type, descriptor.provider_id,
             handle, service_factory, pool, std::move(dependencies));
 
@@ -142,7 +141,7 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
     self->m_providers.erase(it);
 }
 
-std::shared_ptr<NamedDependency>
+std::shared_ptr<ProviderDependency>
 ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     if (!self->m_dependency_finder) {
         throw DETAILED_EXCEPTION("No DependencyFinder set in ProviderManager");
@@ -165,24 +164,23 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
             "\"name\" field in provider definition should be a string");
     }
 
-    if(!config.contains("provider_id"))
-        throw DETAILED_EXCEPTION(
-            "\"provider_id\" field missing in provider definition");
-    if(!config["provider_id"].is_number())
-        throw DETAILED_EXCEPTION(
-                "\"provider_id\" field in provider definition should be an integer");
-    if(!config["provider_id"].is_number_unsigned())
-        throw DETAILED_EXCEPTION(
-                "\"provider_id\" field in provider definition should be a positive integer");
+    if(config.contains("provider_id")) {
+        if(!config["provider_id"].is_number())
+            throw DETAILED_EXCEPTION(
+                    "\"provider_id\" field in provider definition should be an integer");
+        if(!config["provider_id"].is_number_unsigned())
+            throw DETAILED_EXCEPTION(
+                    "\"provider_id\" field in provider definition should be a positive integer");
+    }
 
-    if (!config.contains("type"))
+    if(!config.contains("type"))
         throw DETAILED_EXCEPTION("\"type\" field missing in provider definition");
     if(!config["type"].is_string())
         throw DETAILED_EXCEPTION(
             "\"type\" field in provider definition should be a string");
 
     descriptor.name        = config["name"];
-    descriptor.provider_id = config["provider_id"];
+    descriptor.provider_id = config.value("provider_id", self->getAvailableProviderID());
     descriptor.type        = config["type"];
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
@@ -202,7 +200,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
         }
     }
 
-    auto margo   = MargoManager(self->m_margo_context);
+    auto margo = MargoManager(self->m_margo_context);
 
     std::string pool_name;
     if(config.contains("pool")) {

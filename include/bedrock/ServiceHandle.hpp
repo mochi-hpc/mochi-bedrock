@@ -83,18 +83,28 @@ class ServiceHandle {
                     AsyncRequest* req = nullptr) const;
 
     /**
+     * @brief Constant to tell startProvider to create a new provider with
+     * any Id that it finds available.
+     */
+    static constexpr uint16_t NewProviderID = std::numeric_limits<uint16_t>::max();
+
+    /**
      * @brief Starts a new provider on the target service daemon.
      *
-     * @param name Name of the new provider.
-     * @param type Type of the new provider.
-     * @param provider_id Provider id.
-     * @param pool Pool for the provider to use.
-     * @param config Configuration (JSON-formatted).
-     * @param dependencies Dependencies for the provider.
-     * @param req Asynchronous request to wait on, if provided.
+     * @param[in] name Name of the new provider.
+     * @param[in] type Type of the new provider.
+     * @param[in] provider_id Requested provider id.
+     * @param[out] provider_id_out Will be set to the created provider id.
+     * @param[in] pool Pool for the provider to use.
+     * @param[in] config Configuration (JSON-formatted).
+     * @param[in] dependencies Dependencies for the provider.
+     * @param[in] req Asynchronous request to wait on, if provided.
+     *
+     * Note: passing nullptr to provider_id_out is valid, the result will simply be ignored.
      */
     void startProvider(const std::string& name, const std::string& type,
-                       uint16_t provider_id, const std::string& pool = "",
+                       uint16_t provider_id, uint16_t* provider_id_out = nullptr,
+                       const std::string& pool = "",
                        const std::string&   config       = "{}",
                        const DependencyMap& dependencies = DependencyMap(),
                        AsyncRequest*        req          = nullptr) const;

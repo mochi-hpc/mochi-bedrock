@@ -87,12 +87,12 @@ class ProviderManager {
      * set to the corresponding ProviderWrapper.
      *
      * @param [in] spec Specification string
-     * @param [out] wrapper Resulting provider wrapper
      *
-     * @return true if provider was found, false otherwise.
+     * @return a std::shared_ptr<ProviderDependency> pointing to the provider dependency,
+     * this pointer will be null if no provider was found.
      */
-    std::shared_ptr<NamedDependency>
-        lookupProvider(const std::string& spec, uint16_t* provioder_id) const;
+    std::shared_ptr<ProviderDependency>
+        lookupProvider(const std::string& spec) const;
 
     /**
      * @brief List the providers managed by the ProviderManager.
@@ -109,7 +109,7 @@ class ProviderManager {
      * @param config JSON configuration for the provider.
      * @param dependencies Dependency map.
      */
-    std::shared_ptr<NamedDependency>
+    std::shared_ptr<ProviderDependency>
         registerProvider(const ProviderDescriptor&    descriptor,
                          const std::string&           pool_name,
                          const std::string&           config,
@@ -139,7 +139,7 @@ class ProviderManager {
      *
      * @param jsonString JSON string.
      */
-    std::shared_ptr<NamedDependency>
+    std::shared_ptr<ProviderDependency>
         addProviderFromJSON(const std::string& jsonString);
 
     /**

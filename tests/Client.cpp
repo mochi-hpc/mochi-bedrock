@@ -150,18 +150,19 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             serviceHandle.loadModule("module_a", "libModuleA.so");
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
             // create a provider of type module_a
-            serviceHandle.startProvider("my_provider_a1", "module_a", 123);
+            REQUIRE_NOTHROW(serviceHandle.startProvider("my_provider_a1", "module_a", 123));
             auto output_config = json::parse(server.getCurrentConfig());
             auto providers = output_config["providers"];
             REQUIRE(std::find_if(providers.begin(), providers.end(),
                     [](auto& p) { return p["name"] == "my_provider_a1"; })
                     != providers.end());
             // TODO delete the provider
-
             // create a provider with the non-blocking API
             bedrock::AsyncRequest req;
-            serviceHandle.startProvider("my_provider_a2", "module_a", 34, "__primary__", "{}",
-                    bedrock::DependencyMap(), &req);
+            REQUIRE_NOTHROW(serviceHandle.startProvider(
+                    "my_provider_a2", "module_a", 34, nullptr,
+                    "__primary__", "{}",
+                    bedrock::DependencyMap(), &req));
             req.wait();
             output_config = json::parse(server.getCurrentConfig());
             providers = output_config["providers"];
@@ -175,7 +176,9 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
                 serviceHandle.startProvider("my_provider_c", "module_c", 234),
                 bedrock::Exception);
             // create a provider of an invalid type asynchronously
-            serviceHandle.startProvider("my_provider_c", "module_c", 234, "", "{}", bedrock::DependencyMap(), &req);
+            serviceHandle.startProvider(
+                "my_provider_c", "module_c", 234, nullptr,
+                "", "{}", bedrock::DependencyMap(), &req);
             REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }
     }

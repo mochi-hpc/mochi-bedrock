@@ -53,7 +53,7 @@ Client ServiceHandle::client() const { return Client(self->m_client); }
             = std::make_shared<AsyncThalliumResponse>(std::move(async_response)); \
         async_request_impl->m_wait_callback \
             = [](AsyncThalliumResponse& async_request_impl) { \
-                  RequestResult<std::string> response \
+                  RequestResult<bool> response \
                       = async_request_impl.m_async_response.wait(); \
                   if (!response.success()) { \
                       throw DETAILED_EXCEPTION(response.error()); \
@@ -73,6 +73,7 @@ void ServiceHandle::loadModule(const std::string& name, const std::string& path,
 
 void ServiceHandle::startProvider(const std::string& name,
                                   const std::string& type, uint16_t provider_id,
+                                  uint16_t* provider_id_out,
                                   const std::string&   pool,
                                   const std::string&   config,
                                   const DependencyMap& dependencies,
@@ -80,7 +81,28 @@ void ServiceHandle::startProvider(const std::string& name,
     if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_start_provider;
     auto& ph  = self->m_ph;
-    SEND_RPC_WITH_BOOL_RESULT(name, type, provider_id, pool, config, dependencies);
+    if (req == nullptr) {
+        RequestResult<uint16_t> response = rpc.on(ph)(name, type, provider_id, pool, config, dependencies);
+        if (!response.success()) { throw DETAILED_EXCEPTION(response.error()); }
+        if(provider_id_out) *provider_id_out = response.value();
+    } else {
+        if (req->active()) {
+            throw DETAILED_EXCEPTION("AsyncRequest object passed is already in use");
+        };
+        auto async_response = rpc.on(ph).async(name, type, provider_id, pool, config, dependencies);
+        auto async_request_impl
+            = std::make_shared<AsyncThalliumResponse>(std::move(async_response));
+        async_request_impl->m_wait_callback
+            = [provider_id_out](AsyncThalliumResponse& async_request_impl) {
+                  RequestResult<uint16_t> response
+                      = async_request_impl.m_async_response.wait();
+                  if (!response.success()) {
+                      throw DETAILED_EXCEPTION(response.error());
+                  }
+                  if(provider_id_out) *provider_id_out = response.value();
+              };
+        *req = AsyncRequest(std::move(async_request_impl));
+    }
 }
 
 void ServiceHandle::changeProviderPool(const std::string& provider_name,

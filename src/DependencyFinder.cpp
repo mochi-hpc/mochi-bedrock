@@ -207,7 +207,7 @@ DependencyFinder::findProvider(const std::string& type,
         throw Exception("Could not resolve provider dependency: no ProviderManager found");
     }
     auto provider = ProviderManager(provider_manager_impl).lookupProvider(
-            type + ":" + std::to_string(provider_id), nullptr);
+            type + ":" + std::to_string(provider_id));
     if (!provider) {
         throw Exception("Could not find provider of type {} with id {}", type,
                         provider_id);
@@ -223,8 +223,7 @@ DependencyFinder::findProvider(const std::string& type,
     if (!provider_manager_impl) {
         throw Exception("Could not resolve provider dependency: no ProviderManager found");
     }
-    auto provider = ProviderManager(provider_manager_impl)
-        .lookupProvider(name, provider_id);
+    auto provider = ProviderManager(provider_manager_impl).lookupProvider(name);
     if (!provider) {
         throw Exception("Could not find provider named \"{}\"", name);
     }
@@ -232,6 +231,7 @@ DependencyFinder::findProvider(const std::string& type,
         throw Exception("Invalid type {} for dependency \"{}\" (expected {})",
                         provider->getType(), name, type);
     }
+    if(provider_id) *provider_id = provider->getProviderID();
     return provider;
 }
 
@@ -281,7 +281,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 "Could not resolve provider handle: no ProviderManager found");
         }
         auto provider = ProviderManager(provider_manager_impl)
-            .lookupProvider(type + ":" + std::to_string(provider_id), nullptr);
+            .lookupProvider(type + ":" + std::to_string(provider_id));
         if(!provider) {
             throw Exception(
                 "Could not find local provider of type {} with id {}", type,
@@ -374,8 +374,8 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
     auto        client = findClient(type, client_name);
     auto        service_factory = ModuleContext::getServiceFactory(type);
     hg_addr_t   addr            = HG_ADDR_NULL;
-    uint16_t    provider_id     = 0;
     ProviderDescriptor descriptor;
+    uint16_t provider_id;
     spdlog::trace("Making provider handle to provider {} of type {} at {}",
                   name, type, locator);
 
@@ -385,8 +385,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
         if (!provider_manager_impl) {
             throw Exception("Could not make provider handle: no ProviderManager found");
         }
-        auto provider = ProviderManager(provider_manager_impl)
-            .lookupProvider(name, &provider_id);
+        auto provider = ProviderManager(provider_manager_impl).lookupProvider(name);
         if (!provider) {
             throw Exception("Could not find local provider with name {}", name);
         }
@@ -404,8 +403,9 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
         descriptor = ProviderDescriptor{
             provider->getName(),
             provider->getType(),
-            provider_id
+            provider->getProviderID(),
         };
+        provider_id = provider->getProviderID();
 
     } else {
 
@@ -446,6 +446,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
             margo_addr_free(mid, addr);
             throw;
         }
+        provider_id = descriptor.provider_id;
     }
 
     std::string ph_name;
@@ -453,7 +454,7 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
     hg_size_t   addr_str_size = 256;
     margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
     ph_name = client->getName() + "->" + type + ":"
-            + std::to_string(descriptor.provider_id) + "@" + addr_str;
+            + std::to_string(provider_id) + "@" + addr_str;
 
     if (resolved) *resolved = ph_name;
 

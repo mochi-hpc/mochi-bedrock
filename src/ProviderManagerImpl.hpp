@@ -29,27 +29,25 @@ using nlohmann::json;
 using namespace std::string_literals;
 namespace tl = thallium;
 
-class ProviderEntry : public NamedDependency {
+class LocalProvider : public ProviderDependency {
 
     public:
 
     std::shared_ptr<NamedDependency> pool;
     ResolvedDependencyMap            dependencies;
-    uint16_t                         provider_id;
     AbstractServiceFactory*          factory = nullptr;
 
-    ProviderEntry(
+    LocalProvider(
         std::string name, std::string type, uint16_t provider_id,
         void* handle, AbstractServiceFactory* factory,
         std::shared_ptr<NamedDependency> pool,
         ResolvedDependencyMap deps)
-    : NamedDependency(std::move(name), std::move(type), handle,
+    : ProviderDependency(std::move(name), std::move(type), handle,
         [factory](void* handle) {
             if(factory) factory->deregisterProvider(handle);
-        })
+        }, provider_id)
     , pool(std::move(pool))
     , dependencies(std::move(deps))
-    , provider_id(provider_id)
     , factory(factory)
     {}
 
@@ -57,7 +55,7 @@ class ProviderEntry : public NamedDependency {
         auto c            = json::object();
         c["name"]         = getName();
         c["type"]         = getType();
-        c["provider_id"]  = provider_id;
+        c["provider_id"]  = getProviderID();
         c["pool"]         = pool->getName();
         c["config"]       = json::parse(factory->getProviderConfig(getHandle<void*>()));
         c["dependencies"] = json::object();
@@ -85,7 +83,7 @@ class ProviderManagerImpl
 
   public:
     std::shared_ptr<DependencyFinderImpl>       m_dependency_finder;
-    std::vector<std::shared_ptr<ProviderEntry>> m_providers;
+    std::vector<std::shared_ptr<LocalProvider>> m_providers;
     mutable tl::mutex                           m_providers_mtx;
     mutable tl::condition_variable              m_providers_cv;
 
@@ -127,11 +125,23 @@ class ProviderManagerImpl
         spdlog::trace("ProviderManagerImpl destroyed");
     }
 
+    uint16_t getAvailableProviderID() const {
+        std::unordered_set<uint16_t> used_provider_ids;
+        for(auto& p : m_providers) {
+            used_provider_ids.insert(p->getProviderID());
+        }
+        for(uint16_t i=0; i < std::numeric_limits<uint16_t>::max()-1; ++i) {
+            if(used_provider_ids.find(i) == used_provider_ids.end())
+                return i;
+        }
+        return 0;
+    }
+
     auto resolveSpec(const std::string& type, uint16_t provider_id) {
         return std::find_if(m_providers.begin(), m_providers.end(),
                             [&type, &provider_id](const auto& p) {
                                 return p->getType() == type
-                                    && p->provider_id == provider_id;
+                                    && p->getProviderID() == provider_id;
                             });
     }
 
@@ -178,7 +188,7 @@ class ProviderManagerImpl
         if (it != m_providers.end()) {
             auto& provider = *it;
             result.value().name = provider->getName();
-            result.value().provider_id = provider->provider_id;
+            result.value().provider_id = provider->getProviderID();
         } else {
             result.error()
                 = "Could not find provider with spec \""s + spec + "\"";
@@ -210,18 +220,19 @@ class ProviderManagerImpl
                           const std::string& type, uint16_t provider_id,
                           const std::string& pool, const std::string& config,
                           const DependencyMap& dependencies) {
-        RequestResult<bool> result;
+        RequestResult<uint16_t> result;
         tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         auto manager = ProviderManager(shared_from_this());
         try {
             auto c           = json::object();
             c["name"]        = name;
             c["type"]        = type;
-            c["provider_id"] = provider_id;
+            if(provider_id != std::numeric_limits<uint16_t>::max())
+                c["provider_id"] = provider_id;
             if (!pool.empty()) c["pool"] = pool;
             if (!config.empty()) c["config"] = json::parse(config);
             c["dependencies"] = dependencies;
-            manager.addProviderFromJSON(c.dump());
+            result.value() = manager.addProviderFromJSON(c.dump())->getProviderID();
         } catch (std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();

@@ -58,6 +58,24 @@ class NamedDependency {
     std::function<void(void*)> m_release;
 };
 
+class ProviderDependency : public NamedDependency {
+
+    public:
+
+    template<typename T>
+    ProviderDependency(std::string name, std::string type, T handle, ReleaseFn release, uint16_t provider_id)
+    : NamedDependency(std::move(name), std::move(type), std::move(handle), std::move(release))
+    , m_provider_id(provider_id) {}
+
+    uint16_t getProviderID() const {
+        return m_provider_id;
+    }
+
+    protected:
+
+    uint16_t m_provider_id;
+};
+
 } // namespace bedrock
 
 #endif
