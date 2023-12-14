@@ -72,23 +72,24 @@ std::shared_ptr<ProviderDependency>
 ProviderManager::registerProvider(
     const ProviderDescriptor& descriptor, const std::string& pool_name,
     const std::string& config, const ResolvedDependencyMap& dependencies) {
-    if (descriptor.name.empty()) {
-        throw DETAILED_EXCEPTION("Provider name cannot be empty");
-    }
 
-    auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
+    auto& name       = descriptor.name;
+    auto& type       = descriptor.type;
+    auto provider_id = descriptor.provider_id;
+
+    if (name.empty()) throw DETAILED_EXCEPTION("Provider name cannot be empty");
+
+    auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
         throw DETAILED_EXCEPTION(
-            "Could not find service factory for provider type \"{}\"",
-            descriptor.type);
+            "Could not find service factory for provider type \"{}\"", type);
     }
-    spdlog::trace("Found provider \"{}\" to be of type \"{}\"", descriptor.name,
-                  descriptor.type);
+    spdlog::trace("Found provider \"{}\" to be of type \"{}\"", name, type);
 
     std::shared_ptr<LocalProvider> entry;
     {
         std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-        auto                       it = self->resolveSpec(descriptor.name);
+        auto                       it = self->resolveSpec(name);
         if (it != self->m_providers.end()) {
             throw DETAILED_EXCEPTION(
                 "Could not register provider: a provider with the name \"{}\""
@@ -96,34 +97,35 @@ ProviderManager::registerProvider(
                 descriptor.name);
         }
 
-        it = self->resolveSpec(descriptor.type, descriptor.provider_id);
+        it = self->resolveSpec(type, provider_id);
         if (it != self->m_providers.end()) {
             throw DETAILED_EXCEPTION(
                 "Could not register provider: a provider with the type \"{}\""
-                " and provider id {} is already registered",
-                descriptor.type, descriptor.provider_id);
+                " and provider id {} is already registered", type, provider_id);
         }
+
+        if (provider_id == std::numeric_limits<uint16_t>::max())
+            provider_id = self->getAvailableProviderID();
 
         auto margo = MargoManager(self->m_margo_context);
         auto pool = margo.getPool(pool_name);
 
         FactoryArgs args;
-        args.name         = descriptor.name;
+        args.name         = name;
         args.mid          = margo.getMargoInstance();
         args.engine       = margo.getThalliumEngine();
         args.pool         = pool->getHandle<ABT_pool>();
         args.config       = config;
-        args.provider_id  = descriptor.provider_id;
         args.dependencies = dependencies;
+        args.provider_id  = provider_id;
 
         auto handle = service_factory->registerProvider(args);
 
         entry = std::make_shared<LocalProvider>(
-            descriptor.name, descriptor.type, descriptor.provider_id,
-            handle, service_factory, pool, std::move(dependencies));
+            name, type, provider_id, handle, service_factory, pool, std::move(dependencies));
 
         spdlog::trace("Registered provider {} of type {} with provider id {}",
-                      descriptor.name, descriptor.type, descriptor.provider_id);
+                      name, type, provider_id);
 
         self->m_providers.push_back(entry);
     }
@@ -180,7 +182,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
             "\"type\" field in provider definition should be a string");
 
     descriptor.name        = config["name"];
-    descriptor.provider_id = config.value("provider_id", self->getAvailableProviderID());
+    descriptor.provider_id = config.value("provider_id", std::numeric_limits<uint16_t>::max());
     descriptor.type        = config["type"];
 
     auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
@@ -221,7 +223,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
 
     ResolvedDependencyMap resolved_dependency_map;
 
-    for (const auto& dependency : service_factory->getProviderDependencies()) {
+    for (const auto& dependency : service_factory->getProviderDependencies(provider_config.c_str())) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];

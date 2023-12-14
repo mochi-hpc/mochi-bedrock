@@ -69,7 +69,7 @@ std::shared_ptr<NamedDependency> ClientManager::lookupOrCreateAnonymous(const st
         }
         // find out if such a client has required dependencies
         for (const auto& dependency :
-             service_factory->getClientDependencies()) {
+             service_factory->getClientDependencies("{}")) {
             if (dependency.flags & BEDROCK_REQUIRED)
                 throw DETAILED_EXCEPTION(
                     "Could not create default client of type \"{}\" because"
@@ -217,7 +217,7 @@ ClientManager::addClientFromJSON(
 
     ResolvedDependencyMap resolved_dependency_map;
 
-    for (const auto& dependency : service_factory->getClientDependencies()) {
+    for (const auto& dependency : service_factory->getClientDependencies(client_config.c_str())) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];

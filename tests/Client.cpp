@@ -170,6 +170,27 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
                     [](auto& p) { return p["name"] == "my_provider_a2"; })
                     != providers.end());
             // TODO delete the provider
+            // create a provider of type module_a but let Bedrock choose the provider ID
+            REQUIRE_NOTHROW(serviceHandle.startProvider(
+                    "my_provider_a3", "module_a",
+                    bedrock::ServiceHandle::NewProviderID));
+            output_config = json::parse(server.getCurrentConfig());
+            providers = output_config["providers"];
+            auto it = std::find_if(providers.begin(), providers.end(),
+                      [](auto& p) { return p["name"] == "my_provider_a3"; });
+            REQUIRE(it != providers.end());
+            REQUIRE((*it)["provider_id"] == 0);
+            // create a provider of type module_a but let Bedrock choose the provider ID again
+            REQUIRE_NOTHROW(serviceHandle.startProvider(
+                    "my_provider_a4", "module_a",
+                    bedrock::ServiceHandle::NewProviderID));
+            output_config = json::parse(server.getCurrentConfig());
+            providers = output_config["providers"];
+            it = std::find_if(providers.begin(), providers.end(),
+                      [](auto& p) { return p["name"] == "my_provider_a4"; });
+            REQUIRE(it != providers.end());
+            REQUIRE((*it)["provider_id"] == 1);
+
 
             // create a provider of an invalid type
             REQUIRE_THROWS_AS(
