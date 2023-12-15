@@ -28,12 +28,14 @@ class ClientEntry : public NamedDependency {
 
     public:
 
-    AbstractServiceFactory* factory;
-    ResolvedDependencyMap   dependencies;
+    AbstractServiceFactory*  factory;
+    ResolvedDependencyMap    dependencies;
+    std::vector<std::string> tags;
 
     ClientEntry(std::string name, std::string type,
                 void* handle, AbstractServiceFactory* f,
-                ResolvedDependencyMap deps)
+                ResolvedDependencyMap deps,
+                std::vector<std::string> _tags)
     : NamedDependency(
         std::move(name),
         std::move(type),
@@ -42,13 +44,16 @@ class ClientEntry : public NamedDependency {
             if(f) f->finalizeClient(args);
         })
     , factory(f)
-    , dependencies(deps) {}
+    , dependencies(deps)
+    , tags(std::move(_tags)) {}
 
     json makeConfig() const {
         auto c            = json::object();
         c["name"]         = getName();
         c["type"]         = getType();
         c["config"]       = json::parse(factory->getClientConfig(getHandle<void*>()));
+        c["tags"]         = json::array();
+        for(auto& t : tags) c["tags"].push_back(t);
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];
         for (auto& p : dependencies) {

@@ -408,6 +408,25 @@ size_t bedrock_args_get_num_dependencies(bedrock_args_t args, const char* name);
 void* bedrock_args_get_dependency(bedrock_args_t args, const char* name,
                                   size_t index);
 
+/**
+ * @brief Returns the number of tags specified in the configuration for this provider.
+ *
+ * @param args Arguments to the provider registration.
+ *
+ * @return The number of tags.
+ */
+size_t bedrock_args_get_num_tags(bedrock_args_t args);
+
+/**
+ * @brief Get the tag at the specified index.
+ *
+ * @param args Arguments to the provider registration.
+ * @param index Index of the tag to retrieve.
+ *
+ * @return Null-terminated string of the tag, or NULL if not found.
+ */
+const char* bedrock_args_get_tag(bedrock_args_t args, size_t index);
+
 #ifdef __cplusplus
 }
 #endif

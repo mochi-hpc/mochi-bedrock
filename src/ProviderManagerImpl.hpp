@@ -36,12 +36,14 @@ class LocalProvider : public ProviderDependency {
     std::shared_ptr<NamedDependency> pool;
     ResolvedDependencyMap            dependencies;
     AbstractServiceFactory*          factory = nullptr;
+    std::vector<std::string>         tags;
 
     LocalProvider(
         std::string name, std::string type, uint16_t provider_id,
         void* handle, AbstractServiceFactory* factory,
         std::shared_ptr<NamedDependency> pool,
-        ResolvedDependencyMap deps)
+        ResolvedDependencyMap deps,
+        std::vector<std::string> _tags)
     : ProviderDependency(std::move(name), std::move(type), handle,
         [factory](void* handle) {
             if(factory) factory->deregisterProvider(handle);
@@ -49,6 +51,7 @@ class LocalProvider : public ProviderDependency {
     , pool(std::move(pool))
     , dependencies(std::move(deps))
     , factory(factory)
+    , tags(std::move(_tags))
     {}
 
     json makeConfig() const {
@@ -58,6 +61,8 @@ class LocalProvider : public ProviderDependency {
         c["provider_id"]  = getProviderID();
         c["pool"]         = pool->getName();
         c["config"]       = json::parse(factory->getProviderConfig(getHandle<void*>()));
+        c["tags"]         = json::array();
+        for(auto& t : tags) c["tags"].push_back(t);
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];
         for (auto& p : dependencies) {
@@ -219,7 +224,8 @@ class ProviderManagerImpl
     void startProviderRPC(const tl::request& req, const std::string& name,
                           const std::string& type, uint16_t provider_id,
                           const std::string& pool, const std::string& config,
-                          const DependencyMap& dependencies) {
+                          const DependencyMap& dependencies,
+                          const std::vector<std::string>& tags) {
         RequestResult<uint16_t> result;
         tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         auto manager = ProviderManager(shared_from_this());
@@ -232,6 +238,7 @@ class ProviderManagerImpl
             if (!pool.empty()) c["pool"] = pool;
             if (!config.empty()) c["config"] = json::parse(config);
             c["dependencies"] = dependencies;
+            c["tags"] = tags;
             result.value() = manager.addProviderFromJSON(c.dump())->getProviderID();
         } catch (std::exception& ex) {
             result.success() = false;

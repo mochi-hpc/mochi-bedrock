@@ -111,11 +111,13 @@ class ClientManager {
      * @param descriptor Descriptor (name and type).
      * @param config JSON configuration for the client.
      * @param dependencies Dependency map.
+     * @param tags Tags.
      */
     std::shared_ptr<NamedDependency>
         createClient(const ClientDescriptor&      descriptor,
                      const std::string&           config,
-                     const ResolvedDependencyMap& dependencies);
+                     const ResolvedDependencyMap& dependencies,
+                     const std::vector<std::string>& tags = {});
 
     /**
      * @brief Destroy a client.

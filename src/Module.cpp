@@ -49,4 +49,16 @@ size_t bedrock_args_get_num_dependencies(bedrock_args_t args,
     if (it == a->dependencies.end()) { return 0; }
     return it->second.dependencies.size();
 }
+
+const char* bedrock_args_get_tag(bedrock_args_t args, size_t index) {
+    auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
+    if(a->tags.size() >= index) return nullptr;
+    return a->tags[index].c_str();
+}
+
+size_t bedrock_args_get_num_tags(bedrock_args_t args) {
+    auto a  = reinterpret_cast<bedrock::FactoryArgs*>(args);
+    return a->tags.size();
+}
+
 }

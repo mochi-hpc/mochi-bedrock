@@ -78,6 +78,7 @@
             "name" : "ProviderA",
             "type" : "module_a",
             "provider_id" : 42,
+            "tags": [ "xxx", "yyy"],
             "pool" : "__primary__",
             "config" : {},
             "dependencies" : {}
@@ -86,6 +87,7 @@
             "name" : "ProviderB",
             "type" : "module_b",
             "provider_id" : 33,
+            "tags": [ "zzz"],
             "pool" : "__primary__",
             "config" : {},
             "dependencies" : {

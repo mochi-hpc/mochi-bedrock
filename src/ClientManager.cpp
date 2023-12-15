@@ -102,9 +102,10 @@ std::vector<ClientDescriptor> ClientManager::listClients() const {
 }
 
 std::shared_ptr<NamedDependency>
-ClientManager::createClient(const ClientDescriptor&      descriptor,
-                            const std::string&           config,
-                            const ResolvedDependencyMap& dependencies) {
+ClientManager::createClient(const ClientDescriptor&         descriptor,
+                            const std::string&              config,
+                            const ResolvedDependencyMap&    dependencies,
+                            const std::vector<std::string>& tags) {
     if (descriptor.name.empty()) {
         throw DETAILED_EXCEPTION("Client name cannot be empty");
     }
@@ -136,14 +137,15 @@ ClientManager::createClient(const ClientDescriptor&      descriptor,
         args.engine       = margoCtx.getThalliumEngine();
         args.pool         = ABT_POOL_NULL;
         args.config       = config;
-        args.provider_id  = 0;
+        args.provider_id  = std::numeric_limits<uint16_t>::max();
+        args.tags         = tags;
         args.dependencies = dependencies;
 
         auto handle = service_factory->initClient(args);
 
         entry = std::make_shared<ClientEntry>(
             descriptor.name, descriptor.type,
-            handle, service_factory, dependencies);
+            handle, service_factory, dependencies, tags);
 
         spdlog::trace("Registered client {} of type {}", descriptor.name,
                       descriptor.type);
@@ -213,7 +215,25 @@ ClientManager::addClientFromJSON(
         }
     }
 
+    auto tags_from_config = config.value("tags", json::array());
+    std::vector<std::string> tags;
+    if(!tags_from_config.is_array()) {
+        throw DETAILED_EXCEPTION(
+                "\"tags\" field in client definition should be an array");
+    }
+    for(auto& tag : tags_from_config) {
+        if(!tag.is_string()) {
+            throw DETAILED_EXCEPTION(
+                "Tag in client definition should be a string");
+        }
+        tags.push_back(tag.get<std::string>());
+    }
+
     auto deps_from_config = config.value("dependencies", json::object());
+    if(!deps_from_config.is_object()) {
+        throw DETAILED_EXCEPTION(
+                "\"dependencies\" field in client definition should be an object");
+    }
 
     ResolvedDependencyMap resolved_dependency_map;
 
@@ -254,7 +274,7 @@ ClientManager::addClientFromJSON(
         }
     }
 
-    return createClient(descriptor, client_config, resolved_dependency_map);
+    return createClient(descriptor, client_config, resolved_dependency_map, tags);
 }
 
 void ClientManager::addClientListFromJSON(

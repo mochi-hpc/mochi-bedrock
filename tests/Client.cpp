@@ -162,7 +162,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             REQUIRE_NOTHROW(serviceHandle.startProvider(
                     "my_provider_a2", "module_a", 34, nullptr,
                     "__primary__", "{}",
-                    bedrock::DependencyMap(), &req));
+                    bedrock::DependencyMap(), {}, &req));
             req.wait();
             output_config = json::parse(server.getCurrentConfig());
             providers = output_config["providers"];
@@ -199,7 +199,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             // create a provider of an invalid type asynchronously
             serviceHandle.startProvider(
                 "my_provider_c", "module_c", 234, nullptr,
-                "", "{}", bedrock::DependencyMap(), &req);
+                "", "{}", bedrock::DependencyMap(), {}, &req);
             REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }
     }

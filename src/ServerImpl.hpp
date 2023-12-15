@@ -128,7 +128,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
 
     void addClientRPC(const tl::request& req, const std::string& name,
                       const std::string& type, const std::string& config,
-                      const DependencyMap& dependencies) {
+                      const DependencyMap& dependencies,
+                      const std::vector<std::string>& tags) {
         RequestResult<bool> result;
         json                jsonconfig;
         try {
@@ -146,6 +147,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
         fullconfig["name"]   = name;
         fullconfig["type"]   = type;
         fullconfig["config"] = jsonconfig;
+        fullconfig["tags"] = tags;
         auto& depconfig      = fullconfig["dependencies"];
         for (auto& p : dependencies) {
             auto& name = p.first;

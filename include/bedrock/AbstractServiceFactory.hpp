@@ -47,13 +47,14 @@ typedef std::unordered_map<std::string, DependencyGroup> ResolvedDependencyMap;
  * The C equivalent of this structure is the bedrock_args_t handle.
  */
 struct FactoryArgs {
-    std::string           name;         // name of the provider
-    thallium::engine      engine;       // thallium engine
-    margo_instance_id     mid;          // margo instance id
-    uint16_t              provider_id;  // provider id
-    ABT_pool              pool;         // Argobots pool
-    std::string           config;       // JSON configuration
-    ResolvedDependencyMap dependencies; // dependencies
+    std::string              name;         // name of the provider
+    thallium::engine         engine;       // thallium engine
+    margo_instance_id        mid;          // margo instance id
+    uint16_t                 provider_id;  // provider id
+    ABT_pool                 pool;         // Argobots pool
+    std::vector<std::string> tags;         // Tags
+    std::string              config;       // JSON configuration
+    ResolvedDependencyMap    dependencies; // dependencies
 };
 
 /**

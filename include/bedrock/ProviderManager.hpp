@@ -108,12 +108,14 @@ class ProviderManager {
      * @param pool_name Pool name.
      * @param config JSON configuration for the provider.
      * @param dependencies Dependency map.
+     * @param tags Tags.
      */
     std::shared_ptr<ProviderDependency>
-        registerProvider(const ProviderDescriptor&    descriptor,
-                         const std::string&           pool_name,
-                         const std::string&           config,
-                         const ResolvedDependencyMap& dependencies);
+        registerProvider(const ProviderDescriptor&       descriptor,
+                         const std::string&              pool_name,
+                         const std::string&              config,
+                         const ResolvedDependencyMap&    dependencies,
+                         const std::vector<std::string>& tags = {});
 
     /**
      * @brief Deregister a provider from a specification. The specification has

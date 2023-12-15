@@ -71,7 +71,8 @@ std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
 std::shared_ptr<ProviderDependency>
 ProviderManager::registerProvider(
     const ProviderDescriptor& descriptor, const std::string& pool_name,
-    const std::string& config, const ResolvedDependencyMap& dependencies) {
+    const std::string& config, const ResolvedDependencyMap& dependencies,
+    const std::vector<std::string>& tags) {
 
     auto& name       = descriptor.name;
     auto& type       = descriptor.type;
@@ -116,13 +117,15 @@ ProviderManager::registerProvider(
         args.engine       = margo.getThalliumEngine();
         args.pool         = pool->getHandle<ABT_pool>();
         args.config       = config;
+        args.tags         = tags;
         args.dependencies = dependencies;
         args.provider_id  = provider_id;
 
         auto handle = service_factory->registerProvider(args);
 
         entry = std::make_shared<LocalProvider>(
-            name, type, provider_id, handle, service_factory, pool, std::move(dependencies));
+            name, type, provider_id, handle, service_factory, pool,
+            std::move(dependencies), tags);
 
         spdlog::trace("Registered provider {} of type {} with provider id {}",
                       name, type, provider_id);
@@ -219,6 +222,20 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
         pool_name = margo.getDefaultHandlerPool()->getName();
     }
 
+    auto tags_from_config = config.value("tags", json::array());
+    std::vector<std::string> tags;
+    if(!tags_from_config.is_array()) {
+        throw DETAILED_EXCEPTION(
+                "\"tags\" field in client definition should be an array");
+    }
+    for(auto& tag : tags_from_config) {
+        if(!tag.is_string()) {
+            throw DETAILED_EXCEPTION(
+                    "Tag in client definition should be a string");
+        }
+        tags.push_back(tag.get<std::string>());
+    }
+
     auto deps_from_config = config.value("dependencies", json::object());
 
     ResolvedDependencyMap resolved_dependency_map;
@@ -263,7 +280,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
     }
 
     return registerProvider(descriptor, pool_name, provider_config,
-                            resolved_dependency_map);
+                            resolved_dependency_map, tags);
 }
 
 void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {

@@ -77,19 +77,20 @@ void ServiceHandle::startProvider(const std::string& name,
                                   const std::string&   pool,
                                   const std::string&   config,
                                   const DependencyMap& dependencies,
+                                  const std::vector<std::string>& tags,
                                   AsyncRequest*        req) const {
     if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_start_provider;
     auto& ph  = self->m_ph;
     if (req == nullptr) {
-        RequestResult<uint16_t> response = rpc.on(ph)(name, type, provider_id, pool, config, dependencies);
+        RequestResult<uint16_t> response = rpc.on(ph)(name, type, provider_id, pool, config, dependencies, tags);
         if (!response.success()) { throw DETAILED_EXCEPTION(response.error()); }
         if(provider_id_out) *provider_id_out = response.value();
     } else {
         if (req->active()) {
             throw DETAILED_EXCEPTION("AsyncRequest object passed is already in use");
         };
-        auto async_response = rpc.on(ph).async(name, type, provider_id, pool, config, dependencies);
+        auto async_response = rpc.on(ph).async(name, type, provider_id, pool, config, dependencies, tags);
         auto async_request_impl
             = std::make_shared<AsyncThalliumResponse>(std::move(async_response));
         async_request_impl->m_wait_callback
@@ -152,14 +153,15 @@ void ServiceHandle::restoreProvider(
 
 
 void ServiceHandle::addClient(const std::string&   name,
-                                 const std::string&   type,
-                                 const std::string&   config,
-                                 const DependencyMap& dependencies,
-                                 AsyncRequest*        req) const {
+                              const std::string&   type,
+                              const std::string&   config,
+                              const DependencyMap& dependencies,
+                              const std::vector<std::string>& tags,
+                              AsyncRequest*        req) const {
     if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_add_client;
     auto& ph  = self->m_ph;
-    SEND_RPC_WITH_BOOL_RESULT(name, type, config, dependencies);
+    SEND_RPC_WITH_BOOL_RESULT(name, type, config, dependencies, tags);
 }
 
 void ServiceHandle::addABTioInstance(const std::string& name,

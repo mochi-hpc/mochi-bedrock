@@ -98,6 +98,7 @@ class ServiceHandle {
      * @param[in] pool Pool for the provider to use.
      * @param[in] config Configuration (JSON-formatted).
      * @param[in] dependencies Dependencies for the provider.
+     * @param[in] tags Tags.
      * @param[in] req Asynchronous request to wait on, if provided.
      *
      * Note: passing nullptr to provider_id_out is valid, the result will simply be ignored.
@@ -107,6 +108,7 @@ class ServiceHandle {
                        const std::string& pool = "",
                        const std::string&   config       = "{}",
                        const DependencyMap& dependencies = DependencyMap(),
+                       const std::vector<std::string>& tags = {},
                        AsyncRequest*        req          = nullptr) const;
 
     /**
@@ -183,9 +185,10 @@ class ServiceHandle {
      * @param req Asynchronous request to wait on, if provided.
      */
     void addClient(const std::string& name, const std::string& type,
-                   const std::string&   config       = "{}",
-                   const DependencyMap& dependencies = DependencyMap(),
-                   AsyncRequest*        req          = nullptr) const;
+                   const std::string&   config          = "{}",
+                   const DependencyMap& dependencies    = DependencyMap(),
+                   const std::vector<std::string>& tags = {},
+                   AsyncRequest*        req             = nullptr) const;
 
     /**
      * @brief Creates a new ABT-IO instance on the target service daemon.
