@@ -244,10 +244,13 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
-            if (!(dependency.flags & BEDROCK_ARRAY)) {
+            if (!(dependency.flags & BEDROCK_ARRAY)) { // dependency should be a string
+
+                if (dep_config.is_array() && dep_config.size() == 1)
+                    dep_config = dep_config[0];
                 if (!dep_config.is_string()) {
-                    throw DETAILED_EXCEPTION("Dependency {} should be a string",
-                                    dependency.name);
+                    throw DETAILED_EXCEPTION(
+                        "Dependency \"{}\" should be a string", dependency.name);
                 }
                 auto dep_handle = dependencyFinder.find(
                         dependency.type, dep_config.get<std::string>(), nullptr);
@@ -255,7 +258,9 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                 resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
 
             } else { // dependency is an array
-
+                if (dep_config.is_string()) {
+                    dep_config = json::array({dep_config});
+                }
                 if (!dep_config.is_array()) {
                     throw DETAILED_EXCEPTION("Dependency {} should be an array",
                                     dependency.name);
