@@ -34,6 +34,10 @@ PYBIND11_MODULE(pybedrock_server, m) {
              [](std::shared_ptr<Server> server) {
                 server->waitForFinalize();
              })
+        .def("finalize",
+             [](std::shared_ptr<Server> server) {
+                server->finalize();
+             })
     ;
     py11::enum_<ConfigType>(server, "ConfigType")
     .value("JSON", ConfigType::JSON)

@@ -12,16 +12,12 @@
 """
 
 
-try:
-    import _pybedrock
-except ModuleNotFoundError as error:
-    raise ModuleNotFoundError("Could not find bedrock client extension. Did you disable it?")
-
+import pybedrock_client
 import pymargo.core
 import pymargo
 
 
-class Client(_pybedrock.Client):
+class Client(pybedrock_client.Client):
 
     def __init__(self, arg):
         if isinstance(arg, pymargo.core.Engine):
