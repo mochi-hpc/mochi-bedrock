@@ -23,7 +23,11 @@ PYBIND11_MODULE(pybedrock_server, m) {
     m.doc() = "Bedrock server C++ extension";
     py11::register_exception<Exception>(m, "Exception", PyExc_RuntimeError);
     py11::class_<Server, std::shared_ptr<Server>> server(m, "Server");
-        server
+    py11::enum_<ConfigType>(server, "ConfigType")
+    .value("JSON", ConfigType::JSON)
+    .value("JX9", ConfigType::JX9)
+    .export_values();
+    server
         .def(py11::init([](const std::string& address, const std::string& config,
                            ConfigType configType,
                            const Jx9ParamMap& jx9Params) {
@@ -39,8 +43,4 @@ PYBIND11_MODULE(pybedrock_server, m) {
                 server->finalize();
              })
     ;
-    py11::enum_<ConfigType>(server, "ConfigType")
-    .value("JSON", ConfigType::JSON)
-    .value("JX9", ConfigType::JX9)
-    .export_values();
 }
