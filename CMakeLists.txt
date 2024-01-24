@@ -14,7 +14,7 @@ option (ENABLE_MPI      "Enable MPI support" OFF)
 option (ENABLE_MONA     "Enable MoNA support" OFF)
 option (ENABLE_SSG      "Enable SSG support" ON)
 option (ENABLE_ABT_IO   "Enable ABT-IO support" ON)
-option (ENABLE_PYTHON   "Enable Python support" ON)
+option (ENABLE_PYTHON   "Enable Python support" OFF)
 
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
