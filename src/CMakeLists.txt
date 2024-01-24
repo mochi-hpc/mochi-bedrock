@@ -38,6 +38,7 @@ set (bedrock-vers "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}")
 
 # server library
 add_library (bedrock-server ${server-src-files})
+add_library (bedrock::server ALIAS bedrock-server)
 target_compile_options (bedrock-server PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-server
     PRIVATE jx9 coverage_config
@@ -61,6 +62,7 @@ set_target_properties (bedrock-server
 
 # client library
 add_library (bedrock-client ${client-src-files})
+add_library (bedrock::client ALIAS bedrock-client)
 target_compile_options (bedrock-client PUBLIC -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-client
     PRIVATE coverage_config

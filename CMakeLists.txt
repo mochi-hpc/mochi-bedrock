@@ -14,6 +14,7 @@ option (ENABLE_MPI      "Enable MPI support" OFF)
 option (ENABLE_MONA     "Enable MoNA support" OFF)
 option (ENABLE_SSG      "Enable SSG support" ON)
 option (ENABLE_ABT_IO   "Enable ABT-IO support" ON)
+option (ENABLE_PYTHON   "Enable Python support" ON)
 
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
@@ -85,6 +86,12 @@ if (ENABLE_MONA)
     add_definitions (-DENABLE_MONA)
     set (OPTIONAL_MONA PkgConfig::MONA)
     set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} mona")
+endif ()
+# search for Python
+if (ENABLE_PYTHON)
+    find_package (Python3 COMPONENTS Interpreter Development REQUIRED)
+    find_package (pybind11 REQUIRED)
+    add_subdirectory (python)
 endif ()
 
 # library version set here (e.g. for shared libs).
