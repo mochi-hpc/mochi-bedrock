@@ -42,5 +42,9 @@ PYBIND11_MODULE(pybedrock_server, m) {
              [](std::shared_ptr<Server> server) {
                 server->finalize();
              })
+        .def_property_readonly("margo_instance_id",
+             [](std::shared_ptr<Server> server) {
+                return MID2CAPSULE(server->getMargoManager().getMargoInstance());
+             })
     ;
 }
