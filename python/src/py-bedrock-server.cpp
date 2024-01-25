@@ -37,6 +37,8 @@ PYBIND11_MODULE(pybedrock_server, m) {
             [](std::shared_ptr<NamedDependency> nd) { return nd->getName(); })
         .def_property_readonly("type",
             [](std::shared_ptr<NamedDependency> nd) { return nd->getType(); })
+        .def_property_readonly("handle",
+            [](std::shared_ptr<NamedDependency> nd) { return nd->getHandle<intptr_t>(); })
     ;
 
     py11::class_<ProviderDependency, std::shared_ptr<ProviderDependency>> (m, "ProviderDependency", named_dep)
