@@ -224,6 +224,24 @@ std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_n
 #endif
 }
 
+std::shared_ptr<NamedDependency> SSGManager::getGroup(uint32_t group_index) const {
+#ifdef ENABLE_SSG
+    if(group_index >= self->m_ssg_groups.size()) return nullptr;
+    return self->m_ssg_groups[group_index];
+#else
+    (void)group_index;
+    return nullptr;
+#endif
+}
+
+size_t SSGManager::getNumGroups() const {
+#ifdef ENABLE_SSG
+    return self->m_ssg_groups.size();
+#else
+    return 0;
+#endif
+}
+
 std::shared_ptr<NamedDependency>
 SSGManager::createGroup(const std::string&                      name,
                         const ssg_group_config_t*               config,

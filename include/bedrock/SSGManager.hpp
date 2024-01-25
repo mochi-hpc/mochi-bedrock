@@ -114,6 +114,11 @@ class SSGManager {
     std::shared_ptr<NamedDependency> getGroup(uint32_t index) const;
 
     /**
+     * @brief Get the number of groups.
+     */
+    size_t getNumGroups() const;
+
+    /**
      * @brief Resolve an address starting with ssg://
      * These address may be:
      * - ssg://<group-name>/members/<member-id>

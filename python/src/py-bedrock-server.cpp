@@ -134,6 +134,7 @@ PYBIND11_MODULE(pybedrock_server, m) {
 
     py11::class_<SSGManager> (m, "SSGManager")
         .def_property_readonly("config", &SSGManager::getCurrentConfig)
+        .def_property_readonly("num_groups", &SSGManager::getNumGroups)
         .def("get_group", [](const SSGManager& ssg, const std::string& name) {
                 return ssg.getGroup(name);
              }, "name_a")
