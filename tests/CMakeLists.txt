@@ -16,3 +16,26 @@ foreach (test-source ${test-sources})
     target_link_libraries (Test${name} PRIVATE Catch2::Catch2WithMain bedrock-server bedrock-client coverage_config)
     add_test (NAME Test${name} COMMAND ./Test${name})
 endforeach ()
+
+# Set the path to the python directory
+set (PYTHON_MODULE_DIR ${CMAKE_SOURCE_DIR}/python)
+# Use file(GLOB_RECURSE ...) to find all files matching the test_*.py pattern
+file (GLOB_RECURSE PYTHON_TEST_FILES "${PYTHON_MODULE_DIR}/test_*.py")
+
+foreach (PYTHON_TEST_FILE ${PYTHON_TEST_FILES})
+    # Remove the directory part
+    file (RELATIVE_PATH PYTHON_TEST_FILE_REL ${PYTHON_MODULE_DIR} ${PYTHON_TEST_FILE})
+    # Remove the file extension
+    string (REPLACE ".py" "" PYTHON_TEST_FILE_BASE ${PYTHON_TEST_FILE_REL})
+    # Replace slashes with dots
+    string (REPLACE "/" "." PYTHON_TEST_NAME ${PYTHON_TEST_FILE_BASE})
+    # Add the test
+    if (${ENABLE_COVERAGE})
+        add_test (NAME ${PYTHON_TEST_NAME} COMMAND coverage run -m unittest ${PYTHON_TEST_NAME})
+    else ()
+        add_test (NAME ${PYTHON_TEST_NAME} COMMAND python -m unittest ${PYTHON_TEST_NAME})
+    endif ()
+    set_property (TEST ${PYTHON_TEST_NAME} PROPERTY ENVIRONMENT
+                  PYTHONPATH=${CMAKE_SOURCE_DIR}/python/:${CMAKE_BINARY_DIR}/python:$ENV{PYTHONPATH})
+endforeach()
+

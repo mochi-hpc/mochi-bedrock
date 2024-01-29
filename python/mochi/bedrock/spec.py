@@ -1247,6 +1247,9 @@ class ProviderSpec:
 
     :param dependencies: Dependencies
     :type dependencies: dict
+
+    :param tags: Tags
+    :type tags: List[str]
     """
 
     name: str = attr.ib(
@@ -1266,6 +1269,9 @@ class ProviderSpec:
     dependencies: dict = attr.ib(
         validator=instance_of(dict),
         factory=dict)
+    tags: List[str] = attr.ib(
+        validator=instance_of(List[str]),
+        factory=list)
 
     def to_dict(self) -> dict:
         """Convert the SSGSpec into a dictionary.
@@ -1275,7 +1281,8 @@ class ProviderSpec:
                 'pool': self.pool.name,
                 'provider_id': self.provider_id,
                 'dependencies': self.dependencies,
-                'config': self.config}
+                'config': self.config,
+                'tags': self.tags}
 
     @staticmethod
     def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'ProviderSpec':
@@ -1290,7 +1297,7 @@ class ProviderSpec:
         :type abt_spec: ArgobotsSpec
         """
         args = data.copy()
-        args['poo'] = abt_spec.find_pool(data['pool'])
+        args['pool'] = abt_spec.find_pool(data['pool'])
         provider = ProviderSpec(**args)
         return provider
 

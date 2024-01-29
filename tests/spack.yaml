@@ -21,6 +21,7 @@ spack:
   - py-mochi-margo
   - py-pybind11
   - py-attrs
+  - py-coverage
   concretizer:
     unify: true
     reuse: true
