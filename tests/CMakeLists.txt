@@ -31,6 +31,7 @@ foreach (PYTHON_TEST_FILE ${PYTHON_TEST_FILES})
     string (REPLACE "/" "." PYTHON_TEST_NAME ${PYTHON_TEST_FILE_BASE})
     # Add the test
     if (${ENABLE_COVERAGE})
+        message (STATUS "${PYTHON_TEST_NAME} test will run with code coverage")
         add_test (NAME ${PYTHON_TEST_NAME} COMMAND coverage run -m unittest ${PYTHON_TEST_NAME})
     else ()
         add_test (NAME ${PYTHON_TEST_NAME} COMMAND python -m unittest ${PYTHON_TEST_NAME})
