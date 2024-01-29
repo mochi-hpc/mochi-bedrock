@@ -44,7 +44,11 @@ Server::Server(const std::string& address, const std::string& configString,
     spdlog::trace("Parsing JSON configuration");
     json config;
     if (!jsonConfigString.empty()) {
-        config = json::parse(jsonConfigString);
+        try {
+            config = json::parse(jsonConfigString);
+        } catch(const std::exception& ex) {
+            throw Exception(ex.what());
+        }
     } else {
         config = json::object();
     }

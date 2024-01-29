@@ -19,6 +19,9 @@ from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, SSGSpec, AbtIOSpec
 import json
 
 
+BedrockException = pybedrock_server.Exception
+
+
 class ConfigType:
     JSON = pybedrock_server.Server.JSON
     JX9 = pybedrock_server.Server.JX9
@@ -271,9 +274,13 @@ class ProviderManager:
 class Server:
 
     def __init__(self, address: str,
-                 config: str = "{}",
+                 config: str|dict|ProcSpec = "{}",
                  config_type = ConfigType.JSON,
                  jx9_params: dict[str,str] = {}):
+        if isinstance(config, dict):
+            config = json.dumps(config)
+        elif isinstance(config, ProcSpec):
+            config = config.to_json()
         self._internal = pybedrock_server.Server(address, config, config_type, jx9_params)
 
     @staticmethod

@@ -356,6 +356,9 @@ class MercurySpec:
     :param stats: Enable statistics
     :type stats: bool
 
+    :param checksum_level: Checksum level
+    :type checksum_level: str
+
     :param version: Version
     :type version: str
     """
@@ -374,6 +377,15 @@ class MercurySpec:
     request_post_init: int = attr.ib(default=256, validator=instance_of(int))
     stats: bool = attr.ib(default=False, validator=instance_of(bool))
     version: str = attr.ib(default='unknown', validator=instance_of(str))
+    checksum_level: str = attr.ib(default='none',
+                                  validator=in_(['none', 'rpc_headers', 'rpc_payload']))
+    input_eager_size: int = attr.ib(default=4080, validator=instance_of(int))
+    output_eager_size: int = attr.ib(default=4080, validator=instance_of(int))
+    na_addr_format: str = attr.ib(default='unspec',
+                                  validator=in_(['unspec', 'ipv4', 'ipv6', 'native']))
+    na_max_expected_size: int = attr.ib(default=0, validator=instance_of(int))
+    na_max_unexpected_size: int = attr.ib(default=0, validator=instance_of(int))
+    na_request_mem_device: bool = attr.ib(default=False, validator=instance_of(bool))
 
     def to_dict(self) -> dict:
         """Convert the MercurySpec into a dictionary.
@@ -531,13 +543,10 @@ class SchedulerSpec:
         :return: A new SchedulerSpec
         :rtype: SchedulerSpec
         """
-        scheduler = SchedulerSpec()
-        scheduler.type = data['type']
         pools = []
         for pool_ref in data['pools']:
             pools.append(abt_spec.pools[pool_ref])
-        scheduler.pools = pools
-        return scheduler
+        return SchedulerSpec(pools=pools, type=data["type"])
 
     def to_json(self, *args, **kwargs) -> str:
         """Convert the SchedulerSpec into a JSON string.
@@ -628,8 +637,7 @@ class XstreamSpec:
         scheduler = SchedulerSpec.from_dict(scheduler_args, abt_spec)
         args = data.copy()
         del args['scheduler']
-        xstream = XstreamSpec(**args)
-        xstream.scheduler = scheduler
+        xstream = XstreamSpec(**args, scheduler=scheduler)
         return xstream
 
     def to_json(self, *args, **kwargs) -> str:
@@ -723,6 +731,12 @@ class ArgobotsSpec:
 
     :param xstreams: List of XstreamSpecs to use
     :type xstreams: list
+
+    :param lazy_stack_alloc: Lazy allocation of stacks
+    :type lazy_stack_alloc: boolean
+
+    :param profiling_dir: Output directory for Argobots profiles
+    :type profiling_dir: str
     """
 
     abt_mem_max_num_stacks: int = attr.ib(
@@ -736,6 +750,10 @@ class ArgobotsSpec:
     _xstreams: List[XstreamSpec] = attr.ib(
         default=Factory(_default_xstreams_list, takes_self=True),
         validator=instance_of(list))
+    lazy_stack_alloc: bool = attr.ib(
+        default=False, validator=instance_of(bool))
+    profiling_dir: str = attr.ib(
+        default=".", validator=instance_of(str))
 
     @abt_mem_max_num_stacks.validator
     def _check_abt_mem_max_num_stacks(self, attribute, value) -> NoReturn:
@@ -820,12 +838,14 @@ class ArgobotsSpec:
         del args['pools']
         del args['xstreams']
         abt = ArgobotsSpec(**args)
+        del abt.xstreams[0]
+        del abt.pools[0]
         pool_list = data['pools']
         for pool_args in pool_list:
-            abt.pools.add(PoolSpec.from_dict(pool_args))
+            abt.pools.add(**pool_args)
         xstream_list = data['xstreams']
         for xstream_args in xstream_list:
-            abt.xstreams.add(XstreamSpec.from_dict(xstream_args, abt))
+            abt.xstreams.append(XstreamSpec.from_dict(xstream_args, abt_spec=abt))
         return abt
 
     def to_json(self, *args, **kwargs) -> str:
@@ -888,8 +908,8 @@ class MargoSpec:
     :param progress_timeout_ub_msec: Progress timeout
     :type progress_timeout_ub_msec: int
 
-    :param enable_profiling: Enable profiling
-    :type enable_profiling: bool
+    :param enable_abt_profiling: Enable Argobots profiling
+    :type enable_abt_profiling: bool
 
     :param enable_diagnostics: Enable diagnostics
     :type enable_diagnostics: bool
@@ -897,14 +917,14 @@ class MargoSpec:
     :param handle_cache_size: Handle cache size
     :type handle_cache_size: int
 
-    :param profile_sparkline_timeslice_msec: Time slice for sparklines
-    :type profile_sparkline_timeslice_msec: int
-
     :param progress_pool: Progress pool
     :type progress_pool: PoolSpec
 
     :param rpc_pool: RPC pool
     :type rpc_pool: PoolSpec
+
+    :param version: Version of Margo
+    :type version: str
     """
 
     mercury: MercurySpec = attr.ib(
@@ -914,7 +934,7 @@ class MargoSpec:
         factory=ArgobotsSpec, validator=instance_of(ArgobotsSpec))
     progress_timeout_ub_msec: int = attr.ib(
         default=100, validator=instance_of(int))
-    enable_profiling: bool = attr.ib(
+    enable_abt_profiling: bool = attr.ib(
         default=False, validator=instance_of(bool))
     enable_diagnostics: bool = attr.ib(
         default=False, validator=instance_of(bool))
@@ -930,6 +950,8 @@ class MargoSpec:
         default=Factory(lambda self: self.argobots.pools[0],
                         takes_self=True),
         validator=instance_of(PoolSpec))
+    version: str = attr.ib(default='unknown',
+                           validator=instance_of(str))
 
     def to_dict(self) -> dict:
         """Convert a MargoSpec into a dictionary.
@@ -952,7 +974,7 @@ class MargoSpec:
         return data
 
     @staticmethod
-    def from_dict(self, data: dict) -> 'MargoSpec':
+    def from_dict(data: dict) -> 'MargoSpec':
         """Construct a MargoSpec from a dictionary.
         """
         abt_args = data['argobots']
@@ -962,9 +984,9 @@ class MargoSpec:
         rpc_pool = None
         progress_pool = None
         if data['rpc_pool'] is not None:
-            rpc_pool = argobots.find_pool(data['rpc_pool'])
+            rpc_pool = argobots.pools[data['rpc_pool']]
         if data['progress_pool'] is not None:
-            progress_pool = argobots.find_pool(data['progress_pool'])
+            progress_pool = argobots.pools[data['progress_pool']]
         args = data.copy()
         args['argobots'] = argobots
         args['mercury'] = mercury
@@ -1357,7 +1379,7 @@ class BedrockSpec:
         :type abt_spec: ArgobotsSpec
         """
         args = data.copy()
-        args['pool'] = abt_spec.find_pool(data['pool'])
+        args['pool'] = abt_spec.pools[data['pool']]
         bedrock = BedrockSpec(**args)
         return bedrock
 
