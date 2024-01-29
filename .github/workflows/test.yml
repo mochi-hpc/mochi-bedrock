@@ -72,6 +72,8 @@ jobs:
                  -DCMAKE_BUILD_TYPE=Debug
         make
         ctest --output-on-failure
+        cd tests
+        coverage xml
 
     - name: Send coverage report
       uses: codecov/codecov-action@v3
