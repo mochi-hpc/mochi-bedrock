@@ -163,13 +163,10 @@ class SSGManager:
         abt_spec = self._server.margo.spec.argobots
         return [SSGSpec.from_dict(group, abt_spec) for group in self.config]
 
-    def resolve(self, margo, location: str) -> pymargo.core.Address:
-        if isinstance(margo, pymargo.core.Engine):
-            mid = margo.mid
-        else:
-            mid = margo
+    def resolve(self, location: str) -> pymargo.core.Address:
+        mid = self._server.margo.mid
         return pymargo.core.Address(
-                mid=mid, hg_addr=self._internal.resolve(address),
+                mid=mid, hg_addr=self._internal.resolve_address(location),
                 need_del=False).copy()
 
     def __len__(self) -> int:
@@ -185,8 +182,6 @@ class SSGManager:
             pool = self._server.margo.pools[pool]
         if isinstance(config, str):
             config = json.loads(config)
-        elif isinstance(config, SSGSpec):
-            config = config.to_dict()
         pool = pool._internal
         return SSGGroup(self._internal.create_group(name, config, pool, bootstrap, group_file))
 

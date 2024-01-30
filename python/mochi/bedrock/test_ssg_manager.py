@@ -66,6 +66,12 @@ class TestSSGManager(unittest.TestCase):
         self.assertEqual(ssg_A.type, ssg_B.type)
         self.assertEqual(ssg_A.handle, ssg_B.handle)
 
+    def test_resolve(self):
+        ssg = self.server.ssg
+        addr = ssg.resolve("ssg://my_group/0")
+        self.assertIsInstance(addr, pymargo.core.Address)
+        self.assertEqual(addr, self.server.margo.engine.address)
+
 
 if __name__ == '__main__':
     unittest.main()
