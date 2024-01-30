@@ -214,22 +214,29 @@ std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_n
 #ifdef ENABLE_SSG
     auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
                            [&](auto& g) { return g->getName() == group_name; });
-    if (it == self->m_ssg_groups.end())
+    if (it == self->m_ssg_groups.end()) {
+        throw DETAILED_EXCEPTION("Could not find SSG group with name \"{}\"", group_name);
         return nullptr;
-    else
+    } else {
         return *it;
+    }
 #else
     (void)group_name;
+    throw DETAILED_EXCEPTION("Bedrock was not compiler with SSG support");
     return nullptr;
 #endif
 }
 
 std::shared_ptr<NamedDependency> SSGManager::getGroup(uint32_t group_index) const {
 #ifdef ENABLE_SSG
-    if(group_index >= self->m_ssg_groups.size()) return nullptr;
+    if(group_index >= self->m_ssg_groups.size()) {
+        throw DETAILED_EXCEPTION("Could not find SSG group at index {}", group_index);
+        return nullptr;
+    }
     return self->m_ssg_groups[group_index];
 #else
     (void)group_index;
+    throw DETAILED_EXCEPTION("Bedrock was not compiler with SSG support");
     return nullptr;
 #endif
 }

@@ -160,7 +160,8 @@ class SSGManager:
 
     @property
     def spec(self) -> list[SSGSpec]:
-        return [SSGSpec.from_dict(group) for group in self._server.config]
+        abt_spec = self._server.margo.spec.argobots
+        return [SSGSpec.from_dict(group, abt_spec) for group in self.config]
 
     def resolve(self, margo, location: str) -> pymargo.core.Address:
         if isinstance(margo, pymargo.core.Engine):
@@ -177,12 +178,15 @@ class SSGManager:
     def __getitem__(self, key: int|str) -> SSGGroup:
         return SSGGroup(self._internal.get_group(key))
 
-    def create(self, name: str, config: str|dict|SSGSpec, pool: Pool,
-               bootstrap: str, group_file: str = "") -> SSGGroup:
-        if isinstance(config, dict):
-            config = json.dumps(config)
+    def create(self, name: str, pool: str|int|Pool = "__primary__",
+               config: str|dict|SSGSpec = "{}",
+               bootstrap: str = "init", group_file: str = "") -> SSGGroup:
+        if not isinstance(pool, Pool):
+            pool = self._server.margo.pools[pool]
+        if isinstance(config, str):
+            config = json.loads(config)
         elif isinstance(config, SSGSpec):
-            config = config.to_json()
+            config = config.to_dict()
         pool = pool._internal
         return SSGGroup(self._internal.create_group(name, config, pool, bootstrap, group_file))
 

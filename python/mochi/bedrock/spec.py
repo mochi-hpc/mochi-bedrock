@@ -1224,7 +1224,7 @@ class SSGSpec:
         """
         args = data.copy()
         args['pool'] = abt_spec.pools[data['pool']]
-        args['swim'] = SwimSpec.from_dict(**args['swim'])
+        args['swim'] = SwimSpec.from_dict(args['swim'])
         ssg = SSGSpec(**args)
         return ssg
 

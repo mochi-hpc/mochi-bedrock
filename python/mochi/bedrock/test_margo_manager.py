@@ -4,7 +4,7 @@ import mochi.bedrock.server as mbs
 import mochi.bedrock.spec as spec
 
 
-class TestMargoInstance(unittest.TestCase):
+class TestMargoManager(unittest.TestCase):
 
     def setUp(self):
         config = {
