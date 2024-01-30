@@ -59,6 +59,7 @@ class TestMargoInstance(unittest.TestCase):
         my_pool = pools["my_pool"]
         self.assertIsInstance(my_pool, mbs.Pool)
         self.assertEqual(my_pool.name, "my_pool")
+        self.assertEqual(my_pool.type, "pool")
 
     def test_add_pool(self):
         self.server.margo.pools.create({
@@ -71,6 +72,20 @@ class TestMargoInstance(unittest.TestCase):
         my_pool_2 = pools["my_pool_2"]
         self.assertIsInstance(my_pool_2, mbs.Pool)
         self.assertEqual(my_pool_2.name, "my_pool_2")
+        self.assertEqual(my_pool_2.type, "pool")
+
+    def test_add_pool_from_spec(self):
+        self.server.margo.pools.create(
+            spec.PoolSpec(
+                name="my_pool_2",
+                kind="fifo",
+                access="mpmc"))
+        pools = self.server.margo.pools
+        self.assertEqual(len(pools), 3)
+        my_pool_2 = pools["my_pool_2"]
+        self.assertIsInstance(my_pool_2, mbs.Pool)
+        self.assertEqual(my_pool_2.name, "my_pool_2")
+        self.assertEqual(my_pool_2.type, "pool")
 
     def test_remove_pool(self):
         self.test_add_pool()
@@ -105,6 +120,23 @@ class TestMargoInstance(unittest.TestCase):
         my_xstream_2 = xstreams["my_xstream_2"]
         self.assertIsInstance(my_xstream_2, mbs.Xstream)
         self.assertEqual(my_xstream_2.name, "my_xstream_2")
+        self.assertEqual(my_xstream_2.type, "xstream")
+
+    def test_add_xstream_from_spec(self):
+        margo_spec = self.server.margo.spec
+        xstream_spec = spec.XstreamSpec(
+            name="my_xstream_2",
+            scheduler=spec.SchedulerSpec(
+                pools=[margo_spec.argobots.pools["my_pool"]],
+                type="basic_wait")
+            )
+        self.server.margo.xstreams.create(xstream_spec)
+        xstreams = self.server.margo.xstreams
+        self.assertEqual(len(xstreams), 3)
+        my_xstream_2 = xstreams["my_xstream_2"]
+        self.assertIsInstance(my_xstream_2, mbs.Xstream)
+        self.assertEqual(my_xstream_2.name, "my_xstream_2")
+        self.assertEqual(my_xstream_2.type, "xstream")
 
     def test_remove_xstream(self):
         self.test_add_xstream()
