@@ -143,8 +143,8 @@ class MargoManager:
         return XstreamList(self._internal)
 
     @property
-    def default_handle_pool(self):
-        return Pool(self._internal.default_handle_pool)
+    def default_handler_pool(self):
+        return Pool(self._internal.default_handler_pool)
 
 
 class SSGManager:

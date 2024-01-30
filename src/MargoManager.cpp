@@ -186,12 +186,12 @@ void MargoManager::removePool(const std::string& name) {
     }
     if(it->use_count() != 1) {
         throw DETAILED_EXCEPTION(
-            "Pool \"{}\" is still in use by some dependencies");
+            "Pool \"{}\" is still in use by some dependencies", name);
     }
     hg_return_t ret = margo_remove_pool_by_name(self->m_mid, name.c_str());
     if (ret != HG_SUCCESS) {
         throw DETAILED_EXCEPTION(
-            "Could not remove pool \"{}\" from Margo instance");
+            "Could not remove pool \"{}\" from Margo instance", name);
     }
     self->m_pools.erase(it);
 }
