@@ -1061,7 +1061,7 @@ class AbtIOSpec:
         :type abt_spec: ArgobotsSpec
         """
         name = data['name']
-        pool = abt_spec.find_pool(data['pool'])
+        pool = abt_spec.pools[data['pool']]
         abtio = AbtIOSpec(name=name, pool=pool)
         return abtio
 
@@ -1223,7 +1223,7 @@ class SSGSpec:
         :type abt_spec: ArgobotsSpec
         """
         args = data.copy()
-        args['pool'] = abt_spec.find_pool(data['pool'])
+        args['pool'] = abt_spec.pools[data['pool']]
         args['swim'] = SwimSpec.from_dict(**args['swim'])
         ssg = SSGSpec(**args)
         return ssg
@@ -1319,7 +1319,7 @@ class ProviderSpec:
         :type abt_spec: ArgobotsSpec
         """
         args = data.copy()
-        args['pool'] = abt_spec.find_pool(data['pool'])
+        args['pool'] = abt_spec.pools[data['pool']]
         provider = ProviderSpec(**args)
         return provider
 

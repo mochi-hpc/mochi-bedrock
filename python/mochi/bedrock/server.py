@@ -115,8 +115,9 @@ class XstreamList:
 
 class MargoManager:
 
-    def __init__(self, internal: pybedrock_server.MargoManager):
+    def __init__(self, internal: pybedrock_server.MargoManager, server: 'Server'):
         self._internal = internal
+        self._server = server
 
     @property
     def mid(self):
@@ -149,8 +150,9 @@ class MargoManager:
 
 class SSGManager:
 
-    def __init__(self, internal: pybedrock_server.SSGManager):
+    def __init__(self, internal: pybedrock_server.SSGManager, server: 'Server'):
         self._internal = internal
+        self._server = server
 
     @property
     def config(self):
@@ -158,7 +160,7 @@ class SSGManager:
 
     @property
     def spec(self) -> list[SSGSpec]:
-        return [SSGSpec.from_dict(group) for group in config]
+        return [SSGSpec.from_dict(group) for group in self._server.config]
 
     def resolve(self, margo, location: str) -> pymargo.core.Address:
         if isinstance(margo, pymargo.core.Engine):
@@ -187,8 +189,9 @@ class SSGManager:
 
 class AbtIOManager:
 
-    def __init__(self, internal: pybedrock_server.ABTioManager):
+    def __init__(self, internal: pybedrock_server.ABTioManager, server: 'Server'):
         self._internal = internal
+        self._server = server
 
     @property
     def config(self):
@@ -196,7 +199,8 @@ class AbtIOManager:
 
     @property
     def spec(self) -> list[AbtIOSpec]:
-        return [AbtIOSpec.from_dict(instance) for instance in config]
+        abt_spec = self._server.spec.margo.argobots
+        return [AbtIOSpec.from_dict(instance, abt_spec=abt_spec) for instance in self.config]
 
     def __len__(self) -> int:
         return self._internal.num_abtio_instances
@@ -204,7 +208,9 @@ class AbtIOManager:
     def __getitem__(self, key: int|str) -> AbtIOInstance:
         return AbtIOInstance(self._internal.get_abtio_instance(key))
 
-    def create(self, name: str, pool: str|Pool) -> AbtIOInstance:
+    def create(self, name: str, pool: str|Pool, config: str|dict = "{}") -> AbtIOInstance:
+        if isinstance(config, dict):
+            config = json.dumps(config)
         if isinstance(pool, Pool):
             pool = pool.name
         return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))
@@ -212,8 +218,9 @@ class AbtIOManager:
 
 class ProviderManager:
 
-    def __init__(self, internal: pybedrock_server.ProviderManager):
+    def __init__(self, internal: pybedrock_server.ProviderManager, server: 'Server'):
         self._internal = internal
+        self._server = server
 
     @property
     def config(self) -> dict:
@@ -221,7 +228,7 @@ class ProviderManager:
 
     @property
     def spec(self) -> list[ProviderSpec]:
-        return [ProviderSpec.from_dict(provider) for provider in config]
+        return [ProviderSpec.from_dict(provider) for provider in self.config]
 
     def __len__(self):
         return len(self._internal.providers)
@@ -305,16 +312,16 @@ class Server:
 
     @property
     def margo(self) -> MargoManager:
-        return MargoManager(self._internal.margo_manager)
+        return MargoManager(self._internal.margo_manager, self)
 
     @property
     def ssg(self) -> SSGManager:
-        return SSGManager(self._internal.ssg_manager)
+        return SSGManager(self._internal.ssg_manager, self)
 
     @property
     def abtio(self) -> AbtIOManager:
-        return AbtIOManager(self._internal.abtio_manager)
+        return AbtIOManager(self._internal.abtio_manager, self)
 
     @property
     def providers(self) -> ProviderManager:
-        return ProviderManager(self._internal.provider_manager)
+        return ProviderManager(self._internal.provider_manager, self)
