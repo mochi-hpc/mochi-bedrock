@@ -15,6 +15,7 @@
 import pybedrock_server
 import pymargo.core
 import pymargo
+from typing import Mapping, List
 from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, SSGSpec, AbtIOSpec, ProviderSpec
 import json
 
@@ -227,7 +228,8 @@ class ProviderManager:
 
     @property
     def spec(self) -> list[ProviderSpec]:
-        return [ProviderSpec.from_dict(provider) for provider in self.config]
+        abt_spec = self._server.margo.spec.argobots
+        return [ProviderSpec.from_dict(provider, abt_spec) for provider in self.config]
 
     def __len__(self):
         return len(self._internal.providers)
@@ -244,12 +246,22 @@ class ProviderManager:
     def lookup(self, locator: str):
         return Provider(self, self._internal.lookup_provider(locator))
 
-    def create(self, config: str|dict|ProviderSpec) -> Provider:
-        if isinstance(config, dict):
-            config = json.dumps(config)
-        elif isinstance(config, ProviderSpec):
-            config = config.to_json()
-        return Provider(self, self._internal.add_providers_from_json(config))
+    def create(self, name: str, type: str, provider_id: int, pool: str|Pool,
+               config: str|dict = "{}", dependencies: Mapping[str,str] = {},
+               tags: List[str] = []) -> Provider:
+        if isinstance(pool, Pool):
+            pool = pool.name
+        if isinstance(config, str):
+            config = json.loads(config)
+        info = {
+            "name": name,
+            "type": type,
+            "provider_id": provider_id,
+            "dependencies": dependencies,
+            "tags": tags,
+            "config": config
+        }
+        return Provider(self, self._internal.add_providers_from_json(json.dumps(info)))
 
     def migrate(self, provider: str, dest_addr: str,
                 dest_provider_id: str, migration_config: str|dict = "{}",

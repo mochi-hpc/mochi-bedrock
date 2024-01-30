@@ -1292,7 +1292,7 @@ class ProviderSpec:
         validator=instance_of(dict),
         factory=dict)
     tags: List[str] = attr.ib(
-        validator=instance_of(List[str]),
+        validator=instance_of(List),
         factory=list)
 
     def to_dict(self) -> dict:
