@@ -98,5 +98,16 @@ class TestServiceGroupHandle(unittest.TestCase):
         self.assertIn(self_address, s)
         self.assertIsInstance(s[self_address], spec.ProcSpec)
 
+    def test_query(self):
+        script = "return $__config__.margo.argobots;"
+        result = self.sgh.query(script)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result.keys()), 1)
+        self_address = str(self.server.margo.engine.address)
+        self.assertIn(self_address, result)
+        # check that we can convert the result into an ArgobotsSpec
+        s = spec.ArgobotsSpec.from_dict(result[self_address])
+
+
 if __name__ == '__main__':
     unittest.main()
