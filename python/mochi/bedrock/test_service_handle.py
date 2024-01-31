@@ -173,14 +173,7 @@ class TestServiceHandle(unittest.TestCase):
         self.add_xstream(proc.margo.argobots.xstreams["my_xstream"])
 
     def test_remove_xstream(self):
-        config = {
-            "name": "my_xstream",
-            "scheduler": {
-                "type": "basic_wait",
-                "pools": ["__primary__"]
-            }
-        }
-        self.add_xstream(config)
+        self.test_add_xstream_from_dict()
         initial_num_xstreams = len(self.server.margo.xstreams)
         self.sh.remove_xstream("my_xstream")
         self.assertEqual(len(self.server.margo.xstreams), initial_num_xstreams - 1)
