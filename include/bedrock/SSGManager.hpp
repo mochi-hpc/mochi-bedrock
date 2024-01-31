@@ -94,7 +94,7 @@ class SSGManager {
      */
     std::shared_ptr<NamedDependency>
         createGroup(const std::string&        name,
-                    const ssg_group_config_t* config,
+                    const ssg_group_config_t& config,
                     const std::shared_ptr<NamedDependency>& pool,
                     const std::string& bootstrap_method,
                     const std::string& group_file = "");

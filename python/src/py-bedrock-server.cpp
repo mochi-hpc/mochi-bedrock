@@ -167,7 +167,7 @@ PYBIND11_MODULE(pybedrock_server, m) {
                 GET_SSG_FIELD(swim_disabled);
                 GET_SSG_FIELD(ssg_credential);
 #undef GET_SSG_FIELD
-                return ssg.createGroup(name, &cfg, pool, bootstrap_method, group_file);
+                return ssg.createGroup(name, cfg, pool, bootstrap_method, group_file);
 #else
                 throw Exception{"Bedrock was not compiled with SSG support"};
 #endif

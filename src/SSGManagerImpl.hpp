@@ -48,11 +48,12 @@ class SSGEntry : public NamedDependency {
     std::string                      group_file;
     std::shared_ptr<NamedDependency> pool;
 
-    SSGEntry(std::string name)
+    SSGEntry(std::string name, std::shared_ptr<NamedDependency> p)
     : NamedDependency(
         std::move(name),
         "ssg", SSG_GROUP_ID_INVALID,
         std::function<void(void*)>())
+    , pool{std::move(p)}
     {}
 
     SSGEntry(const SSGEntry&) = delete;
@@ -67,7 +68,7 @@ class SSGEntry : public NamedDependency {
         c["name"]       = getName();
         c["bootstrap"]  = bootstrap;
         c["group_file"] = group_file;
-        if(pool) c["pool"] = pool->getName();
+        c["pool"]       = pool->getName();
         c["credential"] = config.ssg_credential;
         c["swim"]       = json::object();
         auto& swim      = c["swim"];

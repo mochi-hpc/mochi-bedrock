@@ -154,6 +154,8 @@ static void extractConfigParameters(const json&         config,
         } else {
             pool = margo.getPool(config["pool"].get<size_t>());
         }
+    } else {
+        pool = margo.getDefaultHandlerPool();
     }
 }
 #endif
@@ -181,7 +183,7 @@ SSGManager::SSGManager(const MargoManager& margo,
         std::shared_ptr<NamedDependency> pool;
         extractConfigParameters(config, margo, name, bootstrap, group_config,
                                 group_file, pool);
-        createGroup(name, &group_config, pool, bootstrap, group_file);
+        createGroup(name, group_config, pool, bootstrap, group_file);
     };
 
     std::vector<std::string> existing_names;
@@ -251,7 +253,7 @@ size_t SSGManager::getNumGroups() const {
 
 std::shared_ptr<NamedDependency>
 SSGManager::createGroup(const std::string&                      name,
-                        const ssg_group_config_t*               config,
+                        const ssg_group_config_t&               config,
                         const std::shared_ptr<NamedDependency>& pool,
                         const std::string& bootstrap_method,
                         const std::string& group_file) {
@@ -272,7 +274,7 @@ SSGManager::createGroup(const std::string&                      name,
     // The inner data of the ssg_entry will be set later.
     // The ssg_entry needs to be created here because the
     // membership callback needs it.
-    auto ssg_entry = std::make_shared<SSGEntry>(name);
+    auto ssg_entry = std::make_shared<SSGEntry>(name, pool);
 
     spdlog::trace("Creating SSG group {} with bootstrap method {}", name,
                   bootstrap_method);
@@ -312,7 +314,7 @@ SSGManager::createGroup(const std::string&                      name,
         std::vector<const char*> addresses = {addr_str.c_str()};
 
         ret = ssg_group_create(mid, name.c_str(), addresses.data(), 1,
-                               const_cast<ssg_group_config_t*>(config),
+                               const_cast<ssg_group_config_t*>(&config),
                                SSGUpdateHandler::membershipUpdate, ssg_entry.get(),
                                &gid);
         if (ret != SSG_SUCCESS) {
@@ -352,7 +354,7 @@ SSGManager::createGroup(const std::string&                      name,
         }
         ret = ssg_group_create_mpi(
             mid, name.c_str(), MPI_COMM_WORLD,
-            const_cast<ssg_group_config_t*>(config),
+            const_cast<ssg_group_config_t*>(&config),
             SSGUpdateHandler::membershipUpdate, ssg_entry.get(), &gid);
         if (ret != SSG_SUCCESS) {
             throw DETAILED_EXCEPTION(
@@ -403,7 +405,7 @@ SSGManager::createGroup(const std::string&                      name,
         }
     }
     ssg_entry->setSSGid(gid);
-    ssg_entry->config        = *config;
+    ssg_entry->config        = config;
     ssg_entry->bootstrap     = bootstrap_method;
     ssg_entry->group_file    = group_file;
     ssg_entry->pool          = pool;
@@ -446,7 +448,7 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
     std::shared_ptr<NamedDependency> pool;
     extractConfigParameters(config, margo, name, bootstrap, group_config,
                             group_file, pool);
-    return createGroup(name, &group_config, pool, bootstrap, group_file);
+    return createGroup(name, group_config, pool, bootstrap, group_file);
 #endif // ENABLE_SSG
 }
 
