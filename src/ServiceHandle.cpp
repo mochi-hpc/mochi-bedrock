@@ -21,6 +21,8 @@
 
 namespace bedrock {
 
+constexpr uint16_t ServiceHandle::NewProviderID;
+
 ServiceHandle::ServiceHandle() = default;
 
 ServiceHandle::ServiceHandle(const std::shared_ptr<ServiceHandleImpl>& impl)
