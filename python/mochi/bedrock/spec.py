@@ -1035,18 +1035,23 @@ class AbtIOSpec:
 
     :param pool: Pool associated with the instance
     :type pool: PoolSpec
+
+    :param config: Configuration
+    :type config: dict
     """
 
     name: str = attr.ib(
         validator=[instance_of(str), _validate_object_name],
         on_setattr=attr.setters.frozen)
     pool: PoolSpec = attr.ib(validator=instance_of(PoolSpec))
+    config: dict = attr.ib(validator=instance_of(dict))
 
     def to_dict(self) -> dict:
         """Convert the AbtIOSpec into a dictionary.
         """
         return {'name': self.name,
-                'pool': self.pool.name}
+                'pool': self.pool.name,
+                'config': self.config}
 
     @staticmethod
     def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'AbtIOSpec':
@@ -1061,8 +1066,9 @@ class AbtIOSpec:
         :type abt_spec: ArgobotsSpec
         """
         name = data['name']
+        config = data['config']
         pool = abt_spec.pools[data['pool']]
-        abtio = AbtIOSpec(name=name, pool=pool)
+        abtio = AbtIOSpec(name=name, pool=pool, config=config)
         return abtio
 
     def to_json(self, *args, **kwargs) -> str:
@@ -1395,7 +1401,7 @@ class ClientSpec:
         :param data: Dictionary
         :type data: dict
         """
-        return ClientSpec(**args)
+        return ClientSpec(**data)
 
     def to_json(self, *args, **kwargs) -> str:
         """Convert the ClientSpec into a JSON string.
@@ -1583,6 +1589,7 @@ class ProcSpec:
         libraries = dict()
         providers = []
         bedrock = {}
+        clients = []
         if 'libraries' in data:
             libraries = data['libraries']
         if 'abt_io' in data:
@@ -1604,6 +1611,7 @@ class ProcSpec:
                         ssg=ssg,
                         libraries=libraries,
                         providers=providers,
+                        clients=clients,
                         bedrock=bedrock)
 
     def to_json(self, *args, **kwargs) -> str:

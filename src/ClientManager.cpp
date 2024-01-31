@@ -232,7 +232,8 @@ ClientManager::addClientFromJSON(
     auto deps_from_config = config.value("dependencies", json::object());
     if(!deps_from_config.is_object()) {
         throw DETAILED_EXCEPTION(
-                "\"dependencies\" field in client definition should be an object");
+                "\"dependencies\" field in client definition should be an object (found {})",
+                deps_from_config.type_name());
     }
 
     ResolvedDependencyMap resolved_dependency_map;

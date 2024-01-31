@@ -147,7 +147,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
         fullconfig["name"]   = name;
         fullconfig["type"]   = type;
         fullconfig["config"] = jsonconfig;
-        fullconfig["tags"] = tags;
+        fullconfig["tags"]   = tags;
+        fullconfig["dependencies"] = json::object();
         auto& depconfig      = fullconfig["dependencies"];
         for (auto& p : dependencies) {
             auto& name = p.first;

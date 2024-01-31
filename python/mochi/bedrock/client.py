@@ -86,7 +86,7 @@ class ServiceHandle:
     def add_client(self, config: str|dict|ClientSpec):
         if isinstance(config, str):
             config = json.loads(config)
-        elif isinstance(config, AbtIOSpec):
+        elif isinstance(config, ClientSpec):
             config = config.to_dict()
         if "config" not in config:
             config["config"] = {}
@@ -104,7 +104,7 @@ class ServiceHandle:
     def start_provider(self, config: str|dict|ProviderSpec):
         if isinstance(config, str):
             config = json.loads(config)
-        elif isinstance(config, AbtIOSpec):
+        elif isinstance(config, ProviderSpec):
             config = config.to_dict()
         if "config" not in config:
             config["config"] = {}
@@ -112,6 +112,8 @@ class ServiceHandle:
             config["dependencies"] = {}
         if "tags" not in config:
             config["tags"] = []
+        if "pool" not in config:
+            config["pool"] = "__primary__"
         return self._internal.start_provider(
             name=config["name"],
             type=config["type"],
