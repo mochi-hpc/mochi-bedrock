@@ -41,6 +41,7 @@ class TestServiceGroupHandleInit(unittest.TestCase):
         gid = ssg_group.handle
         sgh = self.client.make_service_group_handle(gid)
         self.assertIsInstance(sgh, mbc.ServiceGroupHandle)
+        sgh.refresh() # just to get code coverage
 
     def test_make_service_group_handle_from_address(self):
         address = str(self.server.margo.engine.address)
