@@ -5,7 +5,6 @@
  */
 #include "bedrock/ServiceHandle.hpp"
 #include "bedrock/RequestResult.hpp"
-#include "bedrock/service-handle.h"
 
 #include "Exception.hpp"
 #include "AsyncRequestImpl.hpp"

@@ -8,7 +8,6 @@
 #include "bedrock/ServiceHandle.hpp"
 #include "bedrock/ServiceGroupHandle.hpp"
 #include "bedrock/RequestResult.hpp"
-#include "bedrock/client.h"
 
 #include "ClientImpl.hpp"
 #include "ServiceHandleImpl.hpp"

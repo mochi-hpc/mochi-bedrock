@@ -7,11 +7,12 @@
 #define __BEDROCK_MODULE_H
 
 #include <margo.h>
-#include <bedrock/common.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define BEDROCK_SUCCESS 0
 
 #define BEDROCK_MODULE_API_VERSION 1
 
