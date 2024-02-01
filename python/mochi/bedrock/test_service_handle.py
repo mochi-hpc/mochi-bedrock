@@ -70,7 +70,7 @@ class TestServiceHandle(unittest.TestCase):
         self.sh.load_module("module_a", "libModuleA.so")
         self.sh.load_module("module_b", "libModuleB.so")
         with self.assertRaises(mbc.ClientException):
-            self.sh.load_module("module_c", "libModuleC.so")
+            self.sh.load_module("module_x", "libModuleX.so")
 
     def add_pool(self, config):
         initial_num_pools = len(self.server.margo.pools)

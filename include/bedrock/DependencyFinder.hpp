@@ -81,27 +81,38 @@ class DependencyFinder {
     /**
      * @brief Resolve a specification, returning a void* handle to it.
      * This function throws an exception if the specification could not
-     * be resolved. A specification string follows the following grammar:
+     * be resolved. A specification is either a name, or a string follows
+     * the following grammar:
      *
      * SPEC       := IDENTIFIER
      *            |  IDENTIFIER '@' LOCATION
-     * IDENTIFIER := NAME
+     * IDENTIFIER := SPECIFIER
+     *            |  NAME '->' SPECIFIER
+     * SPECIFIER  := NAME
      *            |  TYPE ':' ID
      * LOCATION   := ADDRESS
-     *            |  'ssg://' GROUP '/' RANK
+     *            |  'ssg://' NAME '/' RANK
      * ADDRESS    := <mercury address>
      * NAME       := <qualified identifier>
      * ID         := <provider id>
      *
+     *
+     * For instance, "abc" represents the name "abc".
+     * "abc:123" represents a provider of type "abc" with
+     * provider id 123. "abc->def@address" represents a provider handle
+     * created from client named "abc", pointing to a provider named "def"
+     * at address "address".
+     *
      * @param [in] type Type of dependency.
+     * @param [in] kind Kind of dependency (BEDROCK_KIND_*).
      * @param [in] spec Specification string.
      * @param [out] Resolved specification.
      *
      * @return handle to dependency
      */
     std::shared_ptr<NamedDependency>
-        find(const std::string& type, const std::string& spec,
-             std::string* resolved) const;
+        find(const std::string& type, int32_t kind,
+             const std::string& spec, std::string* resolved) const;
 
     /**
      * @brief Find a local provider based on a type and provider id.
@@ -144,15 +155,6 @@ class DependencyFinder {
      */
     std::shared_ptr<NamedDependency> findClient(
             const std::string& type, const std::string& name) const;
-
-    /**
-     * @brief Get an admin of a given type.
-     *
-     * @param type Type of admin.
-     *
-     * @return An abstract pointer to the dependency.
-     */
-    std::shared_ptr<NamedDependency> getAdmin(const std::string& type) const;
 
     /**
      * @brief Make a provider handle to a specified provider.

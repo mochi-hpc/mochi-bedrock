@@ -251,7 +251,8 @@ ClientManager::addClientFromJSON(const std::string& jsonString) {
                     throw DETAILED_EXCEPTION("Dependency {} should be a string",
                                     dependency.name);
                 }
-                auto ptr = dependencyFinder.find(dependency.type,
+                auto ptr = dependencyFinder.find(
+                        dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
                         dep_config.get<std::string>(), nullptr);
                 resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
                 resolved_dependency_map[dependency.name].is_array = false;
@@ -267,7 +268,8 @@ ClientManager::addClientFromJSON(const std::string& jsonString) {
                             "Item in dependency array {} should be a string",
                             dependency.name);
                     }
-                    auto ptr = dependencyFinder.find(dependency.type,
+                    auto ptr = dependencyFinder.find(
+                            dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
                             elem.get<std::string>(), nullptr);
                     resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
                     resolved_dependency_map[dependency.name].is_array = true;

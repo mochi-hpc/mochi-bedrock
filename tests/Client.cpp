@@ -141,7 +141,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_b") != nullptr);
             // load libModuleC.so, which does not exist
             REQUIRE_THROWS_AS(
-                serviceHandle.loadModule("module_c", "libModuleC.so"),
+                serviceHandle.loadModule("module_x", "libModuleX.so"),
                 bedrock::Exception);
         }
 
@@ -194,11 +194,11 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
 
             // create a provider of an invalid type
             REQUIRE_THROWS_AS(
-                serviceHandle.startProvider("my_provider_c", "module_c", 234),
+                serviceHandle.startProvider("my_provider_x", "module_x", 234),
                 bedrock::Exception);
             // create a provider of an invalid type asynchronously
             serviceHandle.startProvider(
-                "my_provider_c", "module_c", 234, nullptr,
+                "my_provider_x", "module_x", 234, nullptr,
                 "", "{}", bedrock::DependencyMap(), {}, &req);
             REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }

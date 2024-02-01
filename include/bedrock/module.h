@@ -20,6 +20,12 @@ extern "C" {
 #define BEDROCK_REQUIRED 0x1
 #define BEDROCK_ARRAY    0x2
 
+#define BEDROCK_KIND_CLIENT          (0x1 << 2)
+#define BEDROCK_KIND_PROVIDER_HANDLE (0x2 << 2)
+#define BEDROCK_KIND_PROVIDER        (0x3 << 2)
+
+#define BEDROCK_GET_KIND_FROM_FLAG(__flag__) (__flag__ & ~0b11)
+
 typedef struct bedrock_args* bedrock_args_t;
 #define BEDROCK_ARGS_NULL ((bedrock_args_t)NULL)
 
@@ -36,15 +42,20 @@ typedef void* bedrock_module_client_t;
  * a module dependency. The name correspondings to the name
  * of the dependency in the module configuration. The type
  * corresponds to the type of dependency (name of other modules
- * from which the dependency comes from). The flags field
- * allows parameterizing the dependency. It should be an or-ed
+ * from which the dependency comes from).
+ *
+ * The flags field allows parameterizing the dependency. It should be an or-ed
  * value from BEDROCK_REQUIRED (this dependency is required)
  * and BEDROCK_ARRAY (this dependency is an array). Note that
  * BEDROCK_REQUIRED | BEDROCK_ARRAY indicates that the array
  * should contain at least 1 entry.
  *
+ * The flag should be or-ed with one of the BEDROCK_KIND_*
+ * values to specify the kind of dependency that is expected
+ * if the dependency is from a module (client, provider, or provider handle).
+ *
  * For example, the following bedrock_dependency
- *   { "storage", "bake", BEDROCK_REQUIRED | BEDROCK_ARRAY }
+ *   { "storage", "bake", BEDROCK_REQUIRED | BEDROCK_ARRAY | BEDROCK_KIND_PROVIDER_HANDLE }
  * indicates that a provider for this module requires to be
  * created with a "dependencies" section in its JSON looking
  * like the following:
@@ -52,17 +63,17 @@ typedef void* bedrock_module_client_t;
  *      "storage" : [ "bake:34@na+sm://1234", ... ]
  *   }
  * that is, a "storage" key is expected (name = "storage"),
- * and it will resolve to an array of bake constructs
- * (e.g. providers or provider handles).
+ * and it will resolve to an array of at least one bake (type = "bake")
+ * provider handles (flags has BEDROCK_KIND_PROVIDER_HANDLE).
  */
 struct bedrock_dependency {
-    const char* name;
-    const char* type;
-    int32_t     flags;
+    const char*    name;
+    const char*    type;
+    int32_t        flags;
 };
 
 #define BEDROCK_NO_MORE_DEPENDENCIES \
-    { NULL, NULL, 0 }
+    { NULL, NULL, 0}
 
 /**
  * @brief Type of function called to register a provider.

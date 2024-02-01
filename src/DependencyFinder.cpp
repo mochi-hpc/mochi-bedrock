@@ -44,16 +44,9 @@ DependencyFinder::~DependencyFinder() = default;
 
 DependencyFinder::operator bool() const { return static_cast<bool>(self); }
 
-static bool isPositiveNumber(const std::string& str) {
-    if (str.empty()) return false;
-    for (unsigned i = 0; i < str.size(); i++)
-        if (!isdigit(str[i])) return false;
-    return true;
-}
-
 std::shared_ptr<NamedDependency> DependencyFinder::find(
-        const std::string& type, const std::string& spec,
-        std::string* resolved) const {
+        const std::string& type, int32_t kind,
+        const std::string& spec, std::string* resolved) const {
     spdlog::trace("DependencyFinder search for {} of type {}", spec, type);
 
     if (type == "pool") { // Argobots pool
@@ -90,9 +83,9 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         return mona_id;
 
     } else if (type == "ssg") { // SSG group
-                                //
+
         auto ssg_manager_impl = self->m_ssg_context.lock();
-        if(!ssg_manager_impl) {
+        if (!ssg_manager_impl) {
             throw Exception("Could not resolve SSG dependency: no SSGManager found");
         }
         auto group = SSGManager(ssg_manager_impl).getGroup(spec);
@@ -102,98 +95,70 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         if (resolved) { *resolved = spec; }
         return group;
 
-    } else { // Provider or provider handle
+    } else if (kind == BEDROCK_KIND_CLIENT) {
+
+        auto client = findClient(type, spec);
+        if (client) { *resolved = client->getName(); }
+        return client;
+
+    } else if (kind == BEDROCK_KIND_PROVIDER) {
+
+        // the spec can be in the form "name" or "type:id"
+        std::regex re(
+            "([a-zA-Z_][a-zA-Z0-9_]*)" // identifier (name or type)
+            "(?::([0-9]+))?");         // specifier ("client" or provider id)
+        std::smatch match;
+        if (!std::regex_search(spec, match, re) || match.str(0) != spec) {
+            throw Exception("Ill-formated dependency specification \"{}\"", spec);
+        }
+        auto identifier      = match.str(1); // name or type
+        auto provider_id_str = match.str(2); // provider id
+
+        if(provider_id_str.empty()) { // identifier is a name
+            uint16_t provider_id;
+            auto ptr = findProvider(type, identifier, &provider_id);
+            if (resolved) *resolved = type + ":" + std::to_string(provider_id);
+            return ptr;
+        } else {
+            uint16_t provider_id = std::atoi(provider_id_str.c_str());
+            auto ptr = findProvider(type, provider_id);
+            if (resolved) *resolved = type + ":" + std::to_string(provider_id);
+            return ptr;
+        }
+
+    } else { // Provider handle
 
         std::regex re(
             "(?:([a-zA-Z_][a-zA-Z0-9_]*)\\->)?" // client name (name->)
             "([a-zA-Z_][a-zA-Z0-9_]*)"          // identifier (name or type)
-            "(?::(client|[0-9]+))?" // specifier ("client" or provider id)
-            "(?:@(.+))?");          // locator (@address)
+            "(?::([0-9]+))?"                    // optional provider id
+            "(?:@(.+))?");                      // optional locator (@address)
         std::smatch match;
-        if (std::regex_search(spec, match, re)) {
-            if (match.str(0) != spec) {
-                throw Exception("Ill-formated dependency specification \"{}\"",
-                                spec);
-            }
-            auto client_name = match.str(1);
-            auto identifier  = match.str(2); // name or type
-            auto specifier
-                = match.str(3);          // provider id, or "client" or "admin"
-            auto locator = match.str(4); // address or "local"
+        if (!std::regex_search(spec, match, re) || match.str(0) != spec) {
+            throw Exception("Ill-formated dependency specification \"{}\"", spec);
+        }
 
-            if (locator.empty() && !client_name.empty()) {
-                throw Exception(
-                    "Client name (\"{}\") specified in dependency that is not "
-                    "a provider handle",
-                    client_name);
-            }
+        auto client_name     = match.str(1); // client to use for provider handles
+        auto identifier      = match.str(2); // name or type
+        auto provider_id_str = match.str(3); // provider id
+        auto locator         = match.str(4); // address or "local"
+        if(locator.empty()) locator = "local";
 
-            if (locator.empty()) { // local dependency to a provider or a client
-                                   // or admin
-                if (specifier == "client") { // requesting a client
-                    auto client = findClient(type, "");
-                    if (client) { *resolved = client->getName(); }
-                    return client;
-                } else if (isPositiveNumber(
-                               specifier)) { // dependency to a provider
-                                             // specified by type:id
-                    uint16_t provider_id = atoi(specifier.c_str());
-                    if (type != identifier) {
-                        throw Exception(
-                            "Invalid provider type in \"{}\" (expected {})",
-                            spec, type);
-                    }
-                    if (resolved) { *resolved = spec; }
-                    return findProvider(type, provider_id);
-                } else { // dependency to a provider specified by name, or a
-                         // client
-                    try {
-                        try {
-                            auto ptr = findClient(type, identifier);
-                            if (resolved) { *resolved = identifier; }
-                            return ptr;
-                        } catch (const Exception&) {
-                            // didn't fine a client, try a provider
-                            uint16_t provider_id;
-                            auto     ptr
-                                = findProvider(type, identifier, &provider_id);
-                            if (resolved) {
-                                *resolved
-                                    = type + ":" + std::to_string(provider_id);
-                            }
-                            return ptr;
-                        }
-                    } catch (const Exception&) {
-                        throw Exception(
-                            "Could not find client or provider with "
-                            "specification \"{}\"",
-                            spec);
-                    }
-                }
-            } else { // dependency to a provider handle
-                if (specifier.empty()) {
-                    // dependency specified as name@location
-                    return makeProviderHandle(client_name, type, identifier,
-                                              locator, resolved);
-                } else if (isPositiveNumber(specifier)) {
-                    // dependency specified as type:id@location
-                    uint16_t provider_id = atoi(specifier.c_str());
-                    if (type != identifier) {
-                        throw Exception(
-                            "Invalid provider type in \"{}\" (expected {})",
-                            spec, type);
-                    }
-                    return makeProviderHandle(client_name, type, provider_id,
-                                              locator, resolved);
-                } else { // invalid
-                    throw Exception(
-                        "Ill-formated dependency specification \"{}\"", spec);
-                }
-            }
+        if (provider_id_str.empty()) {
+            // dependency specified as client->name@location
+            return makeProviderHandle(
+                client_name, type, identifier, locator, resolved);
 
         } else {
-            throw Exception("Ill-formated dependency specification \"{}\"",
-                            spec);
+            // dependency specified as client->type:id@location
+            uint16_t provider_id = atoi(provider_id_str.c_str());
+            if (type != identifier) {
+                throw Exception(
+                        "Invalid provider type in \"{}\" (expected {})",
+                        spec, type);
+            }
+            return makeProviderHandle(
+                    client_name, type, provider_id, locator, resolved);
         }
     }
     return nullptr;

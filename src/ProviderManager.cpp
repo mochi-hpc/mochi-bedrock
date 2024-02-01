@@ -253,7 +253,8 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                         "Dependency \"{}\" should be a string", dependency.name);
                 }
                 auto dep_handle = dependencyFinder.find(
-                        dependency.type, dep_config.get<std::string>(), nullptr);
+                        dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
+                        dep_config.get<std::string>(), nullptr);
                 resolved_dependency_map[dependency.name].is_array = false;
                 resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
 
@@ -273,7 +274,8 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                             dependency.name);
                     }
                     auto dep_handle = dependencyFinder.find(
-                            dependency.type, elem.get<std::string>(), nullptr);
+                            dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
+                            elem.get<std::string>(), nullptr);
                     resolved_dependency_map[dependency.name].is_array = true;
                     resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
                 }
