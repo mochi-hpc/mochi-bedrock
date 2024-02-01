@@ -74,6 +74,13 @@ class ClientManager {
     operator bool() const;
 
     /**
+     * @brief Set the DependencyFinder object to use to resolve dependencies.
+     *
+     * @param finder DependencyFinder
+     */
+    void setDependencyFinder(const DependencyFinder& finder);
+
+    /**
      * @brief Look up whether a client with a given name exists.
      * This function returns true if a client was found, false
      * otherwise. If a client is found and wrapper is not nullptr,
@@ -140,20 +147,18 @@ class ClientManager {
      *  }
      *
      * @param jsonString JSON string.
-     * @param finder DependencyFinder to resolve the dependencies found.
      */
     std::shared_ptr<NamedDependency>
-        addClientFromJSON(const std::string&      jsonString,
-                          const DependencyFinder& finder);
+        addClientFromJSON(const std::string& jsonString);
 
     /**
      * @brief Add a list of providers represented by a JSON string.
+     * The JSON string must represent an array of entries in the format
+     * expected by addClientFromJSON.
      *
      * @param jsonString JSON string.
-     * @param finder DependencyFinder.
      */
-    void addClientListFromJSON(const std::string&      jsonString,
-                               const DependencyFinder& finder);
+    void addClientListFromJSON(const std::string& jsonString);
 
     /**
      * @brief Return the current JSON configuration.

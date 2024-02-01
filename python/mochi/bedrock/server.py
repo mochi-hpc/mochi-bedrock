@@ -16,7 +16,7 @@ import pybedrock_server
 import pymargo.core
 import pymargo
 from typing import Mapping, List
-from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, SSGSpec, AbtIOSpec, ProviderSpec
+from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, SSGSpec, AbtIOSpec, ProviderSpec, ClientSpec
 import json
 
 
@@ -50,6 +50,7 @@ Pool = NamedDependency
 Xstream = NamedDependency
 SSGGroup = NamedDependency
 AbtIOInstance = NamedDependency
+Client = NamedDependency
 
 
 class ProviderDependency(NamedDependency):
@@ -216,6 +217,55 @@ class AbtIOManager:
         return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))
 
 
+class ClientManager:
+
+    def __init__(self, internal: pybedrock_server.ClientManager, server: 'Server'):
+        self._internal = internal
+        self._server = server
+
+    @property
+    def config(self) -> dict:
+        return json.loads(self._internal.config)
+
+    @property
+    def spec(self) -> list[ClientSpec]:
+        return [ClientSpec.from_dict(client) for client in self.config]
+
+    def __len__(self):
+        return len(self._internal.clients)
+
+    def __getitem__(self, key: int|str) -> Provider:
+        clients = self._internal.clients
+        if isinstance(key, int):
+            key = clients[key].name
+        return self.lookup(key)
+
+    def __delitem__(self, key: int|str) -> None:
+        if isinstance(key, int):
+            key = self._internal.clients[key].name
+        self._internal.destroy_client(key)
+
+    def lookup(self, locator: str) -> Client:
+        return Client(self._internal.lookup_client(locator))
+
+    def lookup_or_create_anonymous(self, type: str) -> Client:
+        return Client(self._internal.lookup_client_or_create(type))
+
+    def create(self, name: str, type: str, config: str|dict = "{}",
+               dependencies: Mapping[str,str] = {},
+               tags: List[str] = []) -> Client:
+        if isinstance(config, str):
+            config = json.loads(config)
+        info = {
+            "name": name,
+            "type": type,
+            "dependencies": dependencies,
+            "tags": tags,
+            "config": config
+        }
+        return Client(self._internal.add_client_from_json(json.dumps(info)))
+
+
 class ProviderManager:
 
     def __init__(self, internal: pybedrock_server.ProviderManager, server: 'Server'):
@@ -261,7 +311,7 @@ class ProviderManager:
             "tags": tags,
             "config": config
         }
-        return Provider(self, self._internal.add_providers_from_json(json.dumps(info)))
+        return Provider(self, self._internal.add_provider_from_json(json.dumps(info)))
 
     def migrate(self, provider: str, dest_addr: str,
                 dest_provider_id: str, migration_config: str|dict = "{}",
@@ -332,6 +382,10 @@ class Server:
     @property
     def abtio(self) -> AbtIOManager:
         return AbtIOManager(self._internal.abtio_manager, self)
+
+    @property
+    def clients(self) -> ClientManager:
+        return ClientManager(self._internal.client_manager, self)
 
     @property
     def providers(self) -> ProviderManager:

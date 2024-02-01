@@ -151,14 +151,14 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Creating clients
         spdlog::trace("Initializing clients");
+        clientManager.setDependencyFinder(dependencyFinder);
         auto clientManagerConfig = config["clients"].dump();
-        clientManager.addClientListFromJSON(clientManagerConfig, dependencyFinder);
+        clientManager.addClientListFromJSON(clientManagerConfig);
 
         // Starting up providers
         spdlog::trace("Initializing providers");
         auto providerManagerConfig = config["providers"].dump();
-        ProviderManager(self->m_provider_manager)
-            .setDependencyFinder(dependencyFinder);
+        providerManager.setDependencyFinder(dependencyFinder);
         providerManager.addProviderListFromJSON(providerManagerConfig);
         spdlog::trace("Providers initialized");
 
@@ -181,6 +181,10 @@ ABTioManager Server::getABTioManager() const { return self->m_abtio_manager; }
 
 ProviderManager Server::getProviderManager() const {
     return self->m_provider_manager;
+}
+
+ClientManager Server::getClientManager() const {
+    return self->m_client_manager;
 }
 
 SSGManager Server::getSSGManager() const { return self->m_ssg_manager; }

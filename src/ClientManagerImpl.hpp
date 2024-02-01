@@ -11,6 +11,7 @@
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/ClientDescriptor.hpp"
 #include "bedrock/ClientManager.hpp"
+#include "DependencyFinderImpl.hpp"
 
 #include <thallium.hpp>
 #include <nlohmann/json.hpp>
@@ -78,6 +79,7 @@ class ClientManagerImpl
   public std::enable_shared_from_this<ClientManagerImpl> {
 
   public:
+    std::shared_ptr<DependencyFinderImpl>     m_dependency_finder;
     std::vector<std::shared_ptr<ClientEntry>> m_clients;
     mutable tl::mutex                         m_clients_mtx;
     mutable tl::condition_variable            m_clients_cv;

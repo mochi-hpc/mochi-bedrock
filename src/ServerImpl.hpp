@@ -158,9 +158,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
             depconfig[name] = dep;
         }
         try {
-            ClientManager(m_client_manager)
-                .addClientFromJSON(fullconfig.dump(),
-                                   DependencyFinder(m_dependency_finder));
+            ClientManager(m_client_manager).addClientFromJSON(fullconfig.dump());
         } catch (const Exception& ex) {
             result.error()   = ex.what();
             result.success() = false;

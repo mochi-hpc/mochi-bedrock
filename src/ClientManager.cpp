@@ -43,6 +43,10 @@ ClientManager::~ClientManager() = default;
 
 ClientManager::operator bool() const { return static_cast<bool>(self); }
 
+void ClientManager::setDependencyFinder(const DependencyFinder& finder) {
+    self->m_dependency_finder = finder;
+}
+
 std::shared_ptr<NamedDependency> ClientManager::lookupClient(const std::string& name) const {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->resolveSpec(name);
@@ -171,8 +175,8 @@ void ClientManager::destroyClient(const std::string& name) {
 }
 
 std::shared_ptr<NamedDependency>
-ClientManager::addClientFromJSON(
-    const std::string& jsonString, const DependencyFinder& dependencyFinder) {
+ClientManager::addClientFromJSON(const std::string& jsonString) {
+    auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
     auto config = jsonString.empty() ? json::object() : json::parse(jsonString);
     if (!config.is_object()) {
         throw DETAILED_EXCEPTION("Client configuration should be an object");
@@ -278,8 +282,7 @@ ClientManager::addClientFromJSON(
     return createClient(descriptor, client_config, resolved_dependency_map, tags);
 }
 
-void ClientManager::addClientListFromJSON(
-    const std::string& jsonString, const DependencyFinder& dependencyFinder) {
+void ClientManager::addClientListFromJSON(const std::string& jsonString) {
     auto config = json::parse(jsonString);
     if (config.is_null()) { return; }
     if (!config.is_array()) {
@@ -288,7 +291,7 @@ void ClientManager::addClientListFromJSON(
             "ClientManager::addClientListFromJSON (expected array)");
     }
     for (const auto& client : config) {
-        addClientFromJSON(client.dump(), dependencyFinder);
+        addClientFromJSON(client.dump());
     }
 }
 

@@ -88,6 +88,10 @@ PYBIND11_MODULE(pybedrock_server, m) {
              [](std::shared_ptr<Server> server) {
                 return server->getProviderManager();
              })
+        .def_property_readonly("client_manager",
+             [](std::shared_ptr<Server> server) {
+                return server->getClientManager();
+             })
         .def_property_readonly("ssg_manager",
              [](std::shared_ptr<Server> server) {
                 return server->getSSGManager();
@@ -200,21 +204,10 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("lookup_provider", &ProviderManager::lookupProvider,
              "spec"_a)
         .def_property_readonly("providers", &ProviderManager::listProviders)
-        /* // need to expose ResolvedDependencyMap
-        .def("register_provider",
-             [](ProviderManager& manager,
-                const ProviderDescriptor&       descriptor,
-                const std::string&              pool_name,
-                const std::string&              config,
-                const ResolvedDependencyMap&    dependencies,
-                const std::vector<std::string>& tags) {
-            ...
-        })
-        */
         .def("deregister_provider",
              &ProviderManager::deregisterProvider,
              "spec"_a)
-        .def("add_providers_from_json",
+        .def("add_provider_from_json",
              &ProviderManager::addProviderFromJSON,
              "json_config"_a)
         .def("add_provider_list_from_json",
@@ -233,5 +226,29 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("restore_provider",
              &ProviderManager::restoreProvider,
              "provider"_a, "src_path"_a, "restore_config"_a)
+    ;
+
+    py11::class_<ClientDescriptor> (m, "ClientDescriptor")
+        .def(py11::init<const std::string&, const std::string&>())
+        .def_readonly("name", &ClientDescriptor::name)
+        .def_readonly("type", &ClientDescriptor::type)
+    ;
+
+    py11::class_<ClientManager> (m, "ClientManager")
+        .def_property_readonly("config", &ClientManager::getCurrentConfig)
+        .def("lookup_client", &ClientManager::lookupClient,
+             "name"_a)
+        .def("lookup_client_or_create", &ClientManager::lookupOrCreateAnonymous,
+             "type"_a)
+        .def_property_readonly("clients", &ClientManager::listClients)
+        .def("destroy_client",
+             &ClientManager::destroyClient,
+             "name"_a)
+        .def("add_client_from_json",
+             &ClientManager::addClientFromJSON,
+             "json_config"_a)
+        .def("add_client_list_from_json",
+             &ClientManager::addClientListFromJSON,
+             "json_configs"_a)
     ;
 }
