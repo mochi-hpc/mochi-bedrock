@@ -449,6 +449,50 @@ class TestProviderManager(unittest.TestCase):
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 
+    def test_dependency_on_provider_with_id(self):
+        providers = self.server.providers
+        self.assertEqual(len(providers), 2)
+        clients = self.server.clients
+        self.assertEqual(len(clients), 2)
+
+        client_params = self.make_client_params([
+            {"name": "dep1", "type": "module_a",
+             "is_required": True, "kind": "provider"}])
+
+        # Try creating a client with dependency on the wrong provider ID
+        client_params["dependencies"] = {"dep1": "module_a:999"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with dependency on the wrong provider type
+        client_params["dependencies"] = {"dep1": "module_b:2"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with the required dependency
+        client_params["dependencies"] = {"dep1": "module_a:1"}
+        clients.create(**client_params)
+        self.assertEqual(len(clients), 3)
+
+        provider_params = self.make_provider_params([
+            {"name": "dep1", "type": "module_a",
+             "is_required": True, "kind": "provider"}])
+
+        # Try creating a provider with dependency on the wrong provider ID
+        provider_params["dependencies"] = {"dep1": "module_a:999"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with dependency on the wrong provider type
+        provider_params["dependencies"] = {"dep1": "module_b:2"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the required dependency
+        provider_params["dependencies"] = {"dep1": "module_a:1"}
+        providers.create(**provider_params)
+        self.assertEqual(len(providers), 3)
+
     def test_dependency_on_ph_with_id_and_address(self):
         providers = self.server.providers
         self.assertEqual(len(providers), 2)
