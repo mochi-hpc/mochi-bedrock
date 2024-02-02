@@ -191,6 +191,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with a wrong dependency
+        client_params["dependencies"] = {"dep1": "my_pool_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_pool"}
         clients.create(**client_params)
@@ -199,6 +204,11 @@ class TestProviderManager(unittest.TestCase):
         # Try creating a provider without the required dependency
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "pool", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with a wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_pool_bad"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -219,6 +229,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong dependency
+        client_params["dependencies"] = {"dep1": "my_xstream_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_xstream"}
         clients.create(**client_params)
@@ -227,6 +242,11 @@ class TestProviderManager(unittest.TestCase):
         # Try creating a provider without the required dependency
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "xstream", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_xstream_bad"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -247,6 +267,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client witht the wrong dependency
+        client_params["dependencies"] = {"dep1": "my_abt_io_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_abt_io"}
         clients.create(**client_params)
@@ -255,6 +280,11 @@ class TestProviderManager(unittest.TestCase):
         # Try creating a provider without the required dependency
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "abt_io", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_abt_io_bad"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -275,6 +305,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong dependency
+        client_params["dependencies"] = {"dep1": "my_ssg_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_ssg"}
         clients.create(**client_params)
@@ -283,6 +318,11 @@ class TestProviderManager(unittest.TestCase):
         # Try creating a provider without the required dependency
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "ssg", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_ssg_bad"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -303,6 +343,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong dependency
+        client_params["dependencies"] = {"dep1": "my_mona_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_mona"}
         clients.create(**client_params)
@@ -311,6 +356,11 @@ class TestProviderManager(unittest.TestCase):
         # Try creating a provider without the required dependency
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "mona", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_mona_bad"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -332,6 +382,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong dependency
+        client_params["dependencies"] = {"dep1": "my_client_a_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_client_a"}
         clients.create(**client_params)
@@ -344,12 +399,17 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_client_a_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
         # Try creating a provider with the required dependency
         provider_params["dependencies"] = {"dep1": "my_client_a"}
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 
-    def test_dependency_on_client(self):
+    def test_dependency_on_provider(self):
         providers = self.server.providers
         self.assertEqual(len(providers), 2)
         clients = self.server.clients
@@ -362,6 +422,11 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong dependency
+        client_params["dependencies"] = {"dep1": "my_provider_a_bad"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": "my_provider_a"}
         clients.create(**client_params)
@@ -371,6 +436,11 @@ class TestProviderManager(unittest.TestCase):
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "module_a",
              "is_required": True, "kind": "provider"}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": "my_provider_a_bad"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -395,6 +465,16 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong provider ID
+        client_params["dependencies"] = {"dep1": "module_a:999@{address}"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with the wrong module
+        client_params["dependencies"] = {"dep1": "module_b:1@{address}"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": f"module_a:1@{address}"}
         clients.create(**client_params)
@@ -404,6 +484,16 @@ class TestProviderManager(unittest.TestCase):
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "module_a",
              "is_required": True, "kind": "provider_handle"}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong provider ID
+        provider_params["dependencies"] = {"dep1": "module_a:999@{address}"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong module
+        provider_params["dependencies"] = {"dep1": "module_b:1@{address}"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
@@ -428,6 +518,16 @@ class TestProviderManager(unittest.TestCase):
         with self.assertRaises(mbs.BedrockException):
             clients.create(**client_params)
 
+        # Try creating a client with the wrong group
+        client_params["dependencies"] = {"dep1": "module_a:1@ssg://wrong_group/0"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with the wrong rank
+        client_params["dependencies"] = {"dep1": "module_a:1@ssg://my_ssg/123"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
         # Try creating a client with the required dependency
         client_params["dependencies"] = {"dep1": f"module_a:1@{address}"}
         clients.create(**client_params)
@@ -437,6 +537,16 @@ class TestProviderManager(unittest.TestCase):
         provider_params = self.make_provider_params([
             {"name": "dep1", "type": "module_a",
              "is_required": True, "kind": "provider_handle"}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong group
+        provider_params["dependencies"] = {"dep1": "module_a:1@ssg://wrong_group/0"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong rank
+        provider_params["dependencies"] = {"dep1": "module_a:1@ssg://my_ssg/123"}
         with self.assertRaises(mbs.BedrockException):
             providers.create(**provider_params)
 
