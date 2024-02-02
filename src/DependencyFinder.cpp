@@ -58,6 +58,15 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         if (resolved) { *resolved = spec; }
         return pool;
 
+    } else if (type == "xstream") { // Argobots xstream
+
+        auto xstream = MargoManager(self->m_margo_context).getXstream(spec);
+        if (!xstream) {
+            throw Exception("Could not find xstream with name \"{}\"", spec);
+        }
+        if (resolved) { *resolved = spec; }
+        return xstream;
+
     } else if (type == "abt_io") { // ABTIO instance
 
         auto abtio_manager_impl = self->m_abtio_context.lock();
@@ -98,7 +107,7 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
     } else if (kind == BEDROCK_KIND_CLIENT) {
 
         auto client = findClient(type, spec);
-        if (client) { *resolved = client->getName(); }
+        if (client && resolved) { *resolved = client->getName(); }
         return client;
 
     } else if (kind == BEDROCK_KIND_PROVIDER) {
