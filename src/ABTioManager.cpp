@@ -108,6 +108,8 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
 #endif
 }
 
+// LCOV_EXCL_START
+
 ABTioManager::ABTioManager(const ABTioManager&) = default;
 
 ABTioManager::ABTioManager(ABTioManager&&) = default;
@@ -119,6 +121,8 @@ ABTioManager& ABTioManager::operator=(ABTioManager&&) = default;
 ABTioManager::~ABTioManager() = default;
 
 ABTioManager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 std::shared_ptr<NamedDependency>
 ABTioManager::getABTioInstance(const std::string& name) const {

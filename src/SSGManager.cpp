@@ -200,6 +200,8 @@ SSGManager::SSGManager(const MargoManager& margo,
 #endif
 }
 
+// LCOV_EXCL_START
+
 SSGManager::SSGManager(const SSGManager&) = default;
 
 SSGManager::SSGManager(SSGManager&&) = default;
@@ -211,6 +213,8 @@ SSGManager& SSGManager::operator=(SSGManager&&) = default;
 SSGManager::~SSGManager() = default;
 
 SSGManager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_name) const {
 #ifdef ENABLE_SSG

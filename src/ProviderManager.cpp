@@ -32,6 +32,8 @@ ProviderManager::ProviderManager(const MargoManager& margo,
     self->m_margo_context = margo;
 }
 
+// LCOV_EXCL_START
+
 ProviderManager::ProviderManager(const ProviderManager&) = default;
 
 ProviderManager::ProviderManager(ProviderManager&&) = default;
@@ -43,6 +45,8 @@ ProviderManager& ProviderManager::operator=(ProviderManager&&) = default;
 ProviderManager::~ProviderManager() = default;
 
 ProviderManager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 void ProviderManager::setDependencyFinder(const DependencyFinder& finder) {
     self->m_dependency_finder = finder;

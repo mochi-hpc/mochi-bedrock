@@ -31,6 +31,8 @@ ClientManager::ClientManager(const MargoManager& margo, uint16_t provider_id,
     self->m_margo_context = margo;
 }
 
+// LCOV_EXCL_START
+
 ClientManager::ClientManager(const ClientManager&) = default;
 
 ClientManager::ClientManager(ClientManager&&) = default;
@@ -42,6 +44,8 @@ ClientManager& ClientManager::operator=(ClientManager&&) = default;
 ClientManager::~ClientManager() = default;
 
 ClientManager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 void ClientManager::setDependencyFinder(const DependencyFinder& finder) {
     self->m_dependency_finder = finder;

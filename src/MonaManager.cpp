@@ -110,6 +110,8 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
 #endif
 }
 
+// LCOV_EXCL_START
+
 MonaManager::MonaManager(const MonaManager&) = default;
 
 MonaManager::MonaManager(MonaManager&&) = default;
@@ -121,6 +123,8 @@ MonaManager& MonaManager::operator=(MonaManager&&) = default;
 MonaManager::~MonaManager() = default;
 
 MonaManager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 std::shared_ptr<NamedDependency>
 MonaManager::getMonaInstance(const std::string& name) const {

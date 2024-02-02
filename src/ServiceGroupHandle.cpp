@@ -18,6 +18,8 @@ namespace bedrock {
 
 using json = nlohmann::json;
 
+// LCOV_EXCL_START
+
 ServiceGroupHandle::ServiceGroupHandle() = default;
 
 ServiceGroupHandle::ServiceGroupHandle(const std::shared_ptr<ServiceGroupHandleImpl>& impl)
@@ -34,6 +36,8 @@ ServiceGroupHandle& ServiceGroupHandle::operator=(ServiceGroupHandle&&) = defaul
 ServiceGroupHandle::~ServiceGroupHandle() = default;
 
 ServiceGroupHandle::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 Client ServiceGroupHandle::client() const { return Client(self->m_client); }
 

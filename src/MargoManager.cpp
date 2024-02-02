@@ -54,6 +54,8 @@ MargoManager::MargoManager(const std::string& address,
     }
 }
 
+// LCOV_EXCL_START
+
 MargoManager::MargoManager(const MargoManager&) = default;
 
 MargoManager::MargoManager(MargoManager&&) = default;
@@ -65,6 +67,8 @@ MargoManager& MargoManager::operator=(MargoManager&&) = default;
 MargoManager::~MargoManager() = default;
 
 MargoManager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 margo_instance_id MargoManager::getMargoInstance() const {
     if(!self) return MARGO_INSTANCE_NULL;

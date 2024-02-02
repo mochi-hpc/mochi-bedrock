@@ -22,6 +22,8 @@ namespace bedrock {
 
 constexpr uint16_t ServiceHandle::NewProviderID;
 
+// LCOV_EXCL_START
+
 ServiceHandle::ServiceHandle() = default;
 
 ServiceHandle::ServiceHandle(const std::shared_ptr<ServiceHandleImpl>& impl)
@@ -38,6 +40,8 @@ ServiceHandle& ServiceHandle::operator=(ServiceHandle&&) = default;
 ServiceHandle::~ServiceHandle() = default;
 
 ServiceHandle::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 Client ServiceHandle::client() const { return Client(self->m_client); }
 

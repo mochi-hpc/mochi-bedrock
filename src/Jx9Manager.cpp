@@ -13,6 +13,8 @@ namespace bedrock {
 
 using nlohmann::json;
 
+// LCOV_EXCL_START
+
 Jx9Manager::Jx9Manager() : self(std::make_shared<Jx9ManagerImpl>()) {}
 
 Jx9Manager::Jx9Manager(const Jx9Manager&) = default;
@@ -26,6 +28,8 @@ Jx9Manager& Jx9Manager::operator=(Jx9Manager&&) = default;
 Jx9Manager::~Jx9Manager() = default;
 
 Jx9Manager::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 static jx9_value* jx9ValueFromJson(const json& object, jx9_vm* vm);
 

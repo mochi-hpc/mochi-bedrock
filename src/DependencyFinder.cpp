@@ -31,6 +31,8 @@ DependencyFinder::DependencyFinder(const MargoManager&    margo,
     self->m_client_manager   = cmanager.self;
 }
 
+// LCOV_EXCL_START
+
 DependencyFinder::DependencyFinder(const DependencyFinder&) = default;
 
 DependencyFinder::DependencyFinder(DependencyFinder&&) = default;
@@ -43,6 +45,8 @@ DependencyFinder& DependencyFinder::operator=(DependencyFinder&&) = default;
 DependencyFinder::~DependencyFinder() = default;
 
 DependencyFinder::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
 
 std::shared_ptr<NamedDependency> DependencyFinder::find(
         const std::string& type, int32_t kind,

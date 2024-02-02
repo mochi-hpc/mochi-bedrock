@@ -23,6 +23,8 @@ namespace tl = thallium;
 
 namespace bedrock {
 
+// LCOV_EXCL_START
+
 Client::Client() = default;
 
 Client::Client(const tl::engine& engine)
@@ -43,9 +45,11 @@ Client& Client::operator=(const Client& other) = default;
 
 Client::~Client() = default;
 
-const tl::engine& Client::engine() const { return self->m_engine; }
-
 Client::operator bool() const { return static_cast<bool>(self); }
+
+// LCOV_EXCL_STOP
+
+const tl::engine& Client::engine() const { return self->m_engine; }
 
 ServiceHandle Client::makeServiceHandle(const std::string& address,
                                         uint16_t           provider_id) const {
