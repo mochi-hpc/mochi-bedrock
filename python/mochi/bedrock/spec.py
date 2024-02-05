@@ -1653,6 +1653,7 @@ class ProcSpec:
         data = {'margo': self.margo.to_dict(),
                 'abt_io': [a.to_dict() for a in self._abt_io],
                 'ssg': [g.to_dict() for g in self._ssg],
+                'mona': [m.to_dict() for m in self._mona],
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
                 'clients': [c.to_dict() for c in self._clients],
@@ -1665,6 +1666,7 @@ class ProcSpec:
         """
         margo = MargoSpec.from_dict(data['margo'])
         abt_io = []
+        mona = []
         ssg = []
         libraries = dict()
         providers = []
@@ -1678,6 +1680,9 @@ class ProcSpec:
         if 'ssg' in data:
             for g in data['ssg']:
                 ssg.append(SSGSpec.from_dict(g, margo.argobots))
+        if 'mona' in data:
+            for m in data['mona']:
+                mona.append(MonaSpec.from_dict(m, margo.argobots))
         if 'providers' in data:
             for p in data['providers']:
                 providers.append(ProviderSpec.from_dict(p,  margo.argobots))
@@ -1689,6 +1694,7 @@ class ProcSpec:
         return ProcSpec(margo=margo,
                         abt_io=abt_io,
                         ssg=ssg,
+                        mona=mona,
                         libraries=libraries,
                         providers=providers,
                         clients=clients,
@@ -1713,6 +1719,11 @@ class ProcSpec:
             p = a.pool
             if p not in self.margo.argobots.pools:
                 raise ValueError(f'Pool "{p.name}" used by ABT-IO instance' +
+                                 ' not found in margo.argobots.pools')
+        for m in self._mona:
+            p = m.pool
+            if p not in self.margo.argobots.pools:
+                raise ValueError(f'Pool "{p.name}" used by MoNA instance' +
                                  ' not found in margo.argobots.pools')
         for g in self._ssg:
             p = g.pool
