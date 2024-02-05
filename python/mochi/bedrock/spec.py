@@ -1044,7 +1044,8 @@ class AbtIOSpec:
         validator=[instance_of(str), _validate_object_name],
         on_setattr=attr.setters.frozen)
     pool: PoolSpec = attr.ib(validator=instance_of(PoolSpec))
-    config: dict = attr.ib(validator=instance_of(dict))
+    config: dict = attr.ib(validator=instance_of(dict),
+                           factory=dict)
 
     def to_dict(self) -> dict:
         """Convert the AbtIOSpec into a dictionary.
@@ -1089,6 +1090,72 @@ class AbtIOSpec:
         :type abt_spec: ArgobotsSpec
         """
         return AbtIOSpec.from_dict(json.loads(json_string), abt_spec)
+
+
+@attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
+class MonaSpec:
+    """MoNA instance specification.
+
+    :param name: Name of the MoNA instance
+    :type name: str
+
+    :param pool: Pool associated with the instance
+    :type pool: PoolSpec
+
+    :param config: Configuration
+    :type config: dict
+    """
+
+    name: str = attr.ib(
+        validator=[instance_of(str), _validate_object_name],
+        on_setattr=attr.setters.frozen)
+    pool: PoolSpec = attr.ib(validator=instance_of(PoolSpec))
+    config: dict = attr.ib(validator=instance_of(dict),
+                           factory=dict)
+
+    def to_dict(self) -> dict:
+        """Convert the MonaSpec into a dictionary.
+        """
+        return {'name': self.name,
+                'pool': self.pool.name,
+                'config': self.config}
+
+    @staticmethod
+    def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'MonaSpec':
+        """Construct a MonaSpec from a dictionary. Since the dictionary
+        references the pool by name or index, an ArgobotsSpec is necessary
+        to resolve the reference.
+
+        :param data: Dictionary
+        :type data: dict
+
+        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
+        :type abt_spec: ArgobotsSpec
+        """
+        name = data['name']
+        config = data['config']
+        pool = abt_spec.pools[data['pool']]
+        mona = MonaSpec(name=name, pool=pool, config=config)
+        return mona
+
+    def to_json(self, *args, **kwargs) -> str:
+        """Convert the MonaSpec into a JSON string.
+        """
+        return json.dumps(self.to_dict(), *args, **kwargs)
+
+    @staticmethod
+    def from_json(json_string: str,  abt_spec: ArgobotsSpec) -> 'MonaSpec':
+        """Construct an MonaSpec from a JSON string. Since the JSON string
+        references the pool by name or index, an ArgobotsSpec is necessary
+        to resolve the reference.
+
+        :param json_string: JSON string
+        :type json_string: str
+
+        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
+        :type abt_spec: ArgobotsSpec
+        """
+        return MonaSpec.from_dict(json.loads(json_string), abt_spec)
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
@@ -1503,6 +1570,9 @@ class ProcSpec:
     :param abt_io: List of AbtIOSpec
     :type abt_io: list
 
+    :param mona: List of MonaSpec
+    :type mona: list
+
     :param ssg: List of SSGSpec
     :type ssg: list
 
@@ -1520,6 +1590,9 @@ class ProcSpec:
         validator=instance_of(MargoSpec),
         converter=_margo_from_args)
     _abt_io: List[AbtIOSpec] = attr.ib(
+        factory=list,
+        validator=instance_of(list))
+    _mona: List[MonaSpec] = attr.ib(
         factory=list,
         validator=instance_of(list))
     _ssg: List[SSGSpec] = attr.ib(
@@ -1545,6 +1618,13 @@ class ProcSpec:
         and validate changes to this list.
         """
         return SpecListDecorator(list=self._abt_io, type=AbtIOSpec)
+
+    @property
+    def mona_io(self) -> SpecListDecorator:
+        """Return a decorator to access the internal list of MonaSpec
+        and validate changes to this list.
+        """
+        return SpecListDecorator(list=self._mona, type=MonaSpec)
 
     @property
     def ssg(self) -> SpecListDecorator:
