@@ -1133,7 +1133,10 @@ class MonaSpec:
         :type abt_spec: ArgobotsSpec
         """
         name = data['name']
-        config = data['config']
+        if 'config' in data:
+            config = data['config']
+        else:
+            config = {}
         pool = abt_spec.pools[data['pool']]
         mona = MonaSpec(name=name, pool=pool, config=config)
         return mona
