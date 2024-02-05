@@ -285,8 +285,8 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw DETAILED_EXCEPTION("Missing dependency {} in configuration",
-                            dependency.name);
+            throw DETAILED_EXCEPTION("Missing provider dependency \"{}\" of type \"{}\" in configuration",
+                            dependency.name, dependency.type);
         }
     }
 

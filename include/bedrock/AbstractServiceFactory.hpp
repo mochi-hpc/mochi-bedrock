@@ -276,7 +276,7 @@ class AbstractServiceFactory {
      */
     virtual std::vector<Dependency> getClientDependencies(const char* config) {
         (void)config;
-        return getProviderDependencies();
+        return getClientDependencies();
     }
 };
 
