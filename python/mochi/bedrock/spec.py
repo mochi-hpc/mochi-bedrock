@@ -1620,7 +1620,7 @@ class ProcSpec:
         return SpecListDecorator(list=self._abt_io, type=AbtIOSpec)
 
     @property
-    def mona_io(self) -> SpecListDecorator:
+    def mona(self) -> SpecListDecorator:
         """Return a decorator to access the internal list of MonaSpec
         and validate changes to this list.
         """
