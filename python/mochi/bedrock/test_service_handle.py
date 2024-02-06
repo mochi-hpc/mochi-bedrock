@@ -286,7 +286,7 @@ class TestServiceHandle(unittest.TestCase):
         proc_spec = self.server.spec
         client_spec = proc_spec.clients["my_client"]
 
-    def test_start_provider_from_dict(self):
+    def test_add_provider_from_dict(self):
         self.test_load_module()
         provider_config = {
             "name": "my_provider",
@@ -297,11 +297,11 @@ class TestServiceHandle(unittest.TestCase):
             "dependencies": {},
             "tags": ["my_tag_1", "my_tag_2"]
         }
-        self.sh.start_provider(provider_config)
+        self.sh.add_provider(provider_config)
         proc_spec = self.server.spec
         provider_spec = proc_spec.providers["my_provider"]
 
-    def test_start_provider_from_str(self):
+    def test_add_provider_from_str(self):
         self.test_load_module()
         provider_config = {
             "name": "my_provider",
@@ -312,11 +312,11 @@ class TestServiceHandle(unittest.TestCase):
             "dependencies": {},
             "tags": ["my_tag_1", "my_tag_2"]
         }
-        self.sh.start_provider(json.dumps(provider_config))
+        self.sh.add_provider(json.dumps(provider_config))
         proc_spec = self.server.spec
         provider_spec = proc_spec.providers["my_provider"]
 
-    def test_start_provider_from_spec(self):
+    def test_add_provider_from_spec(self):
         self.test_load_module()
         provider_config = spec.ProviderSpec(
             name="my_provider",
@@ -327,7 +327,7 @@ class TestServiceHandle(unittest.TestCase):
             dependencies={},
             tags=["my_tag_1", "my_tag_2"]
         )
-        self.sh.start_provider(provider_config)
+        self.sh.add_provider(provider_config)
         proc_spec = self.server.spec
         provider_spec = proc_spec.providers["my_provider"]
 
