@@ -20,7 +20,7 @@ python -m pip install -r requirements.txt
 Finally, start Jupyterlab as follows.
 
 ```
-jupyter notebook --ip 0.0.0.0 --port 8888 --no-browser
+jupyter lab --ip 0.0.0.0 --port 8888 --no-browser
 ```
 
 You will be able to connect to the notebook at the URL
