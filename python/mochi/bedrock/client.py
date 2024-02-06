@@ -101,7 +101,7 @@ class ServiceHandle:
             dependencies=config["dependencies"],
             tags=config["tags"])
 
-    def start_provider(self, config: str|dict|ProviderSpec):
+    def add_provider(self, config: str|dict|ProviderSpec):
         if isinstance(config, str):
             config = json.loads(config)
         elif isinstance(config, ProviderSpec):
