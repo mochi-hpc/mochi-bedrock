@@ -85,6 +85,13 @@ class PoolList:
     def __delitem__(self, key: int|str) -> None:
         self._internal.remove_pool(key)
 
+    def __contains__(self, key: str) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except BedrockException:
+            return False
+
     def create(self, config: str|dict|PoolSpec) -> Pool:
         if isinstance(config, dict):
             config = json.dumps(config)
@@ -106,6 +113,13 @@ class XstreamList:
 
     def __delitem__(self, key: int|str) -> None:
         self._internal.remove_xstream(key)
+
+    def __contains__(self, key: str) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except BedrockException:
+            return False
 
     def create(self, config: str|dict|XstreamSpec) -> Xstream:
         if isinstance(config, dict):
@@ -177,6 +191,13 @@ class SSGManager:
     def __getitem__(self, key: int|str) -> SSGGroup:
         return SSGGroup(self._internal.get_group(key))
 
+    def __contains__(self, key: str) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except BedrockException:
+            return False
+
     def create(self, name: str, pool: str|int|Pool = "__primary__",
                config: str|dict|SSGSpec = "{}",
                bootstrap: str = "init", group_file: str = "") -> SSGGroup:
@@ -208,6 +229,13 @@ class AbtIOManager:
 
     def __getitem__(self, key: int|str) -> AbtIOInstance:
         return AbtIOInstance(self._internal.get_abtio_instance(key))
+
+    def __contains__(self, key: str) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except BedrockException:
+            return False
 
     def create(self, name: str, pool: str|Pool, config: str|dict = "{}") -> AbtIOInstance:
         if isinstance(config, dict):
@@ -244,6 +272,13 @@ class ClientManager:
         if isinstance(key, int):
             key = self._internal.clients[key].name
         self._internal.destroy_client(key)
+
+    def __contains__(self, key: str) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except BedrockException:
+            return False
 
     def lookup(self, locator: str) -> Client:
         return Client(self._internal.lookup_client(locator))
@@ -292,6 +327,13 @@ class ProviderManager:
 
     def __delitem__(self, key: str) -> None:
         self._internal.deregister_provider(key)
+
+    def __contains__(self, key: str) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except BedrockException:
+            return False
 
     def lookup(self, locator: str):
         return Provider(self, self._internal.lookup_provider(locator))

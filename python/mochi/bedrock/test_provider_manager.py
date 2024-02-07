@@ -31,6 +31,8 @@ class TestProviderManager(unittest.TestCase):
         providers = self.server.providers
         self.assertIsInstance(providers, mbs.ProviderManager)
         self.assertEqual(len(providers), 1)
+        self.assertIn("my_provider_A", providers)
+        self.assertNotIn("not_my_provider_A", providers)
         provider_A = providers[0]
         provider_B = providers["my_provider_A"]
         self.assertEqual(provider_A.name, provider_B.name)

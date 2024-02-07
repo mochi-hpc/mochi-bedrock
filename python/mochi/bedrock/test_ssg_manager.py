@@ -28,6 +28,8 @@ class TestSSGManager(unittest.TestCase):
         ssg = self.server.ssg
         self.assertIsInstance(ssg, mbs.SSGManager)
         self.assertEqual(len(ssg), 1)
+        self.assertIn("my_group", ssg)
+        self.assertNotIn("not_my_group", ssg)
         ssg_A = ssg[0]
         ssg_B = ssg["my_group"]
         self.assertEqual(ssg_A.name, ssg_B.name)

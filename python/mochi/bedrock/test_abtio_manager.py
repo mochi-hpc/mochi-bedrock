@@ -27,6 +27,8 @@ class TestAbtIOManager(unittest.TestCase):
         abtio = self.server.abtio
         self.assertIsInstance(abtio, mbs.AbtIOManager)
         self.assertEqual(len(abtio), 1)
+        self.assertIn("my_abtio", abtio)
+        self.assertNotIn("not_my_abtio", abtio)
         abtio_A = abtio[0]
         abtio_B = abtio["my_abtio"]
         self.assertEqual(abtio_A.name, abtio_B.name)

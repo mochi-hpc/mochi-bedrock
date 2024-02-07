@@ -30,6 +30,8 @@ class TestClientManager(unittest.TestCase):
         clients = self.server.clients
         self.assertIsInstance(clients, mbs.ClientManager)
         self.assertEqual(len(clients), 1)
+        self.assertIn("my_client_A", clients)
+        self.assertNotIn("not_my_client_A", clients)
         client_A = clients[0]
         client_B = clients["my_client_A"]
         self.assertEqual(client_A.name, client_B.name)

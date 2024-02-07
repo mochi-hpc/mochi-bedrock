@@ -229,6 +229,10 @@ class SpecListDecorator:
         else:
             return self._list.count(arg)
 
+    def __contains__(self, arg) -> bool:
+        """Allows the "x in list" syntax."""
+        return self.count(arg) > 0
+
     def extend(self, to_add) -> NoReturn:
         """Extend the list with new elements. The elements will either
         all be added, or none will be added.

@@ -56,6 +56,8 @@ class TestMargoManager(unittest.TestCase):
         pools = self.server.margo.pools
         self.assertIsInstance(pools, mbs.PoolList)
         self.assertEqual(len(pools), 2)
+        self.assertIn("my_pool", pools)
+        self.assertNotIn("not_my_pool", pools)
         my_pool = pools["my_pool"]
         self.assertIsInstance(my_pool, mbs.Pool)
         self.assertEqual(my_pool.name, "my_pool")
@@ -103,6 +105,8 @@ class TestMargoManager(unittest.TestCase):
         xstreams = self.server.margo.xstreams
         self.assertIsInstance(xstreams, mbs.XstreamList)
         self.assertEqual(len(xstreams), 2)
+        self.assertIn("my_xstream", xstreams)
+        self.assertNotIn("not_my_xstream", xstreams)
         my_xstream = xstreams["my_xstream"]
         self.assertIsInstance(my_xstream, mbs.Xstream)
         self.assertEqual(my_xstream.name, "my_xstream")
