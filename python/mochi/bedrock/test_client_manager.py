@@ -16,6 +16,11 @@ class TestClientManager(unittest.TestCase):
                 {
                     "name": "my_client_A",
                     "type": "module_a"
+                },
+                {
+                    "name": "my_client_B",
+                    "type": "module_b",
+                    "__if__": "false"
                 }
             ]
         }

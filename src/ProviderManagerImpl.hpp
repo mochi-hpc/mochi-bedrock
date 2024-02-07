@@ -12,6 +12,7 @@
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/ProviderDescriptor.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "bedrock/Exception.hpp"
 
 #include <thallium/serialization/stl/vector.hpp>
@@ -92,7 +93,8 @@ class ProviderManagerImpl
     mutable tl::mutex                           m_providers_mtx;
     mutable tl::condition_variable              m_providers_cv;
 
-    std::shared_ptr<MargoManagerImpl> m_margo_context;
+    std::shared_ptr<MargoManagerImpl> m_margo_manager;
+    std::shared_ptr<Jx9ManagerImpl>   m_jx9_manager;
 
     tl::auto_remote_procedure m_lookup_provider;
     tl::auto_remote_procedure m_list_providers;

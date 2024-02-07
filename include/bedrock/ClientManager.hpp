@@ -19,6 +19,7 @@ class ClientManagerImpl;
 class Server;
 class ServerImpl;
 class DependencyFinder;
+class Jx9Manager;
 
 /**
  * @brief A ClientManager is a Bedrock provider that manages
@@ -37,10 +38,12 @@ class ClientManager {
      * @brief Constructor.
      *
      * @param margo Margo context
+     * @param jx9 Jx9 manager
      * @param provider_id Provider id used by this client manager
      * @param pool Pool in which to execute RPCs looking up clients
      */
-    ClientManager(const MargoManager& margo, uint16_t provider_id,
+    ClientManager(const MargoManager& margo, const Jx9Manager& jx9,
+                  uint16_t provider_id,
                   const std::shared_ptr<NamedDependency>& pool);
 
     /**

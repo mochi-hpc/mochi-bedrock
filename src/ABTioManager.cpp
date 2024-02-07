@@ -5,6 +5,7 @@
  */
 #include "bedrock/ABTioManager.hpp"
 #include "bedrock/MargoManager.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "Exception.hpp"
 #include "ABTioManagerImpl.hpp"
 #include <margo.h>
@@ -16,9 +17,11 @@ namespace bedrock {
 using nlohmann::json;
 
 ABTioManager::ABTioManager(const MargoManager& margoCtx,
+                           const Jx9Manager& jx9,
                            const std::string&  configString)
 : self(std::make_shared<ABTioManagerImpl>()) {
     self->m_margo_manager = margoCtx;
+    self->m_jx9_manager   = jx9;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
 #ifndef ENABLE_ABT_IO

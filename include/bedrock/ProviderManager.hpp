@@ -18,6 +18,7 @@ namespace bedrock {
 class ProviderManagerImpl;
 class Server;
 class DependencyFinder;
+class Jx9Manager;
 
 /**
  * @brief A ProviderManager is a Bedrock provider that manages
@@ -35,10 +36,13 @@ class ProviderManager {
      * @brief Constructor.
      *
      * @param margo Margo context
+     * @param jx9 Jx9Manager
      * @param provider_id Provider id at which this provider manager
      * @param pool Pool in which to execute RPCs looking up providers
      */
-    ProviderManager(const MargoManager& margo, uint16_t provider_id,
+    ProviderManager(const MargoManager& margo,
+                    const Jx9Manager& jx9,
+                    uint16_t provider_id,
                     std::shared_ptr<NamedDependency> pool);
 
     /**

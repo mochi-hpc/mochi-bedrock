@@ -7,6 +7,7 @@
 #define __BEDROCK_CLIENT_MANAGER_IMPL_H
 
 #include "MargoManagerImpl.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/ClientDescriptor.hpp"
@@ -84,7 +85,8 @@ class ClientManagerImpl
     mutable tl::mutex                         m_clients_mtx;
     mutable tl::condition_variable            m_clients_cv;
 
-    std::shared_ptr<MargoManagerImpl> m_margo_context;
+    std::shared_ptr<MargoManagerImpl> m_margo_manager;
+    std::shared_ptr<Jx9ManagerImpl>   m_jx9_manager;
 
     tl::remote_procedure m_lookup_client;
     tl::remote_procedure m_list_clients;

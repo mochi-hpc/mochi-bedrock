@@ -161,9 +161,11 @@ static void extractConfigParameters(const json&         config,
 #endif
 
 SSGManager::SSGManager(const MargoManager& margo,
+                       const Jx9Manager& jx9,
                        const std::string&  configString)
 : self(std::make_shared<SSGManagerImpl>()) {
     self->m_margo_manager = margo;
+    self->m_jx9_manager   = jx9;
     auto config           = json::parse(configString);
 
     if(config.is_null()) return;
@@ -197,6 +199,8 @@ SSGManager::SSGManager(const MargoManager& margo,
         }
         for (const auto& c : config) { addGroup(c); }
     }
+
+    self->updateJx9Ranks();
 #endif
 }
 
@@ -278,7 +282,7 @@ SSGManager::createGroup(const std::string&                      name,
     // The inner data of the ssg_entry will be set later.
     // The ssg_entry needs to be created here because the
     // membership callback needs it.
-    auto ssg_entry = std::make_shared<SSGEntry>(name, pool);
+    auto ssg_entry = std::make_shared<SSGEntry>(self, name, pool);
 
     spdlog::trace("Creating SSG group {} with bootstrap method {}", name,
                   bootstrap_method);
@@ -458,11 +462,16 @@ SSGManager::createGroupFromConfig(const std::string& configString) {
 
 #ifdef ENABLE_SSG
 void SSGUpdateHandler::membershipUpdate(void* group_data, ssg_member_id_t member_id,
-                                  ssg_member_update_type_t update_type) {
+                                        ssg_member_update_type_t update_type) {
     SSGEntry* gdata = reinterpret_cast<SSGEntry*>(group_data);
     (void)gdata;
     spdlog::trace("SSG membership updated: member_id={}, update_type={}",
                   member_id, std::to_string(update_type));
+    int self_rank;
+    ssg_get_group_self_rank(gdata->getHandle<ssg_group_id_t>(), &self_rank);
+    gdata->rank = (uint64_t)self_rank;
+    auto manager = gdata->owner.lock();
+    if(manager) manager->updateJx9Ranks();
 }
 #endif
 

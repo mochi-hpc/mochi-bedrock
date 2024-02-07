@@ -16,10 +16,12 @@ namespace bedrock {
 using nlohmann::json;
 
 MonaManager::MonaManager(const MargoManager& margoCtx,
+                         const Jx9Manager& jx9,
                          const std::string& configString,
                          const std::string& defaultAddress)
 : self(std::make_shared<MonaManagerImpl>()) {
     self->m_margo_manager = margoCtx;
+    self->m_jx9_manager   = jx9;
     auto config           = json::parse(configString);
     if (config.is_null()) return;
 #ifndef ENABLE_MONA

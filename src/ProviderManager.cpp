@@ -25,11 +25,13 @@ using namespace std::string_literals;
 using nlohmann::json;
 
 ProviderManager::ProviderManager(const MargoManager& margo,
+                                 const Jx9Manager& jx9,
                                  uint16_t provider_id,
                                  std::shared_ptr<NamedDependency> pool)
 : self(std::make_shared<ProviderManagerImpl>(margo.getThalliumEngine(),
                                              provider_id, tl::pool(pool->getHandle<ABT_pool>()))) {
-    self->m_margo_context = margo;
+    self->m_margo_manager = margo;
+    self->m_jx9_manager   = jx9;
 }
 
 // LCOV_EXCL_START
@@ -112,7 +114,7 @@ ProviderManager::registerProvider(
         if (provider_id == std::numeric_limits<uint16_t>::max())
             provider_id = self->getAvailableProviderID();
 
-        auto margo = MargoManager(self->m_margo_context);
+        auto margo = MargoManager(self->m_margo_manager);
         auto pool = margo.getPool(pool_name);
 
         FactoryArgs args;
@@ -163,6 +165,15 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
             "ProviderManager::addProviderFromJSON (should be an object)");
     }
 
+    if(config.contains("__if__")) {
+        if(!config["__if__"].is_string()) {
+            throw DETAILED_EXCEPTION("__if__ statement in configuration should be a string");
+        }
+        bool b = Jx9Manager(self->m_jx9_manager).evaluateCondition(
+                config["__if__"].get_ref<const std::string&>(), {});
+        if(!b) return nullptr;
+    }
+
     ProviderDescriptor descriptor;
 
     if(!config.contains("name")) {
@@ -209,7 +220,7 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
         }
     }
 
-    auto margo = MargoManager(self->m_margo_context);
+    auto margo = MargoManager(self->m_margo_manager);
 
     std::string pool_name;
     if(config.contains("pool")) {
@@ -315,7 +326,7 @@ void ProviderManager::changeProviderPool(const std::string& provider,
     if (it == self->m_providers.end())
         throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
     // find the pool
-    auto margo_manager = MargoManager(self->m_margo_context);
+    auto margo_manager = MargoManager(self->m_margo_manager);
     auto pool = margo_manager.getPool(pool_name);
     if(!pool) {
         throw DETAILED_EXCEPTION("Could not find pool named \"{}\"", pool_name);

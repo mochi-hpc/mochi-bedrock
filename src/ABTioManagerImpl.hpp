@@ -10,6 +10,7 @@
 #include "bedrock/ABTioManager.hpp"
 #include "bedrock/NamedDependency.hpp"
 #include "MargoManagerImpl.hpp"
+#include "Jx9ManagerImpl.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -75,6 +76,7 @@ class ABTioManagerImpl {
 
   public:
     std::shared_ptr<MargoManagerImpl>        m_margo_manager;
+    std::shared_ptr<Jx9ManagerImpl>          m_jx9_manager;
     std::vector<std::shared_ptr<ABTioEntry>> m_instances;
 
     json makeConfig() const {

@@ -8,6 +8,7 @@
 
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/MonaManager.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "MargoManagerImpl.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -78,6 +79,7 @@ class MonaManagerImpl {
 
   public:
     std::shared_ptr<MargoManagerImpl>       m_margo_manager;
+    std::shared_ptr<Jx9ManagerImpl>         m_jx9_manager;
     std::vector<std::shared_ptr<MonaEntry>> m_instances;
     tl::mutex                               m_mtx;
 

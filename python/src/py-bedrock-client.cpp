@@ -18,7 +18,7 @@ struct margo_instance;
 typedef struct margo_instance* margo_instance_id;
 typedef py11::capsule pymargo_instance_id;
 
-#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id", nullptr)
+#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id")
 #define CAPSULE2MID(__caps)  (margo_instance_id)(__caps)
 
 PYBIND11_MODULE(pybedrock_client, m) {

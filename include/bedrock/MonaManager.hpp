@@ -22,6 +22,7 @@ class ServerImpl;
 class DependencyFinder;
 class MargoManager;
 class MonaManagerImpl;
+class Jx9Manager;
 
 /**
  * @brief The MonaManager class encapsulates multiple MoNA instances.
@@ -40,10 +41,12 @@ class MonaManager {
      * [ ... { "name" : "some_name", "pool" : "some_pool", "address" : "some_address" }, ... ]
      *
      * @param margoMgr MargoManager
+     * @param jx9 JX9 manager
      * @param configString JSON configuration string.
      * @param defaultProtocol default protocol to use if not specified in the JSON.
      */
     MonaManager(const MargoManager& margo,
+                const Jx9Manager& jx9,
                 const std::string& configString,
                 const std::string& defaultProtocol);
 

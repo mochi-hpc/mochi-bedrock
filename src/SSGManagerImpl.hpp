@@ -8,6 +8,7 @@
 
 #include "bedrock/MargoManager.hpp"
 #include "bedrock/SSGManager.hpp"
+#include "bedrock/Jx9Manager.hpp"
 #include "bedrock/NamedDependency.hpp"
 #include "Exception.hpp"
 #include "MargoManagerImpl.hpp"
@@ -47,13 +48,17 @@ class SSGEntry : public NamedDependency {
     std::string                      bootstrap;
     std::string                      group_file;
     std::shared_ptr<NamedDependency> pool;
+    std::weak_ptr<SSGManagerImpl>    owner;
 
-    SSGEntry(std::string name, std::shared_ptr<NamedDependency> p)
+    uint64_t                         rank; // current rank of the process in this group
+
+    SSGEntry(std::shared_ptr<SSGManagerImpl> o, std::string name, std::shared_ptr<NamedDependency> p)
     : NamedDependency(
         std::move(name),
         "ssg", SSG_GROUP_ID_INVALID,
         std::function<void(void*)>())
     , pool{std::move(p)}
+    , owner(o)
     {}
 
     SSGEntry(const SSGEntry&) = delete;
@@ -91,8 +96,9 @@ class SSGEntry : public NamedDependency {
 class SSGManagerImpl {
 
   public:
-    std::shared_ptr<MargoManagerImpl>      m_margo_manager;
-    std::vector<std::shared_ptr<SSGEntry>> m_ssg_groups;
+    std::shared_ptr<MargoManagerImpl>         m_margo_manager;
+    std::shared_ptr<Jx9ManagerImpl>           m_jx9_manager;
+    std::vector<std::shared_ptr<SSGEntry>>    m_ssg_groups;
 
     json makeConfig() const {
         auto config = json::array();
@@ -139,6 +145,16 @@ class SSGManagerImpl {
             spdlog::trace("Finalizing SSG");
             ssg_finalize();
         }
+    }
+
+    void updateJx9Ranks() {
+        json rankMap = json::object();
+        for(auto& g : m_ssg_groups) {
+            auto& x = rankMap[g->getName()] = json::object();
+            x["rank"] = g->rank;
+        }
+        Jx9Manager(m_jx9_manager).setVariable(
+            "__ssg__", rankMap.dump());
     }
 #endif
 

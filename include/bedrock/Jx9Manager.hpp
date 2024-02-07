@@ -16,6 +16,12 @@ namespace bedrock {
 class Server;
 class ServerImpl;
 class Jx9ManagerImpl;
+class ABTioManager;
+class SSGManager;
+class SSGManagerImpl;
+class MonaManager;
+class ClientManager;
+class ProviderManager;
 
 /**
  * @brief The Jx9Manager class encapsulates a Jx9 engine.
@@ -24,6 +30,12 @@ class Jx9Manager {
 
     friend class Server;
     friend class ServerImpl;
+    friend class ABTioManager;
+    friend class SSGManager;
+    friend class SSGManagerImpl;
+    friend class MonaManager;
+    friend class ClientManager;
+    friend class ProviderManager;
 
   public:
     /**
@@ -62,6 +74,21 @@ class Jx9Manager {
     operator bool() const;
 
     /**
+     * @brief Install a global variable that will be made available
+     * whenever a query is made.
+     *
+     * @param name Name of the variable.
+     * @param value Value (JSON formatted string).
+     */
+    void setVariable(const std::string& name,
+                     const std::string& value);
+
+    /**
+     * @brief Unset a global variable.
+     */
+    void unsetVariable(const std::string& name);
+
+    /**
      * @brief This function executes the provided script
      * and returns the content of value returned by the script.
      *
@@ -75,6 +102,13 @@ class Jx9Manager {
      */
     std::string executeQuery(
         const std::string&                                  script,
+        const std::unordered_map<std::string, std::string>& variables) const;
+
+    /**
+     * @brief Evaluate a condition written in Jx9.
+     */
+    bool evaluateCondition(
+        const std::string&                                  condition,
         const std::unordered_map<std::string, std::string>& variables) const;
 
   private:

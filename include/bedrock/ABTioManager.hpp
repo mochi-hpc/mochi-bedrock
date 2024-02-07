@@ -22,6 +22,7 @@ class ServerImpl;
 class MargoManager;
 class DependencyFinder;
 class ABTioManagerImpl;
+class Jx9Manager;
 
 /**
  * @brief The ABTioManager class is encapsulates multiple ABT-IO instances.
@@ -43,6 +44,7 @@ class ABTioManager {
      * @param configString JSON configuration string.
      */
     ABTioManager(const MargoManager& margo_ctx,
+                 const Jx9Manager& jx9,
                  const std::string&  configString);
 
     /**

@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 namespace bedrock {
 
@@ -20,8 +21,9 @@ namespace tl = thallium;
 class Jx9ManagerImpl {
 
   public:
-    jx9*      m_engine = nullptr;
-    tl::mutex m_mtx;
+    jx9*                                         m_engine = nullptr;
+    tl::mutex                                    m_mtx;
+    std::unordered_map<std::string, std::string> m_global_variables;
 
     Jx9ManagerImpl() {
         spdlog::trace("Initializing Jx9 engine");

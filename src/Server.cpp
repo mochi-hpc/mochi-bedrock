@@ -32,9 +32,11 @@ Server::Server(const std::string& address, const std::string& configString,
 
     std::string jsonConfigString;
 
+    auto jx9Manager = Jx9Manager{};
+
     if(configType == ConfigType::JX9) {
         spdlog::trace("Interpreting JX9 template configuration");
-        jsonConfigString = Jx9Manager().executeQuery(configString, jx9Params);
+        jsonConfigString = jx9Manager.executeQuery(configString, jx9Params);
         spdlog::trace("JX9 template configuration interpreted");
     } else {
         jsonConfigString = configString;
@@ -91,55 +93,50 @@ Server::Server(const std::string& address, const std::string& configString,
     // Create self
     self = std::unique_ptr<ServerImpl>(
             new ServerImpl(margoMgr, bedrock_provider_id, bedrock_pool));
+    self->m_jx9_manager = jx9Manager;
 
     try {
 
-        // Initializing the jx9 manager
-        spdlog::trace("Initializing Jx9Manager");
-        auto jx9Manager     = Jx9Manager();
-        self->m_jx9_manager = jx9Manager;
-        spdlog::trace("Jx9Manager initialized");
-
-        // Initializing the provider manager
-        spdlog::trace("Initializing ProviderManager");
-        auto providerManager
-            = ProviderManager(margoMgr, bedrock_provider_id, bedrock_pool);
-        self->m_provider_manager = providerManager;
-        spdlog::trace("ProviderManager initialized");
-
-        // Initializing the client manager
-        spdlog::trace("Initializing ClientManager");
-        auto clientManager
-            = ClientManager(margoMgr, bedrock_provider_id, bedrock_pool);
-        self->m_client_manager = clientManager;
-        spdlog::trace("ClientManager initialized");
+        // Initializing SSG context
+        spdlog::trace("Initializing SSGManager");
+        auto ssgConfig      = config["ssg"].dump();
+        auto ssgMgr         = SSGManager(margoMgr, jx9Manager, ssgConfig);
+        self->m_ssg_manager = ssgMgr;
+        spdlog::trace("SSGManager initialized");
 
         // Initialize abt-io context
         spdlog::trace("Initializing ABTioManager");
         auto abtioConfig      = config["abt_io"].dump();
-        auto abtioMgr         = ABTioManager(margoMgr, abtioConfig);
+        auto abtioMgr         = ABTioManager(margoMgr, jx9Manager, abtioConfig);
         self->m_abtio_manager = abtioMgr;
         spdlog::trace("ABTioManager initialized");
 
         // Initialize mona manager
         spdlog::trace("Initializing MonaManager");
         auto monaConfig      = config["mona"].dump();
-        auto monaMgr         = MonaManager(margoMgr, monaConfig, address);
+        auto monaMgr         = MonaManager(margoMgr, jx9Manager, monaConfig, address);
         self->m_mona_manager = monaMgr;
         spdlog::trace("MonaManager initialized");
+
+        // Initializing the provider manager
+        spdlog::trace("Initializing ProviderManager");
+        auto providerManager
+            = ProviderManager(margoMgr, jx9Manager, bedrock_provider_id, bedrock_pool);
+        self->m_provider_manager = providerManager;
+        spdlog::trace("ProviderManager initialized");
+
+        // Initializing the client manager
+        spdlog::trace("Initializing ClientManager");
+        auto clientManager
+            = ClientManager(margoMgr, jx9Manager, bedrock_provider_id, bedrock_pool);
+        self->m_client_manager = clientManager;
+        spdlog::trace("ClientManager initialized");
 
         // Initialize the module context
         spdlog::trace("Initialize ModuleContext");
         auto librariesConfig = config["libraries"].dump();
         ModuleContext::loadModulesFromJSON(librariesConfig);
         spdlog::trace("ModuleContext initialized");
-
-        // Initializing SSG context
-        spdlog::trace("Initializing SSGManager");
-        auto ssgConfig      = config["ssg"].dump();
-        auto ssgMgr         = SSGManager(margoMgr, ssgConfig);
-        self->m_ssg_manager = ssgMgr;
-        spdlog::trace("SSGManager initialized");
 
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");

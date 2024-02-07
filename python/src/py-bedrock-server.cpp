@@ -21,10 +21,10 @@ typedef struct hg_addr* hg_addr_t;
 typedef py11::capsule pymargo_instance_id;
 typedef py11::capsule pyhg_addr_t;
 
-#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id", nullptr)
+#define MID2CAPSULE(__mid)   py11::capsule((void*)(__mid), "margo_instance_id")
 #define CAPSULE2MID(__caps)  (margo_instance_id)(__caps)
 
-#define ADDR2CAPSULE(__addr)   py11::capsule((void*)(__addr), "hg_addr_t", nullptr)
+#define ADDR2CAPSULE(__addr)   py11::capsule((void*)(__addr), "hg_addr_t")
 #define CAPSULE2ADDR(__caps)  (hg_add_t)(__caps)
 
 PYBIND11_MODULE(pybedrock_server, m) {

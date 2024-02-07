@@ -21,6 +21,7 @@ class ServerImpl;
 class DependencyFinder;
 class SSGManagerImpl;
 class SSGUpdateHandler;
+class Jx9Manager;
 
 /**
  * @brief The SSGManager class encapsulates an ssg_group_id_t.
@@ -37,9 +38,12 @@ class SSGManager {
      * @brief Constructor from a JSON configurations string.
      *
      * @param margo MargoManager
+     * @param jx9 Jx9Manager
      * @param configString Configuration string.
      */
-    SSGManager(const MargoManager& margo, const std::string& configString = "");
+    SSGManager(const MargoManager& margo,
+               const Jx9Manager& jx9,
+               const std::string& configString = "");
 
     /**
      * @brief Copy-constructor.

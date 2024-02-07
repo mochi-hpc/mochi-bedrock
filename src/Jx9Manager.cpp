@@ -31,6 +31,17 @@ Jx9Manager::operator bool() const { return static_cast<bool>(self); }
 
 // LCOV_EXCL_STOP
 
+void Jx9Manager::setVariable(const std::string& name,
+                             const std::string& value) {
+    std::lock_guard<tl::mutex> lock(self->m_mtx);
+    self->m_global_variables[name] = value;
+}
+
+void Jx9Manager::unsetVariable(const std::string& name) {
+    std::lock_guard<tl::mutex> lock(self->m_mtx);
+    self->m_global_variables.erase(name);
+}
+
 static jx9_value* jx9ValueFromJson(const json& object, jx9_vm* vm);
 
 std::string Jx9Manager::executeQuery(
@@ -54,10 +65,7 @@ std::string Jx9Manager::executeQuery(
         throw DETAILED_EXCEPTION("Jx9 script failed to compile: {}", err);
     }
 
-    // installing VM variables
-    for (auto& p : variables) {
-        auto&      varname = p.first;
-        auto&      value   = p.second;
+    auto set_variable = [&](const std::string& varname, const std::string& value) {
         jx9_value* jx9v    = nullptr;
         try {
             jx9v = jx9ValueFromJson(json::parse(value), vm);
@@ -75,6 +83,18 @@ std::string Jx9Manager::executeQuery(
                             varname);
         }
         jx9_release_value(vm, jx9v);
+    };
+
+    // installing VM variables from Jx9Manager
+    for (auto& p : self->m_global_variables) {
+        if(variables.find(p.first) != variables.end())
+            continue;
+        set_variable(p.first, p.second);
+    }
+
+    // installing VM variables
+    for (auto& p : variables) {
+        set_variable(p.first, p.second);
     }
 
     // redirect VM output to stdout
@@ -115,6 +135,16 @@ std::string Jx9Manager::executeQuery(
     spdlog::trace("Jx9 program returned the following value: {}", result);
 
     return result;
+}
+
+bool Jx9Manager::evaluateCondition(
+        const std::string& condition,
+        const std::unordered_map<std::string, std::string>& variables) const {
+    std::string query = "return (";
+    query += condition;
+    query +=  ") == true;";
+    auto result = executeQuery(query, variables);
+    return result == "true";
 }
 
 static jx9_value* jx9ValueFromJson(const json& object, jx9_vm* vm) {

@@ -24,11 +24,14 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-ClientManager::ClientManager(const MargoManager& margo, uint16_t provider_id,
+ClientManager::ClientManager(const MargoManager& margo,
+                             const Jx9Manager& jx9,
+                             uint16_t provider_id,
                              const std::shared_ptr<NamedDependency>& pool)
 : self(std::make_shared<ClientManagerImpl>(margo.getThalliumEngine(),
                                            provider_id, tl::pool(pool->getHandle<ABT_pool>()))) {
-    self->m_margo_context = margo;
+    self->m_margo_manager = margo;
+    self->m_jx9_manager   = jx9;
 }
 
 // LCOV_EXCL_START
@@ -137,7 +140,7 @@ ClientManager::createClient(const ClientDescriptor&         descriptor,
                 descriptor.name);
         }
 
-        auto margoCtx = MargoManager(self->m_margo_context);
+        auto margoCtx = MargoManager(self->m_margo_manager);
 
         FactoryArgs args;
         args.name         = descriptor.name;
@@ -184,6 +187,15 @@ ClientManager::addClientFromJSON(const std::string& jsonString) {
     auto config = jsonString.empty() ? json::object() : json::parse(jsonString);
     if (!config.is_object()) {
         throw DETAILED_EXCEPTION("Client configuration should be an object");
+    }
+
+    if(config.contains("__if__")) {
+        if(!config["__if__"].is_string()) {
+            throw DETAILED_EXCEPTION("__if__ statement in configuration should be a string");
+        }
+        bool b = Jx9Manager(self->m_jx9_manager).evaluateCondition(
+                config["__if__"].get_ref<const std::string&>(), {});
+        if(!b) return nullptr;
     }
 
     ClientDescriptor descriptor;

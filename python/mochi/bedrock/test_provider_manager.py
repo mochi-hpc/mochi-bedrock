@@ -17,6 +17,12 @@ class TestProviderManager(unittest.TestCase):
                     "name": "my_provider_A",
                     "type": "module_a",
                     "provider_id": 1
+                },
+                {
+                    "name": "my_providerB",
+                    "type": "module_b",
+                    "provider_id": 2,
+                    "__if__": "false"
                 }
             ]
         }
