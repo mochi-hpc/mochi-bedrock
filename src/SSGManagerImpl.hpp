@@ -68,6 +68,10 @@ class SSGEntry : public NamedDependency {
         m_handle = reinterpret_cast<void*>(gid);
     }
 
+    ssg_group_id_t getSSGid() const {
+        return reinterpret_cast<ssg_group_id_t>(m_handle);
+    }
+
     json makeConfig() const {
         json c          = json::object();
         c["name"]       = getName();

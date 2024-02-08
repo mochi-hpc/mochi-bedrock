@@ -393,23 +393,20 @@ SSGManager::createGroup(const std::string&                      name,
         throw DETAILED_EXCEPTION("Invalid SSG bootstrapping method {}",
                         bootstrap_method);
     }
-    if (!group_file.empty()
+    int rank = -1;
+    ret      = ssg_get_group_self_rank(gid, &rank);
+    if (rank == -1 || ret != SSG_SUCCESS) {
+        throw DETAILED_EXCEPTION("Could not get SSG group rank from group {}", name);
+    }
+    if (!group_file.empty() && (rank == 0)
         && (method == "init" || method == "mpi"
             || method == "pmix")) {
-        int rank = -1;
-        ret      = ssg_get_group_self_rank(gid, &rank);
-        if (rank == -1 || ret != SSG_SUCCESS) {
-            throw DETAILED_EXCEPTION("Could not get SSG group rank from group {}", name);
-        }
-        if (rank == 0) {
-            int ret
-                = ssg_group_id_store(group_file.c_str(), gid, SSG_ALL_MEMBERS);
-            if (ret != SSG_SUCCESS) {
-                throw DETAILED_EXCEPTION(
+        ret = ssg_group_id_store(group_file.c_str(), gid, SSG_ALL_MEMBERS);
+        if (ret != SSG_SUCCESS) {
+            throw DETAILED_EXCEPTION(
                     "Could not write SSG group file {}"
                     " (ssg_group_id_store return {}",
                     group_file, ret);
-            }
         }
     }
     ssg_entry->setSSGid(gid);
@@ -417,6 +414,7 @@ SSGManager::createGroup(const std::string&                      name,
     ssg_entry->bootstrap     = bootstrap_method;
     ssg_entry->group_file    = group_file;
     ssg_entry->pool          = pool;
+    ssg_entry->rank          = rank;
     self->m_ssg_groups.push_back(std::move(ssg_entry));
 
     self->updateJx9Ranks();
