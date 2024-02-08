@@ -1271,7 +1271,7 @@ class SSGSpec:
         validator=instance_of(int),
         default=-1)
     bootstrap: str = attr.ib(
-        validator=in_(['init', 'join', 'mpi', 'pmix']))
+        validator=in_(['init', 'join', 'mpi', 'pmix', 'init|join', 'mpi|join', 'pmix|join']))
     group_file: str = attr.ib(
         validator=instance_of(str),
         default='')
