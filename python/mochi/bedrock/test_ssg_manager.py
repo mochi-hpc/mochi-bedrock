@@ -15,6 +15,23 @@ class TestSSGManager(unittest.TestCase):
                     "bootstrap": "init",
                     "config": {}
                 }
+            ],
+            "libraries": {
+                "module_a": "libModuleA.so"
+            },
+            "providers": [
+                {
+                    "name": "my_provider_A1",
+                    "type": "module_a",
+                    "provider_id": 1,
+                    "__if__": "$__ssg__.my_group.rank == 0"
+                },
+                {
+                    "name": "my_provider_A2",
+                    "type": "module_a",
+                    "provider_id": 2,
+                    "__if__": "$__ssg__.my_group.rank == 1"
+                }
             ]
         }
         self.server = mbs.Server(address="na+sm", config=config)
@@ -39,6 +56,8 @@ class TestSSGManager(unittest.TestCase):
             ssg[1]
         with self.assertRaises(mbs.BedrockException):
             ssg["bla"]
+        self.assertIn("my_provider_A1", self.server.providers)
+        self.assertNotIn("my_provider_A2", self.server.providers)
 
 
     def test_ssg_manager_config(self):

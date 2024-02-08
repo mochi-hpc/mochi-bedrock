@@ -418,6 +418,9 @@ SSGManager::createGroup(const std::string&                      name,
     ssg_entry->group_file    = group_file;
     ssg_entry->pool          = pool;
     self->m_ssg_groups.push_back(std::move(ssg_entry));
+
+    self->updateJx9Ranks();
+
     return ssg_entry;
 #endif // ENABLE_SSSG
 }
