@@ -53,6 +53,8 @@ find_package (PkgConfig REQUIRED)
 find_package (thallium REQUIRED)
 # search for nlohmann/json
 find_package (nlohmann_json REQUIRED)
+# search for valijson
+find_package (valijson REQUIRED)
 # search for TCLAP
 find_package (TCLAP REQUIRED)
 # search for spdlog

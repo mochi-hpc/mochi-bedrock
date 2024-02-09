@@ -106,7 +106,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initialize abt-io context
         spdlog::trace("Initializing ABTioManager");
-        auto abtioConfig      = config["abt_io"].dump();
+        auto& abtioConfig     = config["abt_io"];
         auto abtioMgr         = ABTioManager(margoMgr, jx9Manager, abtioConfig);
         self->m_abtio_manager = abtioMgr;
         spdlog::trace("ABTioManager initialized");

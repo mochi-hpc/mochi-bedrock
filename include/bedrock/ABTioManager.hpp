@@ -7,6 +7,7 @@
 #define __BEDROCK_ABTIO_MANAGER_HPP
 
 #include <thallium.hpp>
+#include <nlohmann/json.hpp>
 #include <memory>
 #include <bedrock/NamedDependency.hpp>
 
@@ -33,6 +34,8 @@ class ABTioManager {
     friend class ServerImpl;
     friend class DependencyFinder;
 
+    using json = nlohmann::json;
+
   public:
     /**
      * @brief Constructor from a configuration string. The configuration
@@ -45,7 +48,7 @@ class ABTioManager {
      */
     ABTioManager(const MargoManager& margo_ctx,
                  const Jx9Manager& jx9,
-                 const std::string&  configString);
+                 const json& config);
 
     /**
      * @brief Copy-constructor.
@@ -104,16 +107,30 @@ class ABTioManager {
      * @param name Name of the instance.
      * @param pool Name of the pool to use.
      * @param config JSON-formatted configuration.
+     *
+     * @return the NamedDependency handle for the newly-created instance.
      */
     std::shared_ptr<NamedDependency>
         addABTioInstance(const std::string& name,
                          const std::string& pool,
                          const std::string& config);
 
+
+    /**
+     * @brief Adds an ABT-IO istance as described by the
+     * provided JSON object.
+     *
+     * @param description ABT-IO instance description.
+     *
+     * @return the NamedDependency handle for the newly-created instance.
+     */
+    std::shared_ptr<NamedDependency>
+        addABTioInstanceFromJSON(const json& description);
+
     /**
      * @brief Return the current JSON configuration.
      */
-    std::string getCurrentConfig() const;
+    json getCurrentConfig() const;
 
   private:
     std::shared_ptr<ABTioManagerImpl> self;

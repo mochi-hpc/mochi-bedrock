@@ -1,294 +1,241 @@
 [
     {
         "test": "invalid ABT-IO section",
-        "input": {"abt_io":123},
-        "error": "\"abt_io\" field in configuration should be an array"
+        "input": {"abt_io":123}
     },
 
     {
         "test": "invalid type of ABT-IO instance configuration",
-        "input": {"abt_io":[123]},
-        "error": "ABT-IO descriptors in JSON should be objects"
+        "input": {"abt_io":[123]}
     },
 
     {
         "test": "invalid ABT-IO instance name",
-        "input": {"abt_io":[{"name":123}]},
-        "error": "ABT-IO instance name should be a string"
-    },
-
-    {
-        "test": "ABT-IO instance without a pool",
-        "input": {"abt_io":[{"name":"my_abt_io"}]},
-        "error": "\"pool\" field required in ABT-IO instance configuration"
+        "input": {"abt_io":[{"name":123}]}
     },
 
     {
         "test": "invalid ABT-IO instance pool name",
-        "input": {"abt_io":[{"pool":"abc"}]},
-        "error": "Could not find pool \"abc\" from Margo instance"
+        "input": {"abt_io":[{"pool":"abc"}]}
     },
 
     {
         "test": "invalid ABT-IO instance pool index",
-        "input": {"abt_io":[{"pool":42}]},
-        "error": "Could not find pool at index 42 from Margo instance"
+        "input": {"abt_io":[{"pool":42}]}
     },
 
     {
         "test": "invalid ABT-IO instance pool field type",
-        "input": {"abt_io":[{"pool":true}]},
-        "error": "\"pool\" field in ABT-IO instance configuration should be a string or an integer"
+        "input": {"abt_io":[{"pool":true}]}
     },
 
     {
         "test": "invalid ABT-IO instance config field type",
-        "input": {"abt_io":[{"pool":"__primary__","config":true}]},
-        "error": "\"config\" field in ABT-IO instance configuration should be an object"
+        "input": {"abt_io":[{"pool":"__primary__","config":true}]}
     },
 
     {
         "test": "two ABT-IO instances with the same name",
-        "input": {"abt_io":[{"name":"my_abt_io","pool":"__primary__"},{"name":"my_abt_io","pool":"__primary__"}]},
-        "error": "ABT-IO instance name \"my_abt_io\" already used"
+        "input": {"abt_io":[{"name":"my_abt_io","pool":"__primary__"},{"name":"my_abt_io","pool":"__primary__"}]}
     },
 
 
     {
         "test": "invalid mona section type",
-        "input": {"mona":123},
-        "error": "\"mona\" field should be an array"
+        "input": {"mona":123}
     },
 
     {
         "test": "invalid mona instance type",
-        "input": {"mona":[123]},
-        "error": "MoNA instance should be of an object"
+        "input": {"mona":[123]}
     },
 
     {
         "test": "invalid type for mona instance name",
-        "input": {"mona":[{"name":123}]},
-        "error": "MoNA instance name should be a string"
+        "input": {"mona":[{"name":123}]}
     },
 
     {
         "test": "missing pool field in mona instance",
-        "input": {"mona":[{"name":"my_mona"}]},
-        "error": "\"pool\" field required in MoNA instance configuration"
+        "input": {"mona":[{"name":"my_mona"}]}
     },
 
     {
         "test": "invalid MoNA instance pool field type",
-        "input": {"mona":[{"pool":true}]},
-        "error": "\"pool\" field in MoNA instance configuration should be a string or an integer"
+        "input": {"mona":[{"pool":true}]}
     },
 
     {
         "test": "two MoNA instances with the same name",
-        "input": {"mona":[{"name":"my_mona","pool":"__primary__"},{"name":"my_mona","pool":"__primary__"}]},
-        "error": "MoNA instance name \"my_mona\" already used"
+        "input": {"mona":[{"name":"my_mona","pool":"__primary__"},{"name":"my_mona","pool":"__primary__"}]}
     },
 
     {
         "test": "invalid MoNA instance pool name",
-        "input": {"mona":[{"pool":"abc"}]},
-        "error": "Could not find pool \"abc\" from Margo instance"
+        "input": {"mona":[{"pool":"abc"}]}
     },
 
     {
         "test": "invalid MoNA instance pool index",
-        "input": {"mona":[{"pool":42}]},
-        "error": "Could not find pool at index 42 from Margo instance"
+        "input": {"mona":[{"pool":42}]}
     },
 
     {
         "test": "invalid MoNA instance address type",
-        "input": {"mona":[{"pool":"__primary__","address":123}]},
-        "error": "\"address\" field in MoNA description should be a string"
+        "input": {"mona":[{"pool":"__primary__","address":123}]}
     },
 
     {
         "test": "invalid MoNA address",
-        "input": {"mona":[{"name":"my_mona","pool":"__primary__","address":"abc"}]},
-        "error": "Could not initialize mona instance \"my_mona\""
+        "input": {"mona":[{"name":"my_mona","pool":"__primary__","address":"abc"}]}
     },
 
 
     {
         "test": "invalid type for libraries field",
-        "input": {"libraries":123},
-        "error": "\"libraries\" field should be an object"
+        "input": {"libraries":123}
     },
 
     {
         "test": "invalid type for library",
-        "input": {"libraries":{"module_a":123}},
-        "error": "Module library for module_a should be a string or null"
+        "input": {"libraries":{"module_a":123}}
     },
 
     {
         "test": "library not found",
-        "input": {"libraries":{"module_a":"abc.so"}},
-        "error": "Could not dlopen library abc.so: abc.so: cannot open shared object file: No such file or directory"
+        "input": {"libraries":{"module_a":"abc.so"}}
     },
 
 
     {
         "test": "invalid type of provider field",
-        "input": {"providers":true},
-        "error": "Invalid JSON configuration passed to ProviderManager::addProviderListFromJSON (should be an array)"
+        "input": {"providers":true}
     },
 
     {
         "test": "invalid type of provider definition",
-        "input": {"providers":[true]},
-        "error": "Invalid JSON configuration passed to ProviderManager::addProviderFromJSON (should be an object)"
+        "input": {"providers":[true]}
     },
 
     {
         "test": "no provider type in provider definition",
-        "input": {"providers":[{"name":"my_provider","provider_id":123}]},
-        "error": "\"type\" field missing in provider definition"
+        "input": {"providers":[{"name":"my_provider","provider_id":123}]}
     },
 
     {
         "test": "invalid provider type in provider definition",
-        "input": {"providers":[{"name":"my_provider","provider_id":123,"type":"module_invalid"}]},
-        "error": "Could not find service factory for provider type \"module_invalid\""
+        "input": {"providers":[{"name":"my_provider","provider_id":123,"type":"module_invalid"}]}
     },
 
     {
         "test": "invalid type for provider name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":true,"provider_id":123,"type":"module_a"}]},
-        "error": "\"name\" field in provider definition should be a string"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":true,"provider_id":123,"type":"module_a"}]}
     },
 
     {
         "test": "invalid type for provider type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":true}]},
-        "error": "\"type\" field in provider definition should be a string"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":true}]}
     },
 
     {
         "test": "invalid type for provider_id in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":true,"type":"module_a"}]},
-        "error": "\"provider_id\" field in provider definition should be an integer"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":true,"type":"module_a"}]}
     },
 
     {
         "test": "invalid provider_id value in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":-1,"type":"module_a"}]},
-        "error": "\"provider_id\" field in provider definition should be a positive integer"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":-1,"type":"module_a"}]}
     },
 
     {
         "test": "invalid config type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","config":true}]},
-        "error": "\"config\" field in provider definition should be an object"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","config":true}]}
     },
 
     {
         "test": "invalid pool type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":true}]},
-        "error": "\"pool\" field in provider definition should be a string or an unsigned integer"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":true}]}
     },
 
     {
         "test": "invalid pool name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":"abc"}]},
-        "error": "Could not find pool \"abc\" from Margo instance"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":"abc"}]}
     },
 
     {
         "test": "invalid pool index in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":1234}]},
-        "error": "Could not find pool at index 1234 from Margo instance"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":1234}]}
     },
 
     {
         "test": "provider definition without a name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"provider_id":123,"type":"module_a"}]},
-        "error": "\"name\" field not found in provider definition"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"provider_id":123,"type":"module_a"}]}
     },
 
     {
         "test": "empty provider name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"","provider_id":123,"type":"module_a"}]},
-        "error": "Provider name cannot be empty"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"","provider_id":123,"type":"module_a"}]}
     },
 
     {
         "test": "two providers with the same name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":1,"type":"module_a"},{"name":"my_provider","provider_id":2,"type":"module_a"}]},
-        "error": "Could not register provider: a provider with the name \"my_provider\" is already registered"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":1,"type":"module_a"},{"name":"my_provider","provider_id":2,"type":"module_a"}]}
     },
 
     {
         "test": "two providers with the same provider id",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider1","provider_id":42,"type":"module_a"},{"name":"my_provider2","provider_id":42,"type":"module_a"}]},
-        "error": "Could not register provider: a provider with the type \"module_a\" and provider id 42 is already registered"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider1","provider_id":42,"type":"module_a"},{"name":"my_provider2","provider_id":42,"type":"module_a"}]}
     },
 
 
     {
         "test": "invalid type of client field",
-        "input": {"clients":true},
-        "error": "Invalid JSON configuration passed to ClientManager::addClientListFromJSON (expected array)"
+        "input": {"clients":true}
     },
 
     {
         "test": "invalid type of client definition",
-        "input": {"clients":[true]},
-        "error": "Client configuration should be an object"
+        "input": {"clients":[true]}
     },
 
     {
         "test": "no client type in client definition",
-        "input": {"clients":[{"name":"my_client"}]},
-        "error": "\"type\" field missing in client definition"
+        "input": {"clients":[{"name":"my_client"}]}
     },
 
     {
         "test": "invalid client type in client definition",
-        "input": {"clients":[{"name":"my_client","type":"module_invalid"}]},
-        "error": "Could not find service factory for client type \"module_invalid\""
+        "input": {"clients":[{"name":"my_client","type":"module_invalid"}]}
     },
 
     {
         "test": "invalid type for client name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":true,"type":"module_a"}]},
-        "error": "\"name\" field in client definition should be a string"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":true,"type":"module_a"}]}
     },
 
     {
         "test": "invalid type for client type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":true}]},
-        "error": "\"type\" field in client definition should be a string"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":true}]}
     },
 
     {
         "test": "invalid config type in client definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a","config":true}]},
-        "error": "\"config\" field in client definition should be an object"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a","config":true}]}
     },
 
     {
         "test": "client definition without a name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"type":"module_a"}]},
-        "error": "\"name\" field not found in client definition"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"type":"module_a"}]}
     },
 
     {
         "test": "empty client name in client definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"","type":"module_a"}]},
-        "error": "Client name cannot be empty"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"","type":"module_a"}]}
     },
 
     {
         "test": "two clients with the same name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a"},{"name":"my_client","type":"module_a"}]},
-        "error": "Could not register client: a client with the name \"my_client\" is already registered"
+        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a"},{"name":"my_client","type":"module_a"}]}
     }
 
 ]

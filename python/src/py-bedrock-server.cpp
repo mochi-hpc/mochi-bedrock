@@ -181,7 +181,9 @@ PYBIND11_MODULE(pybedrock_server, m) {
     ;
 
     py11::class_<ABTioManager> (m, "ABTioManager")
-        .def_property_readonly("config", &ABTioManager::getCurrentConfig)
+        .def_property_readonly("config", [](const ABTioManager& manager) {
+            return manager.getCurrentConfig().dump();
+        })
         .def_property_readonly("num_abtio_instances", &ABTioManager::numABTioInstances)
         .def("get_abtio_instance", [](const ABTioManager& abtio, const std::string& name) {
             return abtio.getABTioInstance(name);
