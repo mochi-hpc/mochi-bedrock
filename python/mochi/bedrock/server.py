@@ -200,13 +200,14 @@ class SSGManager:
 
     def create(self, name: str, pool: str|int|Pool = "__primary__",
                config: str|dict|SSGSpec = "{}",
-               bootstrap: str = "init", group_file: str = "") -> SSGGroup:
+               bootstrap: str = "init", group_file: str = "",
+               credential: int = -1) -> SSGGroup:
         if not isinstance(pool, Pool):
             pool = self._server.margo.pools[pool]
         if isinstance(config, str):
             config = json.loads(config)
         pool = pool._internal
-        return SSGGroup(self._internal.create_group(name, config, pool, bootstrap, group_file))
+        return SSGGroup(self._internal.add_group(name, config, pool, bootstrap, group_file, credential))
 
 
 class AbtIOManager:

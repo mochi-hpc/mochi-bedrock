@@ -183,8 +183,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
         RequestResult<bool> result;
         result.success() = true;
         try {
-            SSGManager(m_ssg_manager).createGroupFromConfig(config);
-        } catch (const Exception& ex) {
+            SSGManager(m_ssg_manager).addGroupFromJSON(json::parse(config));
+        } catch (const std::exception& ex) {
             result.error()   = ex.what();
             result.success() = false;
         }

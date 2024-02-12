@@ -13,7 +13,8 @@ class TestSSGManager(unittest.TestCase):
                     "name": "my_group",
                     "pool": "__primary__",
                     "bootstrap": "init",
-                    "config": {}
+                    "config": {},
+                    "swim": {}
                 }
             ],
             "libraries": {
@@ -66,7 +67,7 @@ class TestSSGManager(unittest.TestCase):
         self.assertEqual(len(config), 1)
         ssg_1 = config[0]
         self.assertIsInstance(ssg_1, dict)
-        for key in ["name", "pool", "swim", "credential", "bootstrap", "group_file"]:
+        for key in ["name", "pool", "credential", "bootstrap", "group_file", "swim"]:
             self.assertIn(key, ssg_1)
 
     def test_ssg_manager_spec(self):

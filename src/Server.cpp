@@ -99,7 +99,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initializing SSG context
         spdlog::trace("Initializing SSGManager");
-        auto ssgConfig      = config["ssg"].dump();
+        auto ssgConfig      = config["ssg"];
         auto ssgMgr         = SSGManager(margoMgr, jx9Manager, ssgConfig);
         self->m_ssg_manager = ssgMgr;
         spdlog::trace("SSGManager initialized");
