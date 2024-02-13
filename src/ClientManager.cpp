@@ -54,15 +54,22 @@ void ClientManager::setDependencyFinder(const DependencyFinder& finder) {
     self->m_dependency_finder = finder;
 }
 
-std::shared_ptr<NamedDependency> ClientManager::lookupClient(const std::string& name) const {
+std::shared_ptr<NamedDependency> ClientManager::getClient(const std::string& name) const {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
-    auto                       it = self->resolveSpec(name);
+    auto                       it = self->findByName(name);
     if (it == self->m_clients.end())
         throw DETAILED_EXCEPTION("Could not find client \"{}\"", name);
     return *it;
 }
 
-std::shared_ptr<NamedDependency> ClientManager::lookupOrCreateAnonymous(const std::string& type) {
+std::shared_ptr<NamedDependency> ClientManager::getClient(size_t index) const {
+    std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
+    if (index >= self->m_clients.size())
+        throw DETAILED_EXCEPTION("Could not find client at index {}", index);
+    return self->m_clients[index];
+}
+
+std::shared_ptr<NamedDependency> ClientManager::getOrCreateAnonymous(const std::string& type) {
     {
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         for (const auto& client : self->m_clients) {
@@ -97,7 +104,7 @@ std::shared_ptr<NamedDependency> ClientManager::lookupOrCreateAnonymous(const st
 
     createClient(descriptor, "{}", dependencies);
     // get the client
-    auto it  = self->resolveSpec(descriptor.name);
+    auto it  = self->findByName(descriptor.name);
     return *it;
 }
 
@@ -132,7 +139,7 @@ ClientManager::createClient(const ClientDescriptor&         descriptor,
 
     {
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
-        auto                       it = self->resolveSpec(descriptor.name);
+        auto                       it = self->findByName(descriptor.name);
         if (it != self->m_clients.end()) {
             throw DETAILED_EXCEPTION(
                 "Could not register client: a client with the name \"{}\""
@@ -169,7 +176,7 @@ ClientManager::createClient(const ClientDescriptor&         descriptor,
 
 void ClientManager::destroyClient(const std::string& name) {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
-    auto                       it = self->resolveSpec(name);
+    auto                       it = self->findByName(name);
     if (it == self->m_clients.end()) {
         throw DETAILED_EXCEPTION("Could not find client with name \"{}\"", name);
     }

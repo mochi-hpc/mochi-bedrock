@@ -99,7 +99,7 @@ class ClientManagerImpl
       m_list_clients(define("bedrock_list_clients",
                             &ClientManagerImpl::listClientsRPC, pool)) {}
 
-    auto resolveSpec(const std::string& spec) {
+    auto findByName(const std::string& spec) {
         auto it = std::find_if(
             m_clients.begin(), m_clients.end(),
             [&spec](const std::shared_ptr<ClientEntry>& item) { return item->getName() == spec; });
@@ -119,12 +119,12 @@ class ClientManagerImpl
         double        t1      = tl::timer::wtime();
         RequestResult<ClientDescriptor> result;
         std::unique_lock<tl::mutex> lock(m_clients_mtx);
-        auto it = resolveSpec(name);
+        auto it = findByName(name);
         if (it == m_clients.end() && timeout > 0) {
             m_clients_cv.wait(lock, [this, &name, &it, t1, timeout]() {
                 // FIXME will not actually wake up after timeout
                 double t2 = tl::timer::wtime();
-                it = resolveSpec(name);
+                it = findByName(name);
                 return (t2 - t1 > timeout) || (it != m_clients.end());
             });
         }

@@ -85,18 +85,24 @@ class ClientManager {
     void setDependencyFinder(const DependencyFinder& finder);
 
     /**
-     * @brief Look up whether a client with a given name exists.
-     * This function returns true if a client was found, false
-     * otherwise. If a client is found and wrapper is not nullptr,
-     * wrapper is set to the corresponding ClientWrapper.
+     * @brief Get an internal client instance by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @param [in] name Name of the client
-     * @param [out] wrapper Resulting client wrapper
-     *
-     * @return true if client was found, false otherwise.
+     * @return a NamedDependency representing the client instance.
      */
     std::shared_ptr<NamedDependency>
-        lookupClient(const std::string& name) const;
+        getClient(const std::string& name) const;
+
+    /**
+     * @brief Get an internal client instance by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
+     *
+     * @return a NamedDependency representing the client instance.
+     */
+    std::shared_ptr<NamedDependency>
+        getClient(size_t index) const;
 
     /**
      * @brief Find any client of a certain type. If none is found,
@@ -107,7 +113,7 @@ class ClientManager {
      * @param [out] wrapper Resulting client wrapper
      */
     std::shared_ptr<NamedDependency>
-        lookupOrCreateAnonymous(const std::string& type);
+        getOrCreateAnonymous(const std::string& type);
 
     /**
      * @brief List the clients managed by the ClientManager.

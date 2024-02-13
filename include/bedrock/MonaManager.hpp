@@ -101,7 +101,7 @@ class MonaManager {
      * @return a NamedDependency representing the Mona instance.
      */
     std::shared_ptr<NamedDependency>
-        getMonaInstance(int index) const;
+        getMonaInstance(size_t index) const;
 
     /**
      * @brief Returns the number of mona instances stored.

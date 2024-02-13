@@ -124,18 +124,22 @@ class SSGManager {
                  const std::string& group_file = "");
 
     /**
-     * @brief Get the internal ssg_group_id_t corresponding to a group.
+     * @brief Get an internal SSG group by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return the internal ssg_group_id_t.
+     * @return a NamedDependency representing the group.
      */
     std::shared_ptr<NamedDependency> getGroup(const std::string& group_name) const;
 
     /**
-     * @brief Get the internal ssg_group_id_t corresponding to a group index.
+     * @brief Get an internal SSG group by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return the internal ssg_group_id_t.
+     * @return a NamedDependency representing the group.
      */
-    std::shared_ptr<NamedDependency> getGroup(uint32_t index) const;
+    std::shared_ptr<NamedDependency> getGroup(size_t index) const;
 
     /**
      * @brief Get the number of groups.

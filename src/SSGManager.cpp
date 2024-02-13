@@ -106,7 +106,7 @@ std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_n
 #endif
 }
 
-std::shared_ptr<NamedDependency> SSGManager::getGroup(uint32_t group_index) const {
+std::shared_ptr<NamedDependency> SSGManager::getGroup(size_t group_index) const {
 #ifdef ENABLE_SSG
     if(group_index >= self->m_ssg_groups.size()) {
         throw DETAILED_EXCEPTION("Could not find SSG group at index {}", group_index);

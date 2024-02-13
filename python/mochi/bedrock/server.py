@@ -268,7 +268,7 @@ class ClientManager:
         clients = self._internal.clients
         if isinstance(key, int):
             key = clients[key].name
-        return self.lookup(key)
+        return self._internal.get_client(key)
 
     def __delitem__(self, key: int|str) -> None:
         if isinstance(key, int):
@@ -282,11 +282,8 @@ class ClientManager:
         except BedrockException:
             return False
 
-    def lookup(self, locator: str) -> Client:
-        return Client(self._internal.lookup_client(locator))
-
-    def lookup_or_create_anonymous(self, type: str) -> Client:
-        return Client(self._internal.lookup_client_or_create(type))
+    def get_or_create_anonymous(self, type: str) -> Client:
+        return Client(self._internal.get_client_or_create(type))
 
     def create(self, name: str, type: str, config: str|dict = "{}",
                dependencies: Mapping[str,str] = {},

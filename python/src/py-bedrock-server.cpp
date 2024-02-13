@@ -145,7 +145,7 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("get_group", [](const SSGManager& ssg, const std::string& name) {
                 return ssg.getGroup(name);
              }, "name_a")
-        .def("get_group", [](const SSGManager& ssg, uint32_t index) {
+        .def("get_group", [](const SSGManager& ssg, size_t index) {
                 return ssg.getGroup(index);
              }, "index_a")
         .def("add_group",
@@ -188,7 +188,7 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("get_abtio_instance", [](const ABTioManager& abtio, const std::string& name) {
             return abtio.getABTioInstance(name);
         }, "name"_a)
-        .def("get_abtio_instance", [](const ABTioManager& abtio, int index) {
+        .def("get_abtio_instance", [](const ABTioManager& abtio, size_t index) {
             return abtio.getABTioInstance(index);
         }, "index"_a)
         .def("add_abtio_instance", &ABTioManager::addABTioInstance)
@@ -238,9 +238,15 @@ PYBIND11_MODULE(pybedrock_server, m) {
 
     py11::class_<ClientManager> (m, "ClientManager")
         .def_property_readonly("config", &ClientManager::getCurrentConfig)
-        .def("lookup_client", &ClientManager::lookupClient,
+        .def("get_client", [](const ClientManager& cm, const std::string& name) {
+                return cm.getClient(name);
+             },
              "name"_a)
-        .def("lookup_client_or_create", &ClientManager::lookupOrCreateAnonymous,
+        .def("get_client", [](const ClientManager& cm, size_t index) {
+                return cm.getClient(index);
+             },
+             "index"_a)
+        .def("get_client_or_create", &ClientManager::getOrCreateAnonymous,
              "type"_a)
         .def_property_readonly("clients", &ClientManager::listClients)
         .def("destroy_client",

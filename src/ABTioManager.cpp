@@ -69,12 +69,12 @@ ABTioManager::getABTioInstance(const std::string& name) const {
 }
 
 std::shared_ptr<NamedDependency>
-ABTioManager::getABTioInstance(int index) const {
+ABTioManager::getABTioInstance(size_t index) const {
 #ifndef ENABLE_ABT_IO
     (void)index;
     throw DETAILED_EXCEPTION("Bedrock was not compiler with ABT-IO support");
 #else
-    if (index < 0 || index >= (int)self->m_instances.size())
+    if (index >= self->m_instances.size())
         throw DETAILED_EXCEPTION("Could not find ABT-IO instance at index {}", index);
     return self->m_instances[index];
 #endif

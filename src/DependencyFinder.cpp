@@ -222,7 +222,7 @@ DependencyFinder::findClient(
         throw Exception("Could not resolve client dependency: no ClientManager found");
     }
     if (!name.empty()) {
-        auto client = ClientManager(client_manager_impl).lookupClient(name);
+        auto client = ClientManager(client_manager_impl).getClient(name);
         if (!client) {
             throw Exception("Could not find client named \"{}\"", name);
         } else if (type != client->getType()) {
@@ -233,7 +233,7 @@ DependencyFinder::findClient(
         return client;
     } else {
         auto client = ClientManager(client_manager_impl)
-            .lookupOrCreateAnonymous(type);
+            .getOrCreateAnonymous(type);
         return client;
     }
 }

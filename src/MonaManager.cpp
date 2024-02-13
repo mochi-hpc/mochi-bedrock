@@ -71,13 +71,13 @@ MonaManager::getMonaInstance(const std::string& name) const {
 #endif
 }
 
-std::shared_ptr<NamedDependency> MonaManager::getMonaInstance(int index) const {
+std::shared_ptr<NamedDependency> MonaManager::getMonaInstance(size_t index) const {
 #ifndef ENABLE_MONA
     (void)index;
     throw DETAILED_EXCEPTION("Bedrock was not compiled with MoNA support");
 #else
     auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
-    if (index < 0 || index >= (int)self->m_instances.size())
+    if (index >= self->m_instances.size())
         throw DETAILED_EXCEPTION("Could not find MoNA instance at index {}", index);
     return self->m_instances[index];
 #endif

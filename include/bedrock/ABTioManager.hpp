@@ -98,7 +98,7 @@ class ABTioManager {
      * @return a NamedDependency representing the ABT-IO instance.
      */
     std::shared_ptr<NamedDependency>
-        getABTioInstance(int index) const;
+        getABTioInstance(size_t index) const;
 
     /**
      * @brief Returns the number of abt-io instances stored.
