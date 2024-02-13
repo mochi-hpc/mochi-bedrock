@@ -149,7 +149,7 @@ Server::Server(const std::string& address, const std::string& configString,
         // Creating clients
         spdlog::trace("Initializing clients");
         clientManager.setDependencyFinder(dependencyFinder);
-        auto clientManagerConfig = config["clients"].dump();
+        auto& clientManagerConfig = config["clients"];
         clientManager.addClientListFromJSON(clientManagerConfig);
 
         // Starting up providers

@@ -10,6 +10,7 @@
 
 #include "Exception.hpp"
 #include "ClientManagerImpl.hpp"
+#include "JsonUtil.hpp"
 
 #include <thallium/serialization/stl/string.hpp>
 #include <thallium/serialization/stl/vector.hpp>
@@ -52,6 +53,11 @@ ClientManager::operator bool() const { return static_cast<bool>(self); }
 
 void ClientManager::setDependencyFinder(const DependencyFinder& finder) {
     self->m_dependency_finder = finder;
+}
+
+size_t ClientManager::numClients() const {
+    std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
+    return self->m_clients.size();
 }
 
 std::shared_ptr<NamedDependency> ClientManager::getClient(const std::string& name) const {
@@ -97,14 +103,12 @@ std::shared_ptr<NamedDependency> ClientManager::getOrCreateAnonymous(const std::
     }
 
     // we can create the client
-    ClientDescriptor descriptor;
-    descriptor.name = "__"s + type + "_client__";
-    descriptor.type = type;
+    std::string name = "__"s + type + "_client__";
     ResolvedDependencyMap dependencies;
 
-    createClient(descriptor, "{}", dependencies);
+    addClient(name, type, json::object(), dependencies);
     // get the client
-    auto it  = self->findByName(descriptor.name);
+    auto it  = self->findByName(name);
     return *it;
 }
 
@@ -120,41 +124,34 @@ std::vector<ClientDescriptor> ClientManager::listClients() const {
 }
 
 std::shared_ptr<NamedDependency>
-ClientManager::createClient(const ClientDescriptor&         descriptor,
-                            const std::string&              config,
-                            const ResolvedDependencyMap&    dependencies,
-                            const std::vector<std::string>& tags) {
-    if (descriptor.name.empty()) {
-        throw DETAILED_EXCEPTION("Client name cannot be empty");
-    }
-
+ClientManager::addClient(const std::string&              name,
+                         const std::string&              type,
+                         const json&                     config,
+                         const ResolvedDependencyMap&    dependencies,
+                         const std::vector<std::string>& tags) {
     std::shared_ptr<ClientEntry> entry;
-    auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
+    auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
-        throw DETAILED_EXCEPTION("Could not find service factory for client type \"{}\"",
-                        descriptor.type);
+        throw DETAILED_EXCEPTION(
+            "Could not find service factory for client type \"{}\"", type);
     }
-    spdlog::trace("Found client \"{}\" to be of type \"{}\"", descriptor.name,
-                  descriptor.type);
 
     {
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
-        auto                       it = self->findByName(descriptor.name);
+        auto                       it = self->findByName(name);
         if (it != self->m_clients.end()) {
             throw DETAILED_EXCEPTION(
-                "Could not register client: a client with the name \"{}\""
-                " is already registered",
-                descriptor.name);
+                "Name \"{}\" is already used by another client", name);
         }
 
         auto margoCtx = MargoManager(self->m_margo_manager);
 
         FactoryArgs args;
-        args.name         = descriptor.name;
+        args.name         = name;
         args.mid          = margoCtx.getMargoInstance();
         args.engine       = margoCtx.getThalliumEngine();
         args.pool         = ABT_POOL_NULL;
-        args.config       = config;
+        args.config       = config.dump();
         args.provider_id  = std::numeric_limits<uint16_t>::max();
         args.tags         = tags;
         args.dependencies = dependencies;
@@ -162,11 +159,10 @@ ClientManager::createClient(const ClientDescriptor&         descriptor,
         auto handle = service_factory->initClient(args);
 
         entry = std::make_shared<ClientEntry>(
-            descriptor.name, descriptor.type,
+            name, type,
             handle, service_factory, dependencies, tags);
 
-        spdlog::trace("Registered client {} of type {}", descriptor.name,
-                      descriptor.type);
+        spdlog::trace("Registered client {} of type {}", name, type);
 
         self->m_clients.push_back(entry);
     }
@@ -174,7 +170,7 @@ ClientManager::createClient(const ClientDescriptor&         descriptor,
     return entry;
 }
 
-void ClientManager::destroyClient(const std::string& name) {
+void ClientManager::removeClient(const std::string& name) {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->findByName(name);
     if (it == self->m_clients.end()) {
@@ -188,84 +184,76 @@ void ClientManager::destroyClient(const std::string& name) {
     self->m_clients.erase(it);
 }
 
-std::shared_ptr<NamedDependency>
-ClientManager::addClientFromJSON(const std::string& jsonString) {
-    auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
-    auto config = jsonString.empty() ? json::object() : json::parse(jsonString);
-    if (!config.is_object()) {
-        throw DETAILED_EXCEPTION("Client configuration should be an object");
+void ClientManager::removeClient(size_t index) {
+    std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
+    if (index >= self->m_clients.size())
+        throw DETAILED_EXCEPTION("Could not find client at index {}", index);
+    if(self->m_clients[index].use_count() > 1) {
+        throw DETAILED_EXCEPTION(
+            "Cannot destroy client at index {} as it is used as dependency",
+            index);
     }
+    self->m_clients.erase(self->m_clients.begin() + index);
+}
 
-    if(config.contains("__if__")) {
-        if(!config["__if__"].is_string()) {
-            throw DETAILED_EXCEPTION("__if__ statement in configuration should be a string");
-        }
+std::shared_ptr<NamedDependency>
+ClientManager::addClientFromJSON(const json& description) {
+    auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
+    static constexpr const char* configSchema = R"(
+    {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+            "type": {"type": "string"},
+            "tags": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "dependencies": {
+                "type": "object",
+                "additionalProperties": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}}
+                    ]
+                }
+            },
+            "config": {"type": "object"},
+            "__if__": {"type": "string", "minLength":1}
+        },
+        "required": ["name", "type"]
+    }
+    )";
+    static const JsonValidator validator{configSchema};
+    validator.validate(description, "ClientManager");
+
+    if(description.contains("__if__")) {
         bool b = Jx9Manager(self->m_jx9_manager).evaluateCondition(
-                config["__if__"].get_ref<const std::string&>(), {});
+                description["__if__"].get_ref<const std::string&>(), {});
         if(!b) return nullptr;
     }
 
-    ClientDescriptor descriptor;
+    auto& name = description["name"].get_ref<const std::string&>();
+    auto& type = description["type"].get_ref<const std::string&>();
 
-    if(!config.contains("name")) {
-        throw DETAILED_EXCEPTION("\"name\" field not found in client definition");
-    }
-    if(!config["name"].is_string()) {
-        throw DETAILED_EXCEPTION(
-                "\"name\" field in client definition should be a string");
-    }
-
-    descriptor.name = config["name"];
-
-    if (!config.contains("type")) {
-        throw DETAILED_EXCEPTION("\"type\" field missing in client definition");
-    }
-    if(!config["type"].is_string()) {
-        throw DETAILED_EXCEPTION(
-                "\"type\" field in client definition should be a string");
-    }
-    descriptor.type = config["type"];
-
-    auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
+    auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
-        throw DETAILED_EXCEPTION("Could not find service factory for client type \"{}\"",
-                        descriptor.type);
-    }
-
-    auto client_config = "{}"s;
-    if (config.contains("config")) {
-        if (!config["config"].is_object()) {
-            throw DETAILED_EXCEPTION(
-                    "\"config\" field in client definition should be an object");
-        } else {
-            client_config = config["config"].dump();
-        }
-    }
-
-    auto tags_from_config = config.value("tags", json::array());
-    std::vector<std::string> tags;
-    if(!tags_from_config.is_array()) {
         throw DETAILED_EXCEPTION(
-                "\"tags\" field in client definition should be an array");
+            "Could not find service factory for client type \"{}\"", type);
     }
-    for(auto& tag : tags_from_config) {
-        if(!tag.is_string()) {
-            throw DETAILED_EXCEPTION(
-                "Tag in client definition should be a string");
-        }
+
+    auto config = description.value("config", json::object());
+    auto configStr = config.dump();
+    std::vector<std::string> tags;
+    for(auto& tag : config.value("tags", json::array())) {
         tags.push_back(tag.get<std::string>());
     }
 
-    auto deps_from_config = config.value("dependencies", json::object());
-    if(!deps_from_config.is_object()) {
-        throw DETAILED_EXCEPTION(
-                "\"dependencies\" field in client definition should be an object (found {})",
-                deps_from_config.type_name());
-    }
-
+    auto deps_from_config = description.value("dependencies", json::object());
     ResolvedDependencyMap resolved_dependency_map;
 
-    for (const auto& dependency : service_factory->getClientDependencies(client_config.c_str())) {
+    for (const auto& dependency : service_factory->getClientDependencies(configStr.c_str())) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
@@ -299,29 +287,29 @@ ClientManager::addClientFromJSON(const std::string& jsonString) {
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw DETAILED_EXCEPTION("Missing client dependency \"{}\" of type \"{}\" in configuration",
-                            dependency.name, dependency.type);
+            throw DETAILED_EXCEPTION(
+                "Missing client dependency \"{}\" of type \"{}\" in configuration",
+                dependency.name, dependency.type);
         }
     }
 
-    return createClient(descriptor, client_config, resolved_dependency_map, tags);
+    return addClient(name, type, config, resolved_dependency_map, tags);
 }
 
-void ClientManager::addClientListFromJSON(const std::string& jsonString) {
-    auto config = json::parse(jsonString);
-    if (config.is_null()) { return; }
-    if (!config.is_array()) {
+void ClientManager::addClientListFromJSON(const json& list) {
+    if (list.is_null()) { return; }
+    if (!list.is_array()) {
         throw DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ClientManager::addClientListFromJSON (expected array)");
     }
-    for (const auto& client : config) {
-        addClientFromJSON(client.dump());
+    for (const auto& description : list) {
+        addClientFromJSON(description);
     }
 }
 
-std::string ClientManager::getCurrentConfig() const {
-    return self->makeConfig().dump();
+json ClientManager::getCurrentConfig() const {
+    return self->makeConfig();
 }
 
 } // namespace bedrock

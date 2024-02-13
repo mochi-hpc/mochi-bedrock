@@ -131,9 +131,9 @@ MonaManager::addMonaInstanceFromJSON(const json& description) {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "type": "object",
         "properties": {
-            "name": {"type": "string", "regex": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+            "name": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
             "pool": {"oneOf": [
-                {"type": "string", "regex": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+                {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
                 {"type": "integer", "minimum": 0 }
             ]},
             "address": {"type": "string"}
@@ -142,7 +142,7 @@ MonaManager::addMonaInstanceFromJSON(const json& description) {
     }
     )";
     static const JsonValidator validator{configSchema};
-    validator.validate(description, "ABTioManager");
+    validator.validate(description, "MonaManager");
     auto name = description["name"].get<std::string>();
     auto address = description.value("address", self->m_default_address);
     std::shared_ptr<NamedDependency> pool;

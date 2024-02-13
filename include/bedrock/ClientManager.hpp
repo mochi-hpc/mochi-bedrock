@@ -34,6 +34,8 @@ class ClientManager {
     friend class ClientManagerImpl;
     friend class ServerImpl;
 
+    using json = nlohmann::json;
+
   public:
     /**
      * @brief Constructor.
@@ -123,25 +125,39 @@ class ClientManager {
     std::vector<ClientDescriptor> listClients() const;
 
     /**
-     * @brief Register a client from a descriptor.
+     * @brief Return the number of clients.
+     */
+    size_t numClients() const;
+
+    /**
+     * @brief Create a client.
      *
-     * @param descriptor Descriptor (name and type).
+     * @param name Name of the client.
+     * @param type Type of the client.
      * @param config JSON configuration for the client.
      * @param dependencies Dependency map.
      * @param tags Tags.
      */
     std::shared_ptr<NamedDependency>
-        createClient(const ClientDescriptor&      descriptor,
-                     const std::string&           config,
-                     const ResolvedDependencyMap& dependencies,
-                     const std::vector<std::string>& tags = {});
+        addClient(const std::string&           name,
+                  const std::string&           type,
+                  const json&                  config,
+                  const ResolvedDependencyMap& dependencies,
+                  const std::vector<std::string>& tags = {});
 
     /**
      * @brief Destroy a client.
      *
      * @param name Name of the client.
      */
-    void destroyClient(const std::string& name);
+    void removeClient(const std::string& name);
+
+    /**
+     * @brief Destroy a client.
+     *
+     * @param index Index..
+     */
+    void removeClient(size_t index);
 
     /**
      * @brief Add a client from a full JSON description. The description should
@@ -153,27 +169,28 @@ class ClientManager {
      *      "dependencies" : {
      *          "abt_io" : "my_abt_io"
      *      },
-     *      "config" : { ... }
+     *      "config" : { ... },
+     *      "tage" : [ "tag1", "tag2", ... ]
      *  }
      *
      * @param jsonString JSON string.
      */
     std::shared_ptr<NamedDependency>
-        addClientFromJSON(const std::string& jsonString);
+        addClientFromJSON(const json& description);
 
     /**
-     * @brief Add a list of providers represented by a JSON string.
-     * The JSON string must represent an array of entries in the format
-     * expected by addClientFromJSON.
+     * @brief Add a list of providers represented by a JSON array.
+     * The JSON array entries must follow the format expected by
+     * addClientFromJSON.
      *
      * @param jsonString JSON string.
      */
-    void addClientListFromJSON(const std::string& jsonString);
+    void addClientListFromJSON(const json& list);
 
     /**
      * @brief Return the current JSON configuration.
      */
-    std::string getCurrentConfig() const;
+    json getCurrentConfig() const;
 
   private:
     std::shared_ptr<ClientManagerImpl> self;

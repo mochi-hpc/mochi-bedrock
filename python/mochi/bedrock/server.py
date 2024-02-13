@@ -255,25 +255,20 @@ class ClientManager:
 
     @property
     def config(self) -> dict:
-        return json.loads(self._internal.config)
+        return self._internal.config
 
     @property
     def spec(self) -> list[ClientSpec]:
         return [ClientSpec.from_dict(client) for client in self.config]
 
     def __len__(self):
-        return len(self._internal.clients)
+        return self._internal.num_clients
 
-    def __getitem__(self, key: int|str) -> Provider:
-        clients = self._internal.clients
-        if isinstance(key, int):
-            key = clients[key].name
+    def __getitem__(self, key: int|str) -> Client:
         return self._internal.get_client(key)
 
     def __delitem__(self, key: int|str) -> None:
-        if isinstance(key, int):
-            key = self._internal.clients[key].name
-        self._internal.destroy_client(key)
+        self._internal.remove_client(key)
 
     def __contains__(self, key: str) -> bool:
         try:
@@ -286,8 +281,8 @@ class ClientManager:
         return Client(self._internal.get_client_or_create(type))
 
     def create(self, name: str, type: str, config: str|dict = "{}",
-               dependencies: Mapping[str,str] = {},
-               tags: List[str] = []) -> Client:
+               dependencies: dict[str,str|list[str]] = {},
+               tags: list[str] = []) -> Client:
         if isinstance(config, str):
             config = json.loads(config)
         info = {
@@ -297,7 +292,7 @@ class ClientManager:
             "tags": tags,
             "config": config
         }
-        return Client(self._internal.add_client_from_json(json.dumps(info)))
+        return Client(self._internal.add_client(info))
 
 
 class ProviderManager:

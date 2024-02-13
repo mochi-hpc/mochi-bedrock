@@ -42,7 +42,7 @@ class TestClientManager(unittest.TestCase):
         self.assertEqual(client_A.name, client_B.name)
         self.assertEqual(client_A.type, client_B.type)
         self.assertEqual(client_A.handle, client_B.handle)
-        with self.assertRaises(IndexError):
+        with self.assertRaises(mbs.BedrockException):
             c = clients[1]
         with self.assertRaises(mbs.BedrockException):
             c = clients["bla"]
@@ -79,7 +79,7 @@ class TestClientManager(unittest.TestCase):
         clients = self.server.clients
         del clients["my_client_B"]
         self.assertEqual(len(clients), 1)
-        with self.assertRaises(IndexError):
+        with self.assertRaises(mbs.BedrockException):
             c = clients[1]
         with self.assertRaises(mbs.BedrockException):
             c = clients["my_provider_B"]

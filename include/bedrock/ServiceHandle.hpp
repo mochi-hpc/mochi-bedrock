@@ -178,17 +178,11 @@ class ServiceHandle {
     /**
      * @brief Creates a client on the target service daemon.
      *
-     * @param name Name of the new client.
-     * @param type Type of the new client.
-     * @param config Configuration (JSON-formatted).
-     * @param dependencies Dependencies for the client.
+     * @param description JSON description of the client.
      * @param req Asynchronous request to wait on, if provided.
      */
-    void addClient(const std::string& name, const std::string& type,
-                   const std::string&   config          = "{}",
-                   const DependencyMap& dependencies    = DependencyMap(),
-                   const std::vector<std::string>& tags = {},
-                   AsyncRequest*        req             = nullptr) const;
+    void addClient(const std::string& description,
+                   AsyncRequest*      req = nullptr) const;
 
     /**
      * @brief Creates a new ABT-IO instance on the target service daemon.
@@ -197,7 +191,7 @@ class ServiceHandle {
      * @param req Asynchronous request to wait on, if provided.
      */
     void addABTioInstance(const std::string& description,
-                          AsyncRequest*      req    = nullptr) const;
+                          AsyncRequest*      req = nullptr) const;
 
     /**
      * @brief Adds an SSG group to the target service daemon.

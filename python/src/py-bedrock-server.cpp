@@ -230,12 +230,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
              "provider"_a, "src_path"_a, "restore_config"_a)
     ;
 
-    py11::class_<ClientDescriptor> (m, "ClientDescriptor")
-        .def(py11::init<const std::string&, const std::string&>())
-        .def_readonly("name", &ClientDescriptor::name)
-        .def_readonly("type", &ClientDescriptor::type)
-    ;
-
     py11::class_<ClientManager> (m, "ClientManager")
         .def_property_readonly("config", &ClientManager::getCurrentConfig)
         .def("get_client", [](const ClientManager& cm, const std::string& name) {
@@ -246,17 +240,19 @@ PYBIND11_MODULE(pybedrock_server, m) {
                 return cm.getClient(index);
              },
              "index"_a)
+        .def_property_readonly("num_clients", &ClientManager::numClients)
+        .def("remove_client", [](ClientManager& cm, const std::string& name) {
+                return cm.removeClient(name);
+             },
+             "name"_a)
+        .def("remove_client", [](ClientManager& cm, size_t index) {
+                return cm.removeClient(index);
+             },
+             "index"_a)
         .def("get_client_or_create", &ClientManager::getOrCreateAnonymous,
              "type"_a)
         .def_property_readonly("clients", &ClientManager::listClients)
-        .def("destroy_client",
-             &ClientManager::destroyClient,
-             "name"_a)
-        .def("add_client_from_json",
-             &ClientManager::addClientFromJSON,
-             "json_config"_a)
-        .def("add_client_list_from_json",
-             &ClientManager::addClientListFromJSON,
-             "json_configs"_a)
+        .def("add_client", &ClientManager::addClientFromJSON,
+             "description"_a)
     ;
 }

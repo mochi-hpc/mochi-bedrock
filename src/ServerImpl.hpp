@@ -126,39 +126,22 @@ class ServerImpl : public tl::provider<ServerImpl> {
         req.respond(result);
     }
 
-    void addClientRPC(const tl::request& req, const std::string& name,
-                      const std::string& type, const std::string& config,
-                      const DependencyMap& dependencies,
-                      const std::vector<std::string>& tags) {
+    void addClientRPC(const tl::request& req, const std::string description) {
         RequestResult<bool> result;
         json                jsonconfig;
         try {
-            if (!config.empty())
-                jsonconfig = json::parse(config);
+            if (!description.empty())
+                jsonconfig = json::parse(description);
             else
                 jsonconfig = json::object();
-        } catch (...) {
+        } catch (const std::exception& ex) {
             result.error()   = "Invalid JSON configuration for client";
             result.success() = false;
             req.respond(result);
             return;
         }
-        json fullconfig      = json::object();
-        fullconfig["name"]   = name;
-        fullconfig["type"]   = type;
-        fullconfig["config"] = jsonconfig;
-        fullconfig["tags"]   = tags;
-        fullconfig["dependencies"] = json::object();
-        auto& depconfig      = fullconfig["dependencies"];
-        for (auto& p : dependencies) {
-            auto& name = p.first;
-            auto& list = p.second;
-            auto  dep  = json::array();
-            for (auto& v : list) { dep.push_back(v); }
-            depconfig[name] = dep;
-        }
         try {
-            ClientManager(m_client_manager).addClientFromJSON(fullconfig.dump());
+            ClientManager(m_client_manager).addClientFromJSON(jsonconfig);
         } catch (const Exception& ex) {
             result.error()   = ex.what();
             result.success() = false;

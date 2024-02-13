@@ -105,14 +105,9 @@ PYBIND11_MODULE(pybedrock_client, m) {
              })
         .def("add_client",
             [](const ServiceHandle& sh,
-               const std::string& name,
-               const std::string& type,
-               const std::string& config,
-               const DependencyMap& deps,
-               const std::vector<std::string>& tags) {
-                    sh.addClient(name, type, config, deps, tags);
-            }, "name"_a, "type"_a, "config"_a=std::string("{}"),
-               "dependencies"_a=DependencyMap(), "tags"_a=std::vector<std::string>{})
+               const std::string& description) {
+                    sh.addClient(description);
+            }, "description"_a=std::string("{}"))
         .def("add_abtio_instance",
             [](const ServiceHandle& sh,
                const std::string& description) {

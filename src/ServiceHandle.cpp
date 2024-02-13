@@ -157,16 +157,12 @@ void ServiceHandle::restoreProvider(
 }
 
 
-void ServiceHandle::addClient(const std::string&   name,
-                              const std::string&   type,
-                              const std::string&   config,
-                              const DependencyMap& dependencies,
-                              const std::vector<std::string>& tags,
+void ServiceHandle::addClient(const std::string& description,
                               AsyncRequest*        req) const {
     if (not self) throw DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_add_client;
     auto& ph  = self->m_ph;
-    SEND_RPC_WITH_BOOL_RESULT(name, type, config, dependencies, tags);
+    SEND_RPC_WITH_BOOL_RESULT(description);
 }
 
 void ServiceHandle::addABTioInstance(const std::string& description,
