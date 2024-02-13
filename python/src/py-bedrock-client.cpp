@@ -115,19 +115,17 @@ PYBIND11_MODULE(pybedrock_client, m) {
                "dependencies"_a=DependencyMap(), "tags"_a=std::vector<std::string>{})
         .def("add_abtio_instance",
             [](const ServiceHandle& sh,
-               const std::string& name,
-               const std::string& pool,
-               const std::string& config) {
-                    sh.addABTioInstance(name, pool, config);
-            }, "name"_a, "pool"_a, "config"_a = std::string("{}"))
+               const std::string& description) {
+                    sh.addABTioInstance(description);
+            }, "description"_a = std::string("{}"))
         .def("add_ssg_group", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addSSGgroup(config);
             },
-            "config"_a)
+            "description"_a)
         .def("add_pool", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addPool(config);
             },
-            "config"_a)
+            "description"_a)
         .def("remove_pool", [](const ServiceHandle& sh, const std::string& pool_name) {
                 sh.removePool(pool_name);
             },
@@ -135,7 +133,7 @@ PYBIND11_MODULE(pybedrock_client, m) {
         .def("add_xstream", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addXstream(config);
             },
-            "config"_a)
+            "description"_a)
         .def("remove_xstream", [](const ServiceHandle& sh, const std::string& es_name) {
                 sh.removeXstream(es_name);
             },

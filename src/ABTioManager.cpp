@@ -91,7 +91,7 @@ size_t ABTioManager::numABTioInstances() const {
 std::shared_ptr<NamedDependency>
 ABTioManager::addABTioInstance(const std::string& name,
                                const std::string& pool_name,
-                               const std::string& config) {
+                               const json& config) {
 #ifndef ENABLE_ABT_IO
     (void)name;
     (void)pool_name;
@@ -100,15 +100,6 @@ ABTioManager::addABTioInstance(const std::string& name,
 #else
     std::shared_ptr<NamedDependency> pool;
     json     abt_io_config;
-    // parse configuration
-    try {
-        abt_io_config = json::parse(config);
-    } catch (const std::exception& ex) {
-        throw DETAILED_EXCEPTION(
-            "Could not parse ABT-IO JSON configuration "
-            "for instance \"{}\": {}",
-            name, ex.what());
-    }
     // check if the name doesn't already exist
     auto it = std::find_if(
         self->m_instances.begin(), self->m_instances.end(),
@@ -121,13 +112,14 @@ ABTioManager::addABTioInstance(const std::string& name,
     // find pool
     pool = MargoManager(self->m_margo_manager).getPool(pool_name);
     // get the config of this ABT-IO instance
-    if (!abt_io_config.is_object()) {
+    if (!config.is_object() && !config.is_null()) {
         throw DETAILED_EXCEPTION(
             "\"config\" field in ABT-IO instance configuration should be an object");
     }
     // all good, can instanciate
     abt_io_init_info abt_io_info;
-    abt_io_info.json_config   = config.c_str();
+    auto configStr            = config.is_null() ? std::string{"{}"} : config.dump();
+    abt_io_info.json_config   = configStr.c_str();
     abt_io_info.progress_pool = pool->getHandle<ABT_pool>();
     abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
     if (abt_io == ABT_IO_INSTANCE_NULL) {
@@ -159,7 +151,7 @@ ABTioManager::addABTioInstanceFromJSON(const json& description) {
     static const JsonValidator validator{configSchema};
     validator.validate(description, "ABTioManager");
     auto name = description["name"].get<std::string>();
-    auto config = description.value("config", json::object()).dump();
+    auto config = description.value("config", json::object());
     auto pool = std::string{};
     if(description.contains("pool") && description["pool"].is_number()) {
         pool = MargoManager(self->m_margo_manager)

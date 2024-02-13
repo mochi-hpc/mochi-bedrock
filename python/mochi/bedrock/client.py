@@ -68,20 +68,13 @@ class ServiceHandle:
     def remove_xstream(self, name: str):
         self._internal.remove_xstream(name)
 
-    def add_ssg_group(self, config: str|dict|SSGSpec):
-        config = self._ensure_config_str(config)
-        self._internal.add_ssg_group(config)
+    def add_ssg_group(self, description: str|dict|SSGSpec):
+        description = self._ensure_config_str(description)
+        self._internal.add_ssg_group(description)
 
-    def add_abtio_instance(self, config: str|dict|AbtIOSpec):
-        if isinstance(config, str):
-            config = json.loads(config)
-        elif isinstance(config, AbtIOSpec):
-            config = config.to_dict()
-        if "config" not in config:
-            config["config"] = {}
-        self._internal.add_abtio_instance(
-            name=config["name"], pool=config["pool"],
-            config=json.dumps(config["config"]))
+    def add_abtio_instance(self, description: str|dict|AbtIOSpec):
+        description = self._ensure_config_str(description)
+        self._internal.add_abtio_instance(description)
 
     def add_client(self, config: str|dict|ClientSpec):
         if isinstance(config, str):

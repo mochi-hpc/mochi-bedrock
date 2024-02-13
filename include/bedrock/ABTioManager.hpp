@@ -106,14 +106,14 @@ class ABTioManager {
      *
      * @param name Name of the instance.
      * @param pool Name of the pool to use.
-     * @param config JSON-formatted configuration.
+     * @param config JSON configuration.
      *
      * @return the NamedDependency handle for the newly-created instance.
      */
     std::shared_ptr<NamedDependency>
         addABTioInstance(const std::string& name,
                          const std::string& pool,
-                         const std::string& config);
+                         const json& config);
 
 
     /**

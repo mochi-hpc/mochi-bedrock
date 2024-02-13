@@ -238,9 +238,9 @@ class AbtIOManager:
         except BedrockException:
             return False
 
-    def create(self, name: str, pool: str|Pool, config: str|dict = "{}") -> AbtIOInstance:
-        if isinstance(config, dict):
-            config = json.dumps(config)
+    def create(self, name: str, pool: str|Pool, config: str|dict = {}) -> AbtIOInstance:
+        if isinstance(config, str):
+            config = json.loads(config)
         if isinstance(pool, Pool):
             pool = pool.name
         return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))

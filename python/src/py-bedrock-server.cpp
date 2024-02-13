@@ -5,6 +5,7 @@
  */
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "pybind11_json/pybind11_json.hpp"
 #include <bedrock/Server.hpp>
 #include <bedrock/Exception.hpp>
 #ifdef ENABLE_SSG

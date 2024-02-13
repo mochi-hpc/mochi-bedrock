@@ -166,24 +166,23 @@ class ServerImpl : public tl::provider<ServerImpl> {
         req.respond(result);
     }
 
-    void addABTioRPC(const tl::request& req, const std::string& name,
-                     const std::string& pool, const std::string& config) {
+    void addABTioRPC(const tl::request& req, const std::string& description) {
         RequestResult<bool> result;
         result.success() = true;
         try {
-            ABTioManager(m_abtio_manager).addABTioInstance(name, pool, config);
-        } catch (const Exception& ex) {
+            ABTioManager(m_abtio_manager).addABTioInstanceFromJSON(json::parse(description));
+        } catch (const std::exception& ex) {
             result.error()   = ex.what();
             result.success() = false;
         }
         req.respond(result);
     }
 
-    void addSSGgroupRPC(const tl::request& req, const std::string& config) {
+    void addSSGgroupRPC(const tl::request& req, const std::string& description) {
         RequestResult<bool> result;
         result.success() = true;
         try {
-            SSGManager(m_ssg_manager).addGroupFromJSON(json::parse(config));
+            SSGManager(m_ssg_manager).addGroupFromJSON(json::parse(description));
         } catch (const std::exception& ex) {
             result.error()   = ex.what();
             result.success() = false;
