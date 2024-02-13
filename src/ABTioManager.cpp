@@ -89,16 +89,15 @@ size_t ABTioManager::numABTioInstances() const {
 }
 
 std::shared_ptr<NamedDependency>
-ABTioManager::addABTioInstance(const std::string& name,
-                               const std::string& pool_name,
-                               const json& config) {
+ABTioManager::addABTioInstance(const std::string&                      name,
+                               const std::shared_ptr<NamedDependency>& pool,
+                               const json&                             config) {
 #ifndef ENABLE_ABT_IO
     (void)name;
     (void)pool_name;
     (void)config;
     throw DETAILED_EXCEPTION("Bedrock was not compiled with ABT-IO support");
 #else
-    std::shared_ptr<NamedDependency> pool;
     json     abt_io_config;
     // check if the name doesn't already exist
     auto it = std::find_if(
@@ -109,8 +108,6 @@ ABTioManager::addABTioInstance(const std::string& name,
             "ABT-IO instance name \"{}\" already used",
             name);
     }
-    // find pool
-    pool = MargoManager(self->m_margo_manager).getPool(pool_name);
     // get the config of this ABT-IO instance
     if (!config.is_object() && !config.is_null()) {
         throw DETAILED_EXCEPTION(
@@ -152,12 +149,14 @@ ABTioManager::addABTioInstanceFromJSON(const json& description) {
     validator.validate(description, "ABTioManager");
     auto name = description["name"].get<std::string>();
     auto config = description.value("config", json::object());
-    auto pool = std::string{};
+    std::shared_ptr<NamedDependency> pool;
+    // find pool
     if(description.contains("pool") && description["pool"].is_number()) {
         pool = MargoManager(self->m_margo_manager)
-                .getPool(description["pool"].get<uint32_t>())->getName();
+                .getPool(description["pool"].get<uint32_t>());
     } else {
-        pool = description.value("pool", "__primary__");
+        pool = MargoManager(self->m_margo_manager)
+                .getPool(description.value("pool", "__primary__"));
     }
     return addABTioInstance(name, pool, config);
 }

@@ -81,17 +81,21 @@ class ABTioManager {
     operator bool() const;
 
     /**
-     * @brief Get the internal abt_io_instance_id by its name.
+     * @brief Get an internal abt-io instance by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return internal abt_io_instance_id or nullptr.
+     * @return a NamedDependency representing the ABT-IO instance.
      */
     std::shared_ptr<NamedDependency>
         getABTioInstance(const std::string& name) const;
 
     /**
-     * @brief Get the internal abt_io_instance_id by its index.
+     * @brief Get an internal abt-io instance by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return internal abt_io_instance_id or nullptr.
+     * @return a NamedDependency representing the ABT-IO instance.
      */
     std::shared_ptr<NamedDependency>
         getABTioInstance(int index) const;
@@ -111,9 +115,9 @@ class ABTioManager {
      * @return the NamedDependency handle for the newly-created instance.
      */
     std::shared_ptr<NamedDependency>
-        addABTioInstance(const std::string& name,
-                         const std::string& pool,
-                         const json& config);
+        addABTioInstance(const std::string&                      name,
+                         const std::shared_ptr<NamedDependency>& pool = {},
+                         const json&                             config = {});
 
 
     /**

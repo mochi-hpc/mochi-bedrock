@@ -204,9 +204,9 @@ class SSGManager:
                credential: int = -1) -> SSGGroup:
         if not isinstance(pool, Pool):
             pool = self._server.margo.pools[pool]
+        pool = pool._internal
         if isinstance(config, str):
             config = json.loads(config)
-        pool = pool._internal
         return SSGGroup(self._internal.add_group(name, config, pool, bootstrap, group_file, credential))
 
 
@@ -238,11 +238,12 @@ class AbtIOManager:
         except BedrockException:
             return False
 
-    def create(self, name: str, pool: str|Pool, config: str|dict = {}) -> AbtIOInstance:
+    def create(self, name: str, pool: str|int|Pool, config: str|dict = {}) -> AbtIOInstance:
         if isinstance(config, str):
             config = json.loads(config)
-        if isinstance(pool, Pool):
-            pool = pool.name
+        if not isinstance(pool, Pool):
+            pool = self._server.margo.pools[pool]
+        pool = pool._internal
         return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))
 
 
