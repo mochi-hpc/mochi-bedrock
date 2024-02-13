@@ -123,6 +123,16 @@ class ABTioManager {
      * @param description ABT-IO instance description.
      *
      * @return the NamedDependency handle for the newly-created instance.
+     *
+     * Example of JSON description:
+     *
+     * ```json
+     * {
+     *    "name": "my_abt_io_instance",
+     *    "pool": "my_pool",
+     *    "config": {}
+     * }
+     * ```
      */
     std::shared_ptr<NamedDependency>
         addABTioInstanceFromJSON(const json& description);

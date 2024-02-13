@@ -10,6 +10,7 @@
 #include <bedrock/AbstractServiceFactory.hpp>
 #include <bedrock/ClientDescriptor.hpp>
 #include <bedrock/NamedDependency.hpp>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
 

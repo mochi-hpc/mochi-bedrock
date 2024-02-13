@@ -81,12 +81,29 @@ class SSGManager {
     /**
      * @brief Create a group from a JSON configuration.
      *
-     * @param config JSON-formatted configuration.
+     * @param description JSON description of the group.
      *
-     * @return The created group id.
+     * @return The created group as a NamedDependency.
+     *
+     * Example of JSON description:
+     *
+     * ```json
+     * {
+     *    "name": "my_ssg_group",
+     *    "pool": "my_pool",
+     *    "credential": 1234,
+     *    "group_file": "/path/to/group/file.ssg",
+     *    "bootstrap": "init|join",
+     *    "swim": {
+     *        "period_length_ms": 500,
+     *        "suspect_timeout_periods": 3,
+     *        "subgroup_member_count": 5
+     *    }
+     * }
+     * ```
      */
     std::shared_ptr<NamedDependency>
-        addGroupFromJSON(const json& config);
+        addGroupFromJSON(const json& description);
 
     /**
      * @brief Create a group and add it to the SSG context.
