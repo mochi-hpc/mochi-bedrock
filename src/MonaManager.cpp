@@ -7,6 +7,7 @@
 #include "bedrock/MargoManager.hpp"
 #include "Exception.hpp"
 #include "MonaManagerImpl.hpp"
+#include "JsonUtil.hpp"
 #include <margo.h>
 
 namespace tl = thallium;
@@ -17,12 +18,12 @@ using nlohmann::json;
 
 MonaManager::MonaManager(const MargoManager& margoCtx,
                          const Jx9Manager& jx9,
-                         const std::string& configString,
+                         const json& config,
                          const std::string& defaultAddress)
 : self(std::make_shared<MonaManagerImpl>()) {
-    self->m_margo_manager = margoCtx;
-    self->m_jx9_manager   = jx9;
-    auto config           = json::parse(configString);
+    self->m_default_address = defaultAddress;
+    self->m_margo_manager   = margoCtx;
+    self->m_jx9_manager     = jx9;
     if (config.is_null()) return;
 #ifndef ENABLE_MONA
     (void)defaultAddress;
@@ -33,82 +34,9 @@ MonaManager::MonaManager(const MargoManager& margoCtx,
     if (!config.is_array()) {
         throw DETAILED_EXCEPTION("\"mona\" field should be an array");
     }
-    std::vector<std::string>                      names;
-    std::vector<std::shared_ptr<NamedDependency>> pools;
-    std::vector<std::string>                      addresses;
-    int                                           i = 0;
-    for (auto& mona_config : config) {
-        if (!mona_config.is_object()) {
-            throw DETAILED_EXCEPTION("MoNA instance should be of an object");
-        }
-        std::string name;       // mona instance name
-        int         pool_index; // pool index
-        std::shared_ptr<NamedDependency> pool;
-        // find the name of the instance or use a default name
-        auto name_json_it = mona_config.find("name");
-        if (name_json_it == mona_config.end()) {
-            name = "__mona_";
-            name += std::to_string(i) + "__";
-        } else if (not name_json_it->is_string()) {
-            throw DETAILED_EXCEPTION("MoNA instance name should be a string");
-        } else {
-            name = name_json_it->get<std::string>();
-        }
-        // check if the name doesn't already exist
-        auto it = std::find(names.begin(), names.end(), name);
-        if (it != names.end()) {
-            throw DETAILED_EXCEPTION(
-                "MoNA instance name \"{}\" already used", name);
-        }
-        names.push_back(name);
-        // find the pool used by the instance
-        auto pool_json_it = mona_config.find("pool");
-        if (pool_json_it == mona_config.end()) {
-            throw DETAILED_EXCEPTION(
-                "\"pool\" field required in MoNA instance configuration");
-        } else if (pool_json_it->is_string()) {
-            auto pool_str = pool_json_it->get<std::string>();
-            pool          = margoCtx.getPool(pool_str);
-        } else if (pool_json_it->is_number_integer()) {
-            pool_index = pool_json_it->get<int>();
-            pool       = margoCtx.getPool(pool_index);
-        } else {
-            throw DETAILED_EXCEPTION(
-                "\"pool\" field in MoNA instance configuration should be a string or "
-                "an integer");
-        }
-        pools.push_back(pool);
-        // get the address of this MoNA instance
-        auto address_json_it = mona_config.find("address");
-        if (address_json_it == mona_config.end()) {
-            addresses.push_back(defaultAddress);
-        } else if (!address_json_it->is_string()) {
-            throw DETAILED_EXCEPTION(
-                "\"address\" field in MoNA description should be a string");
-        } else {
-            addresses.push_back(address_json_it->get<std::string>());
-        }
-        i += 1;
+    for(auto& description : config) {
+        addMonaInstanceFromJSON(description);
     }
-    // instantiate MoNA instances
-    std::vector<std::shared_ptr<MonaEntry>> mona_entries;
-    for (unsigned i = 0; i < names.size(); i++) {
-
-        const auto& address = addresses[i];
-        mona_instance_t mona = mona_init_pool(address.c_str(), true, nullptr, pools[i]->getHandle<ABT_pool>());
-
-        if (!mona) {
-            for (unsigned j = 0; j < mona_entries.size(); j++) {
-                mona_finalize(mona_entries[j]->getHandle<mona_instance_t>());
-            }
-            throw DETAILED_EXCEPTION("Could not initialize mona instance \"{}\"", names[i]);
-        }
-        auto entry = std::make_shared<MonaEntry>(names[i], mona, pools[i]);
-        mona_entries.push_back(std::move(entry));
-        spdlog::trace("Added MoNA instance \"{}\"", names[i]);
-    }
-    // setup self
-    self->m_instances = std::move(mona_entries);
 #endif
 }
 
@@ -167,7 +95,7 @@ size_t MonaManager::numMonaInstances() const {
 
 std::shared_ptr<NamedDependency>
 MonaManager::addMonaInstance(const std::string& name,
-                             const std::string& pool_name,
+                             std::shared_ptr<NamedDependency> pool,
                              const std::string& address) {
 #ifndef ENABLE_MONA
     (void)name;
@@ -181,13 +109,7 @@ MonaManager::addMonaInstance(const std::string& name,
         self->m_instances.begin(), self->m_instances.end(),
         [&name](const auto& instance) { return instance->getName() == name; });
     if (it != self->m_instances.end()) {
-        throw DETAILED_EXCEPTION("Name \"{}\" already used by another MoNA instance");
-    }
-    // find pool
-    auto pool = MargoManager(self->m_margo_manager).getPool(pool_name);
-    if (!pool) {
-        throw DETAILED_EXCEPTION("Could not find pool \"{}\" in MargoManager",
-                        pool_name);
+        throw DETAILED_EXCEPTION("Mona instance name \"{}\" already used", name);
     }
     // all good, can instanciate
     mona_instance_t mona = mona_init_pool(
@@ -202,12 +124,45 @@ MonaManager::addMonaInstance(const std::string& name,
 #endif
 }
 
-std::string MonaManager::getCurrentConfig() const {
+std::shared_ptr<NamedDependency>
+MonaManager::addMonaInstanceFromJSON(const json& description) {
+    static constexpr const char* configSchema = R"(
+    {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "regex": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+            "pool": {"oneOf": [
+                {"type": "string", "regex": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+                {"type": "integer", "minimum": 0 }
+            ]},
+            "address": {"type": "string"}
+        },
+        "required": ["name"]
+    }
+    )";
+    static const JsonValidator validator{configSchema};
+    validator.validate(description, "ABTioManager");
+    auto name = description["name"].get<std::string>();
+    auto address = description.value("address", self->m_default_address);
+    std::shared_ptr<NamedDependency> pool;
+    // find pool
+    if(description.contains("pool") && description["pool"].is_number()) {
+        pool = MargoManager(self->m_margo_manager)
+            .getPool(description["pool"].get<uint32_t>());
+    } else {
+        pool = MargoManager(self->m_margo_manager)
+            .getPool(description.value("pool", "__primary__"));
+    }
+    return addMonaInstance(name, pool, address);
+}
+
+json MonaManager::getCurrentConfig() const {
 #ifndef ENABLE_MONA
-    return "[]";
+    return json::array();
 #else
     auto guard = std::unique_lock<tl::mutex>{self->m_mtx};
-    return self->makeConfig().dump();
+    return self->makeConfig();
 #endif
 }
 

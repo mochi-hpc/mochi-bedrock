@@ -78,6 +78,7 @@ class MonaManagerImpl {
     friend class MonaManager;
 
   public:
+    std::string                             m_default_address;
     std::shared_ptr<MargoManagerImpl>       m_margo_manager;
     std::shared_ptr<Jx9ManagerImpl>         m_jx9_manager;
     std::vector<std::shared_ptr<MonaEntry>> m_instances;

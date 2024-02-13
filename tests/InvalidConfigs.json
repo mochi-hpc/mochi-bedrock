@@ -56,11 +56,6 @@
     },
 
     {
-        "test": "missing pool field in mona instance",
-        "input": {"mona":[{"name":"my_mona"}]}
-    },
-
-    {
         "test": "invalid MoNA instance pool field type",
         "input": {"mona":[{"pool":true}]}
     },

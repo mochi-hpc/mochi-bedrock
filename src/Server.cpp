@@ -99,7 +99,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initializing SSG context
         spdlog::trace("Initializing SSGManager");
-        auto ssgConfig      = config["ssg"];
+        auto& ssgConfig     = config["ssg"];
         auto ssgMgr         = SSGManager(margoMgr, jx9Manager, ssgConfig);
         self->m_ssg_manager = ssgMgr;
         spdlog::trace("SSGManager initialized");
@@ -113,7 +113,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initialize mona manager
         spdlog::trace("Initializing MonaManager");
-        auto monaConfig      = config["mona"].dump();
+        auto& monaConfig     = config["mona"];
         auto monaMgr         = MonaManager(margoMgr, jx9Manager, monaConfig, address);
         self->m_mona_manager = monaMgr;
         spdlog::trace("MonaManager initialized");
