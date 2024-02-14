@@ -311,13 +311,10 @@ class ProviderManager:
         return [ProviderSpec.from_dict(provider, abt_spec) for provider in self.config]
 
     def __len__(self):
-        return len(self._internal.providers)
+        return self._internal.num_providers
 
     def __getitem__(self, key: int|str) -> Provider:
-        providers = self._internal.providers
-        if isinstance(key, int):
-            key = providers[key].name
-        return self.lookup(key)
+        return Provider(self, self._internal.get_provider(key))
 
     def __delitem__(self, key: str) -> None:
         self._internal.deregister_provider(key)

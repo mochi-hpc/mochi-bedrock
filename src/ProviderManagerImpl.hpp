@@ -97,7 +97,6 @@ class ProviderManagerImpl
     std::shared_ptr<Jx9ManagerImpl>   m_jx9_manager;
 
     tl::auto_remote_procedure m_lookup_provider;
-    tl::auto_remote_procedure m_list_providers;
     tl::auto_remote_procedure m_load_module;
     tl::auto_remote_procedure m_start_provider;
     tl::auto_remote_procedure m_change_provider_pool;
@@ -110,8 +109,6 @@ class ProviderManagerImpl
     : tl::provider<ProviderManagerImpl>(engine, provider_id),
       m_lookup_provider(define("bedrock_lookup_provider",
                                &ProviderManagerImpl::lookupProviderRPC, pool)),
-      m_list_providers(define("bedrock_list_providers",
-                              &ProviderManagerImpl::listProvidersRPC, pool)),
       m_load_module(define("bedrock_load_module",
                            &ProviderManagerImpl::loadModuleRPC, pool)),
       m_start_provider(define("bedrock_start_provider",
@@ -200,13 +197,6 @@ class ProviderManagerImpl
             result.error()
                 = "Could not find provider with spec \""s + spec + "\"";
         }
-    }
-
-    void listProvidersRPC(const tl::request& req) {
-        auto manager = ProviderManager(shared_from_this());
-        RequestResult<std::vector<ProviderDescriptor>> result;
-        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
-        result.value() = manager.listProviders();
     }
 
     void loadModuleRPC(const tl::request& req, const std::string& name,

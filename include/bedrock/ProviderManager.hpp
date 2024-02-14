@@ -83,6 +83,35 @@ class ProviderManager {
     void setDependencyFinder(const DependencyFinder& finder);
 
     /**
+     * @brief Return the number of providers registered.
+     */
+    size_t numProviders() const;
+
+    /**
+     * @brief Get an internal provider instance by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
+     *
+     * Note: contrary to lookupProvider, which can accept either
+     * "name" or "type:id" as specification, getProvider only expects
+     * a provider's name as argument.
+     *
+     * @return a NamedDependency representing the provider instance.
+     */
+    std::shared_ptr<ProviderDependency>
+        getProvider(const std::string& name) const;
+
+    /**
+     * @brief Get an internal provider instance by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
+     *
+     * @return a NamedDependency representing the provider instance.
+     */
+    std::shared_ptr<ProviderDependency>
+        getProvider(size_t index) const;
+
+    /**
      * @brief Look up whether a provider with a given specification exists.
      * The specification must be in the form "<provider-name>" (e.g.
      * "myprovider") or "<provider-type>:<provider-id>" (e.g. "bake:42"). This
@@ -97,13 +126,6 @@ class ProviderManager {
      */
     std::shared_ptr<ProviderDependency>
         lookupProvider(const std::string& spec) const;
-
-    /**
-     * @brief List the providers managed by the ProviderManager.
-     *
-     * @return the providers managed by the ProviderManager.
-     */
-    std::vector<ProviderDescriptor> listProviders() const;
 
     /**
      * @brief Register a provider from a descriptor.

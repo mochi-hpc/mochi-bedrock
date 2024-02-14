@@ -203,9 +203,15 @@ PYBIND11_MODULE(pybedrock_server, m) {
 
     py11::class_<ProviderManager> (m, "ProviderManager")
         .def_property_readonly("config", &ProviderManager::getCurrentConfig)
+        .def_property_readonly("num_providers", &ProviderManager::numProviders)
+        .def("get_provider", [](const ProviderManager& pm, size_t index) {
+                return pm.getProvider(index);
+             }, "index"_a)
+        .def("get_provider", [](const ProviderManager& pm, const std::string& name) {
+                return pm.getProvider(name);
+             }, "name"_a)
         .def("lookup_provider", &ProviderManager::lookupProvider,
              "spec"_a)
-        .def_property_readonly("providers", &ProviderManager::listProviders)
         .def("deregister_provider",
              &ProviderManager::deregisterProvider,
              "spec"_a)

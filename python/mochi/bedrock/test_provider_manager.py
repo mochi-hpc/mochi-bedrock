@@ -45,7 +45,7 @@ class TestProviderManager(unittest.TestCase):
         self.assertEqual(provider_A.type, provider_B.type)
         self.assertEqual(provider_A.provider_id, provider_B.provider_id)
         self.assertEqual(provider_A.handle, provider_B.handle)
-        with self.assertRaises(IndexError):
+        with self.assertRaises(mbs.BedrockException):
             p = providers[1]
         with self.assertRaises(mbs.BedrockException):
             p = providers["bla"]
@@ -85,7 +85,7 @@ class TestProviderManager(unittest.TestCase):
         providers = self.server.providers
         del providers["my_provider_B"]
         self.assertEqual(len(providers), 1)
-        with self.assertRaises(IndexError):
+        with self.assertRaises(mbs.BedrockException):
             p = providers[1]
         with self.assertRaises(mbs.BedrockException):
             p = providers["my_provider_B"]

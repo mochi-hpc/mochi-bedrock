@@ -63,15 +63,26 @@ ProviderManager::lookupProvider(const std::string& spec) const {
     return *it;
 }
 
-std::vector<ProviderDescriptor> ProviderManager::listProviders() const {
-    std::lock_guard<tl::mutex>      lock(self->m_providers_mtx);
-    std::vector<ProviderDescriptor> result;
-    result.reserve(self->m_providers.size());
-    for (const auto& p : self->m_providers) {
-        auto descriptor = ProviderDescriptor{p->getName(), p->getType(), p->getProviderID()};
-        result.emplace_back(descriptor);
-    }
-    return result;
+size_t ProviderManager::numProviders() const {
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    return self->m_providers.size();
+}
+
+std::shared_ptr<ProviderDependency> ProviderManager::getProvider(const std::string& name) const {
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    auto                       it = std::find_if(
+        self->m_providers.begin(), self->m_providers.end(),
+        [&name](const auto& p) { return p->getName() == name; });
+    if (it == self->m_providers.end())
+        throw DETAILED_EXCEPTION("Could not find provider \"{}\"", name);
+    return *it;
+}
+
+std::shared_ptr<ProviderDependency> ProviderManager::getProvider(size_t index) const {
+    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
+    if (index >= self->m_providers.size())
+        throw DETAILED_EXCEPTION("Could not find provider at index {}", index);
+    return self->m_providers[index];
 }
 
 std::shared_ptr<ProviderDependency>
