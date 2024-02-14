@@ -194,13 +194,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("add_abtio_instance", &ABTioManager::addABTioInstance)
     ;
 
-    py11::class_<ProviderDescriptor> (m, "ProviderDescriptor")
-        .def(py11::init<const std::string&, const std::string&, uint16_t>())
-        .def_readonly("name", &ProviderDescriptor::name)
-        .def_readonly("type", &ProviderDescriptor::type)
-        .def_readonly("provider_id", &ProviderDescriptor::provider_id)
-    ;
-
     py11::class_<ProviderManager> (m, "ProviderManager")
         .def_property_readonly("config", &ProviderManager::getCurrentConfig)
         .def_property_readonly("num_providers", &ProviderManager::numProviders)
@@ -215,12 +208,9 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("deregister_provider",
              &ProviderManager::deregisterProvider,
              "spec"_a)
-        .def("add_provider_from_json",
+        .def("add_provider",
              &ProviderManager::addProviderFromJSON,
-             "json_config"_a)
-        .def("add_provider_list_from_json",
-             &ProviderManager::addProviderListFromJSON,
-             "json_configs"_a)
+             "description"_a)
         .def("change_pool",
              &ProviderManager::changeProviderPool,
              "provider"_a, "pool"_a)

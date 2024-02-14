@@ -159,7 +159,8 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             serviceHandle.loadModule("module_a", "libModuleA.so");
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
             // create a provider of type module_a
-            REQUIRE_NOTHROW(serviceHandle.startProvider("my_provider_a1", "module_a", 123));
+            REQUIRE_NOTHROW(serviceHandle.addProvider(R"(
+                {"name":"my_provider_a1", "type":"module_a", "provider_id":123})"));
             auto output_config = json::parse(server.getCurrentConfig());
             auto providers = output_config["providers"];
             REQUIRE(std::find_if(providers.begin(), providers.end(),
@@ -168,10 +169,10 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             // TODO delete the provider
             // create a provider with the non-blocking API
             bedrock::AsyncRequest req;
-            REQUIRE_NOTHROW(serviceHandle.startProvider(
-                    "my_provider_a2", "module_a", 34, nullptr,
-                    "__primary__", "{}",
-                    bedrock::DependencyMap(), {}, &req));
+            REQUIRE_NOTHROW(serviceHandle.addProvider(R"(
+                {"name":"my_provider_a2", "type":"module_a", "provider_id":34,
+                 "pool":"__primary__", "dependencies":{}, "tags":[]})",
+                nullptr, &req));
             req.wait();
             output_config = json::parse(server.getCurrentConfig());
             providers = output_config["providers"];
@@ -180,9 +181,8 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
                     != providers.end());
             // TODO delete the provider
             // create a provider of type module_a but let Bedrock choose the provider ID
-            REQUIRE_NOTHROW(serviceHandle.startProvider(
-                    "my_provider_a3", "module_a",
-                    bedrock::ServiceHandle::NewProviderID));
+            REQUIRE_NOTHROW(serviceHandle.addProvider(
+                    R"({"name":"my_provider_a3", "type":"module_a", "provider_id":65535})"));
             output_config = json::parse(server.getCurrentConfig());
             providers = output_config["providers"];
             auto it = std::find_if(providers.begin(), providers.end(),
@@ -190,9 +190,8 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             REQUIRE(it != providers.end());
             REQUIRE((*it)["provider_id"] == 0);
             // create a provider of type module_a but let Bedrock choose the provider ID again
-            REQUIRE_NOTHROW(serviceHandle.startProvider(
-                    "my_provider_a4", "module_a",
-                    bedrock::ServiceHandle::NewProviderID));
+            REQUIRE_NOTHROW(serviceHandle.addProvider(
+                    R"({"name":"my_provider_a4", "type":"module_a", "provider_id":65535})"));
             output_config = json::parse(server.getCurrentConfig());
             providers = output_config["providers"];
             it = std::find_if(providers.begin(), providers.end(),
@@ -203,12 +202,13 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
 
             // create a provider of an invalid type
             REQUIRE_THROWS_AS(
-                serviceHandle.startProvider("my_provider_x", "module_x", 234),
+                serviceHandle.addProvider(
+                    R"({"name":"my_provider_x", "type":"module_x", "provider_id":234})"),
                 bedrock::Exception);
             // create a provider of an invalid type asynchronously
-            serviceHandle.startProvider(
-                "my_provider_x", "module_x", 234, nullptr,
-                "", "{}", bedrock::DependencyMap(), {}, &req);
+            serviceHandle.addProvider(
+                R"({"name":"my_provider_x", "type":"module_x", "provider_id":234})",
+                nullptr, &req);
             REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }
     }

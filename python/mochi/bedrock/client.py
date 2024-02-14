@@ -80,27 +80,9 @@ class ServiceHandle:
         description = self._ensure_config_str(description)
         self._internal.add_client(description)
 
-    def add_provider(self, config: str|dict|ProviderSpec):
-        if isinstance(config, str):
-            config = json.loads(config)
-        elif isinstance(config, ProviderSpec):
-            config = config.to_dict()
-        if "config" not in config:
-            config["config"] = {}
-        if "dependencies" not in config:
-            config["dependencies"] = {}
-        if "tags" not in config:
-            config["tags"] = []
-        if "pool" not in config:
-            config["pool"] = "__primary__"
-        return self._internal.start_provider(
-            name=config["name"],
-            type=config["type"],
-            provider_id=config["provider_id"],
-            pool=config["pool"],
-            config=json.dumps(config["config"]),
-            dependencies=config["dependencies"],
-            tags=config["tags"])
+    def add_provider(self, description: str|dict|ProviderSpec):
+        description = self._ensure_config_str(description)
+        return self._internal.add_provider(description)
 
     def change_provider_pool(self, provider_name: str, pool_name: str):
         self._internal.change_provider_pool(

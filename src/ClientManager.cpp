@@ -233,9 +233,9 @@ ClientManager::addClientFromJSON(const json& description) {
     }
 
     auto config = description.value("config", json::object());
-    auto configStr = config.dump();
+    auto configStr = config.is_null() ? std::string{"{}"} : config.dump();
     std::vector<std::string> tags;
-    for(auto& tag : config.value("tags", json::array())) {
+    for(auto& tag : description.value("tags", json::array())) {
         tags.push_back(tag.get<std::string>());
     }
 
@@ -263,11 +263,6 @@ ClientManager::addClientFromJSON(const json& description) {
                 }
                 std::vector<std::string> deps;
                 for (const auto& elem : dep_config) {
-                    if (!elem.is_string()) {
-                        throw DETAILED_EXCEPTION(
-                            "Item in dependency array {} should be a string",
-                            dependency.name);
-                    }
                     auto ptr = dependencyFinder.find(
                             dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
                             elem.get<std::string>(), nullptr);
@@ -277,7 +272,7 @@ ClientManager::addClientFromJSON(const json& description) {
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
             throw DETAILED_EXCEPTION(
-                "Missing client dependency \"{}\" of type \"{}\" in configuration",
+                "Missing dependency \"{}\" of type \"{}\" in provider configuration",
                 dependency.name, dependency.type);
         }
     }

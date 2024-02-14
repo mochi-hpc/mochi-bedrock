@@ -8,6 +8,7 @@
 #include "bedrock/AbstractServiceFactory.hpp"
 #include "bedrock/DependencyFinder.hpp"
 #include "Exception.hpp"
+#include "JsonUtil.hpp"
 
 #include "ProviderManagerImpl.hpp"
 
@@ -87,53 +88,44 @@ std::shared_ptr<ProviderDependency> ProviderManager::getProvider(size_t index) c
 
 std::shared_ptr<ProviderDependency>
 ProviderManager::registerProvider(
-    const ProviderDescriptor& descriptor, const std::string& pool_name,
-    const std::string& config, const ResolvedDependencyMap& dependencies,
+    const std::string& name, const std::string& type, uint16_t provider_id,
+    std::shared_ptr<NamedDependency> pool, const json& config,
+    const ResolvedDependencyMap& dependencies,
     const std::vector<std::string>& tags) {
 
-    auto& name       = descriptor.name;
-    auto& type       = descriptor.type;
-    auto provider_id = descriptor.provider_id;
-
-    if (name.empty()) throw DETAILED_EXCEPTION("Provider name cannot be empty");
-
+    std::shared_ptr<LocalProvider> entry;
     auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
         throw DETAILED_EXCEPTION(
             "Could not find service factory for provider type \"{}\"", type);
     }
-    spdlog::trace("Found provider \"{}\" to be of type \"{}\"", name, type);
 
-    std::shared_ptr<LocalProvider> entry;
     {
         std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
         auto                       it = self->resolveSpec(name);
         if (it != self->m_providers.end()) {
             throw DETAILED_EXCEPTION(
-                "Could not register provider: a provider with the name \"{}\""
-                " is already registered",
-                descriptor.name);
-        }
-
-        it = self->resolveSpec(type, provider_id);
-        if (it != self->m_providers.end()) {
-            throw DETAILED_EXCEPTION(
-                "Could not register provider: a provider with the type \"{}\""
-                " and provider id {} is already registered", type, provider_id);
+                "Name \"{}\" already used by another provider", name);
         }
 
         if (provider_id == std::numeric_limits<uint16_t>::max())
             provider_id = self->getAvailableProviderID();
 
+        it = std::find_if(self->m_providers.begin(), self->m_providers.end(),
+                [provider_id](const auto& p) { return p->getProviderID() == provider_id; });
+        if (it != self->m_providers.end()) {
+            throw DETAILED_EXCEPTION(
+                "Another provider already uses provider ID {}", provider_id);
+        }
+
         auto margo = MargoManager(self->m_margo_manager);
-        auto pool = margo.getPool(pool_name);
 
         FactoryArgs args;
         args.name         = name;
         args.mid          = margo.getMargoInstance();
         args.engine       = margo.getThalliumEngine();
         args.pool         = pool->getHandle<ABT_pool>();
-        args.config       = config;
+        args.config       = config.is_null() ? std::string{"{}"} : config.dump();
         args.tags         = tags;
         args.dependencies = dependencies;
         args.provider_id  = provider_id;
@@ -164,119 +156,91 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
 }
 
 std::shared_ptr<ProviderDependency>
-ProviderManager::addProviderFromJSON(const std::string& jsonString) {
+ProviderManager::addProviderFromJSON(const json& description) {
     if (!self->m_dependency_finder) {
         throw DETAILED_EXCEPTION("No DependencyFinder set in ProviderManager");
     }
     auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
-    auto config           = json::parse(jsonString);
-    if (!config.is_object()) {
-        throw DETAILED_EXCEPTION(
-            "Invalid JSON configuration passed to "
-            "ProviderManager::addProviderFromJSON (should be an object)");
-    }
 
-    if(config.contains("__if__")) {
-        if(!config["__if__"].is_string()) {
-            throw DETAILED_EXCEPTION("__if__ statement in configuration should be a string");
-        }
+    static constexpr const char* configSchema = R"(
+    {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+            "pool": {"oneOf": [
+                {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+                {"type": "integer", "minimum": 0 }
+            ]},
+            "provider_id": {"type": "integer", "minimum": 0, "maximum": 65535},
+            "type": {"type": "string"},
+            "tags": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "dependencies": {
+                "type": "object",
+                "additionalProperties": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}}
+                    ]
+                }
+            },
+            "config": {"type": "object"},
+            "__if__": {"type": "string", "minLength":1}
+        },
+        "required": ["name", "type"]
+    }
+    )";
+    static const JsonValidator validator{configSchema};
+    validator.validate(description, "ProviderManager");
+
+    if(description.contains("__if__")) {
         bool b = Jx9Manager(self->m_jx9_manager).evaluateCondition(
-                config["__if__"].get_ref<const std::string&>(), {});
+                description["__if__"].get_ref<const std::string&>(), {});
         if(!b) return nullptr;
     }
 
-    ProviderDescriptor descriptor;
+    auto& name = description["name"].get_ref<const std::string&>();
+    auto& type = description["type"].get_ref<const std::string&>();
+    auto provider_id = description.value("provider_id", std::numeric_limits<uint16_t>::max());
 
-    if(!config.contains("name")) {
-        throw DETAILED_EXCEPTION("\"name\" field not found in provider definition");
-    }
-    if(!config["name"].is_string()) {
-        throw DETAILED_EXCEPTION(
-            "\"name\" field in provider definition should be a string");
-    }
-
-    if(config.contains("provider_id")) {
-        if(!config["provider_id"].is_number())
-            throw DETAILED_EXCEPTION(
-                    "\"provider_id\" field in provider definition should be an integer");
-        if(!config["provider_id"].is_number_unsigned())
-            throw DETAILED_EXCEPTION(
-                    "\"provider_id\" field in provider definition should be a positive integer");
-    }
-
-    if(!config.contains("type"))
-        throw DETAILED_EXCEPTION("\"type\" field missing in provider definition");
-    if(!config["type"].is_string())
-        throw DETAILED_EXCEPTION(
-            "\"type\" field in provider definition should be a string");
-
-    descriptor.name        = config["name"];
-    descriptor.provider_id = config.value("provider_id", std::numeric_limits<uint16_t>::max());
-    descriptor.type        = config["type"];
-
-    auto service_factory = ModuleContext::getServiceFactory(descriptor.type);
+    auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
         throw DETAILED_EXCEPTION(
-            "Could not find service factory for provider type \"{}\"",
-            descriptor.type);
+            "Could not find service factory for provider type \"{}\"", type);
     }
 
-    auto provider_config = "{}"s;
-    if (config.contains("config")) {
-        if (!config["config"].is_object()) {
-            throw DETAILED_EXCEPTION(
-                "\"config\" field in provider definition should be an object");
-        } else {
-            provider_config = config["config"].dump();
-        }
-    }
+    auto config = description.value("config", json::object());
+    auto configStr = config.dump();
 
-    auto margo = MargoManager(self->m_margo_manager);
-
-    std::string pool_name;
-    if(config.contains("pool")) {
-        auto& pool_ref = config["pool"];
-        if(pool_ref.is_string())
-            pool_name = pool_ref.get<std::string>();
-        else if(pool_ref.is_number_unsigned())
-            pool_name = margo.getPool(pool_ref.get<uint32_t>())->getName();
-        else
-            throw DETAILED_EXCEPTION(
-                "\"pool\" field in provider definition should "
-                "be a string or an unsigned integer");
+    // find pool
+    std::shared_ptr<NamedDependency> pool;
+    if(description.contains("pool") && description["pool"].is_number()) {
+        pool = MargoManager(self->m_margo_manager)
+            .getPool(description["pool"].get<uint32_t>());
     } else {
-        pool_name = margo.getDefaultHandlerPool()->getName();
+        pool = MargoManager(self->m_margo_manager)
+            .getPool(description.value("pool", "__primary__"));
     }
 
-    auto tags_from_config = config.value("tags", json::array());
     std::vector<std::string> tags;
-    if(!tags_from_config.is_array()) {
-        throw DETAILED_EXCEPTION(
-                "\"tags\" field in client definition should be an array");
-    }
-    for(auto& tag : tags_from_config) {
-        if(!tag.is_string()) {
-            throw DETAILED_EXCEPTION(
-                    "Tag in client definition should be a string");
-        }
+    for(auto& tag : description.value("tags", json::array())) {
         tags.push_back(tag.get<std::string>());
     }
 
-    auto deps_from_config = config.value("dependencies", json::object());
-
+    auto deps_from_config = description.value("dependencies", json::object());
     ResolvedDependencyMap resolved_dependency_map;
 
-    for (const auto& dependency : service_factory->getProviderDependencies(provider_config.c_str())) {
+    for (const auto& dependency : service_factory->getProviderDependencies(configStr.c_str())) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
             if (!(dependency.flags & BEDROCK_ARRAY)) { // dependency should be a string
-
-                if (dep_config.is_array() && dep_config.size() == 1)
-                    dep_config = dep_config[0];
                 if (!dep_config.is_string()) {
-                    throw DETAILED_EXCEPTION(
-                        "Dependency \"{}\" should be a string", dependency.name);
+                    throw DETAILED_EXCEPTION("Dependency {} should be a string",
+                            dependency.name);
                 }
                 auto dep_handle = dependencyFinder.find(
                         dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
@@ -285,20 +249,12 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                 resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
 
             } else { // dependency is an array
-                if (dep_config.is_string()) {
-                    dep_config = json::array({dep_config});
-                }
                 if (!dep_config.is_array()) {
                     throw DETAILED_EXCEPTION("Dependency {} should be an array",
-                                    dependency.name);
+                            dependency.name);
                 }
                 std::vector<std::string> deps;
                 for (const auto& elem : dep_config) {
-                    if (!elem.is_string()) {
-                        throw DETAILED_EXCEPTION(
-                            "Item in dependency array {} should be a string",
-                            dependency.name);
-                    }
                     auto dep_handle = dependencyFinder.find(
                             dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
                             elem.get<std::string>(), nullptr);
@@ -307,25 +263,25 @@ ProviderManager::addProviderFromJSON(const std::string& jsonString) {
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw DETAILED_EXCEPTION("Missing provider dependency \"{}\" of type \"{}\" in configuration",
-                            dependency.name, dependency.type);
+            throw DETAILED_EXCEPTION(
+                "Missing dependency \"{}\" of type \"{}\" in provider configuration",
+                dependency.name, dependency.type);
         }
     }
 
-    return registerProvider(descriptor, pool_name, provider_config,
+    return registerProvider(name, type, provider_id, pool, config,
                             resolved_dependency_map, tags);
 }
 
-void ProviderManager::addProviderListFromJSON(const std::string& jsonString) {
-    auto config = json::parse(jsonString);
-    if (config.is_null()) { return; }
-    if (!config.is_array()) {
+void ProviderManager::addProviderListFromJSON(const json& list) {
+    if (list.is_null()) { return; }
+    if (!list.is_array()) {
         throw DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ProviderManager::addProviderListFromJSON (should be an array)");
     }
-    for (const auto& provider : config) {
-        addProviderFromJSON(provider.dump());
+    for (const auto& provider : list) {
+        addProviderFromJSON(provider);
     }
 }
 
@@ -412,8 +368,8 @@ void ProviderManager::restoreProvider(
     }
 }
 
-std::string ProviderManager::getCurrentConfig() const {
-    return self->makeConfig().dump();
+json ProviderManager::getCurrentConfig() const {
+    return self->makeConfig();
 }
 
 } // namespace bedrock

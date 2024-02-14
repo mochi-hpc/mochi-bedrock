@@ -213,25 +213,13 @@ class ProviderManagerImpl
         }
     }
 
-    void startProviderRPC(const tl::request& req, const std::string& name,
-                          const std::string& type, uint16_t provider_id,
-                          const std::string& pool, const std::string& config,
-                          const DependencyMap& dependencies,
-                          const std::vector<std::string>& tags) {
+    void startProviderRPC(const tl::request& req, const std::string& description) {
         RequestResult<uint16_t> result;
         tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         auto manager = ProviderManager(shared_from_this());
         try {
-            auto c           = json::object();
-            c["name"]        = name;
-            c["type"]        = type;
-            if(provider_id != std::numeric_limits<uint16_t>::max())
-                c["provider_id"] = provider_id;
-            if (!pool.empty()) c["pool"] = pool;
-            if (!config.empty()) c["config"] = json::parse(config);
-            c["dependencies"] = dependencies;
-            c["tags"] = tags;
-            result.value() = manager.addProviderFromJSON(c.dump())->getProviderID();
+            auto c = json::parse(description);
+            result.value() = manager.addProviderFromJSON(c)->getProviderID();
         } catch (std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();

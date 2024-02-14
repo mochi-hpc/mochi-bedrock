@@ -10,6 +10,7 @@
 #include <bedrock/ProviderDescriptor.hpp>
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/AbstractServiceFactory.hpp>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
 
@@ -30,6 +31,8 @@ class ProviderManager {
     friend class Server;
     friend class DependencyFinder;
     friend class ProviderManagerImpl;
+
+    using json = nlohmann::json;
 
   public:
     /**
@@ -130,18 +133,22 @@ class ProviderManager {
     /**
      * @brief Register a provider from a descriptor.
      *
-     * @param descriptor Descriptor.
-     * @param pool_name Pool name.
+     * @param name Name of the provider.
+     * @param type Type of provider.
+     * @param provider_id Provider ID.
+     * @param pool Pool.
      * @param config JSON configuration for the provider.
      * @param dependencies Dependency map.
      * @param tags Tags.
      */
     std::shared_ptr<ProviderDependency>
-        registerProvider(const ProviderDescriptor&       descriptor,
-                         const std::string&              pool_name,
-                         const std::string&              config,
-                         const ResolvedDependencyMap&    dependencies,
-                         const std::vector<std::string>& tags = {});
+        registerProvider(const std::string&               name,
+                         const std::string&               type,
+                         uint16_t                         provider_id,
+                         std::shared_ptr<NamedDependency> pool,
+                         const json&                      config,
+                         const ResolvedDependencyMap&     dependencies,
+                         const std::vector<std::string>&  tags = {});
 
     /**
      * @brief Deregister a provider from a specification. The specification has
@@ -169,14 +176,14 @@ class ProviderManager {
      * @param jsonString JSON string.
      */
     std::shared_ptr<ProviderDependency>
-        addProviderFromJSON(const std::string& jsonString);
+        addProviderFromJSON(const json& description);
 
     /**
-     * @brief Add a list of providers represented by a JSON string.
+     * @brief Add a list of providers represented by a JSON array.
      *
-     * @param jsonString JSON string.
+     * @param list JSON array.
      */
-    void addProviderListFromJSON(const std::string& jsonString);
+    void addProviderListFromJSON(const json& list);
 
     /**
      * @brief Change the pool associated with a provider.
@@ -234,7 +241,7 @@ class ProviderManager {
     /**
      * @brief Return the current JSON configuration.
      */
-    std::string getCurrentConfig() const;
+    json getCurrentConfig() const;
 
   private:
     std::shared_ptr<ProviderManagerImpl> self;

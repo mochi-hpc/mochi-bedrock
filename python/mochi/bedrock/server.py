@@ -303,7 +303,7 @@ class ProviderManager:
 
     @property
     def config(self) -> dict:
-        return json.loads(self._internal.config)
+        return self._internal.config
 
     @property
     def spec(self) -> list[ProviderSpec]:
@@ -329,9 +329,10 @@ class ProviderManager:
     def lookup(self, locator: str):
         return Provider(self, self._internal.lookup_provider(locator))
 
-    def create(self, name: str, type: str, provider_id: int, pool: str|Pool,
-               config: str|dict = "{}", dependencies: Mapping[str,str] = {},
-               tags: List[str] = []) -> Provider:
+    def create(self, name: str, type: str, provider_id: int = 65535,
+               pool: str|int|Pool = "__primary__",
+               config: str|dict = {}, dependencies: dict[str,str|list[str]] = {},
+               tags: list[str] = []) -> Client:
         if isinstance(pool, Pool):
             pool = pool.name
         if isinstance(config, str):
@@ -344,7 +345,7 @@ class ProviderManager:
             "tags": tags,
             "config": config
         }
-        return Provider(self, self._internal.add_provider_from_json(json.dumps(info)))
+        return Provider(self, self._internal.add_provider(info))
 
     def migrate(self, provider: str, dest_addr: str,
                 dest_provider_id: str, migration_config: str|dict = "{}",

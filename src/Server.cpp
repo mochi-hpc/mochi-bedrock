@@ -154,7 +154,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Starting up providers
         spdlog::trace("Initializing providers");
-        auto providerManagerConfig = config["providers"].dump();
+        auto& providerManagerConfig = config["providers"];
         providerManager.setDependencyFinder(dependencyFinder);
         providerManager.addProviderListFromJSON(providerManagerConfig);
         spdlog::trace("Providers initialized");
