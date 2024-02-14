@@ -251,7 +251,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
              "index"_a)
         .def("get_client_or_create", &ClientManager::getOrCreateAnonymous,
              "type"_a)
-        .def_property_readonly("clients", &ClientManager::listClients)
         .def("add_client", &ClientManager::addClientFromJSON,
              "description"_a)
     ;

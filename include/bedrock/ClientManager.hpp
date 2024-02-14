@@ -118,13 +118,6 @@ class ClientManager {
         getOrCreateAnonymous(const std::string& type);
 
     /**
-     * @brief List the clients managed by the ClientManager.
-     *
-     * @return the clients managed by the ClientManager.
-     */
-    std::vector<ClientDescriptor> listClients() const;
-
-    /**
      * @brief Return the number of clients.
      */
     size_t numClients() const;

@@ -112,17 +112,6 @@ std::shared_ptr<NamedDependency> ClientManager::getOrCreateAnonymous(const std::
     return *it;
 }
 
-std::vector<ClientDescriptor> ClientManager::listClients() const {
-    std::lock_guard<tl::mutex>    lock(self->m_clients_mtx);
-    std::vector<ClientDescriptor> result;
-    result.reserve(self->m_clients.size());
-    for (const auto& w : self->m_clients) {
-        auto descriptor = ClientDescriptor{w->getName(), w->getType()};
-        result.push_back(descriptor);
-    }
-    return result;
-}
-
 std::shared_ptr<NamedDependency>
 ClientManager::addClient(const std::string&              name,
                          const std::string&              type,

@@ -89,15 +89,16 @@ class ClientManagerImpl
     std::shared_ptr<Jx9ManagerImpl>   m_jx9_manager;
 
     tl::remote_procedure m_lookup_client;
-    tl::remote_procedure m_list_clients;
+    tl::remote_procedure m_add_client;
 
     ClientManagerImpl(const tl::engine& engine, uint16_t provider_id,
                       const tl::pool& pool)
-    : tl::provider<ClientManagerImpl>(engine, provider_id),
-      m_lookup_client(define("bedrock_lookup_client",
-                             &ClientManagerImpl::lookupClientRPC, pool)),
-      m_list_clients(define("bedrock_list_clients",
-                            &ClientManagerImpl::listClientsRPC, pool)) {}
+    : tl::provider<ClientManagerImpl>(engine, provider_id)
+    , m_lookup_client(define("bedrock_lookup_client",
+                             &ClientManagerImpl::lookupClientRPC, pool))
+    , m_add_client(define("bedrock_add_client",
+                          &ClientManagerImpl::addClientRPC, pool))
+    {}
 
     auto findByName(const std::string& spec) {
         auto it = std::find_if(
@@ -138,10 +139,26 @@ class ClientManagerImpl
         req.respond(result);
     }
 
-    void listClientsRPC(const tl::request& req) {
-        auto manager = ClientManager(shared_from_this());
-        RequestResult<std::vector<ClientDescriptor>> result;
-        result.value() = manager.listClients();
+    void addClientRPC(const tl::request& req, const std::string& description) {
+        RequestResult<bool> result;
+        json                jsonconfig;
+        try {
+            if (!description.empty())
+                jsonconfig = json::parse(description);
+            else
+                jsonconfig = json::object();
+        } catch (const std::exception& ex) {
+            result.error()   = "Invalid JSON configuration for client";
+            result.success() = false;
+            req.respond(result);
+            return;
+        }
+        try {
+            ClientManager(shared_from_this()).addClientFromJSON(jsonconfig);
+        } catch (const Exception& ex) {
+            result.error()   = ex.what();
+            result.success() = false;
+        }
         req.respond(result);
     }
 };

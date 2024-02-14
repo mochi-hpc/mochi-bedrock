@@ -140,7 +140,8 @@ class ProviderManager {
      *      "dependencies" : {
      *          "abt_io" : "my_abt_io"
      *      },
-     *      "config" : { ... }
+     *      "config" : { ... },
+     *      "tags": [ "tags1", "tag2", ... ]
      *  }
      *
      * @param jsonString JSON string.
