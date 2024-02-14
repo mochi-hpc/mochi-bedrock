@@ -9,6 +9,7 @@
 #include <thallium.hpp>
 #include <memory>
 #include <bedrock/NamedDependency.hpp>
+#include <nlohmann/json.hpp>
 
 /* Forward declaration to avoid including <mona.h> */
 typedef struct mona_instance* mona_instance_t;
@@ -33,6 +34,8 @@ class MonaManager {
     friend class ServerImpl;
     friend class DependencyFinder;
 
+    using json = nlohmann::json;
+
   public:
     /**
      * @brief Constructor from a configuration string. The configuration
@@ -42,12 +45,12 @@ class MonaManager {
      *
      * @param margoMgr MargoManager
      * @param jx9 JX9 manager
-     * @param configString JSON configuration string.
+     * @param config JSON configuration of the manager.
      * @param defaultProtocol default protocol to use if not specified in the JSON.
      */
     MonaManager(const MargoManager& margo,
                 const Jx9Manager& jx9,
-                const std::string& configString,
+                const json& config,
                 const std::string& defaultProtocol);
 
     /**
@@ -81,20 +84,24 @@ class MonaManager {
     operator bool() const;
 
     /**
-     * @brief Get the internal mona_instance_t by its name.
+     * @brief Get an internal Mona instance by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return internal mona_instance_t or nullptr.
+     * @return a NamedDependency representing the Mona instance.
      */
     std::shared_ptr<NamedDependency>
         getMonaInstance(const std::string& name) const;
 
     /**
      * @brief Get the internal mona_instance_t by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return internal mona_instance_t or nullptr.
+     * @return a NamedDependency representing the Mona instance.
      */
     std::shared_ptr<NamedDependency>
-        getMonaInstance(int index) const;
+        getMonaInstance(size_t index) const;
 
     /**
      * @brief Returns the number of mona instances stored.
@@ -109,13 +116,24 @@ class MonaManager {
      * @param address Address to use..
      */
     std::shared_ptr<NamedDependency>
-        addMonaInstance(const std::string& name, const std::string& pool,
+        addMonaInstance(const std::string& name,
+                        std::shared_ptr<NamedDependency> pool,
                         const std::string& address);
+
+    /**
+     * @brief Adds a Mona instance from a JSON description.
+     *
+     * @param description JSON description.
+     *
+     * @return a NamedDependency representing the newly-created Mona instance.
+     */
+    std::shared_ptr<NamedDependency>
+        addMonaInstanceFromJSON(const json& description);
 
     /**
      * @brief Return the current JSON configuration.
      */
-    std::string getCurrentConfig() const;
+    json getCurrentConfig() const;
 
   private:
     std::shared_ptr<MonaManagerImpl> self;

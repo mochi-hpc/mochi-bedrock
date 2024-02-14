@@ -16,7 +16,7 @@ import json
 import attr
 from attr import Factory
 from attr.validators import instance_of, in_
-from typing import List, NoReturn, Union
+from typing import List, NoReturn, Union, Optional
 
 
 def _check_validators(instance, attribute, value):
@@ -1234,7 +1234,7 @@ def _swim_from_args(arg) -> SwimSpec:
     elif isinstance(arg, dict):
         return MargoSpec(**arg)
     elif arg is None:
-        return SwimSpec(disable=True)
+        return SwimSpec(disabled=True)
     else:
         raise TypeError(f'cannot convert type {type(arg)} into a SwimSpec')
 
@@ -1275,20 +1275,22 @@ class SSGSpec:
     group_file: str = attr.ib(
         validator=instance_of(str),
         default='')
-    swim: SwimSpec = attr.ib(
+    swim: Optional[SwimSpec] = attr.ib(
         validator=instance_of(SwimSpec),
         converter=_swim_from_args,
-        factory=SwimSpec)
+        default=None)
 
     def to_dict(self) -> dict:
         """Convert the SSGSpec into a dictionary.
         """
-        return {'name': self.name,
-                'pool': self.pool.name,
-                'credential': self.credential,
-                'bootstrap': self.bootstrap,
-                'group_file': self.group_file,
-                'swim': self.swim.to_dict()}
+        result = {'name': self.name,
+                  'pool': self.pool.name,
+                  'credential': self.credential,
+                  'bootstrap': self.bootstrap,
+                  'group_file': self.group_file}
+        if self.swim is not None:
+            result['swim'] = self.swim.to_dict()
+        return result
 
     @staticmethod
     def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'SSGSpec':
@@ -1304,7 +1306,8 @@ class SSGSpec:
         """
         args = data.copy()
         args['pool'] = abt_spec.pools[data['pool']]
-        args['swim'] = SwimSpec.from_dict(args['swim'])
+        if 'swim' in args:
+            args['swim'] = SwimSpec.from_dict(args['swim'])
         ssg = SSGSpec(**args)
         return ssg
 

@@ -83,33 +83,15 @@ class ServiceHandle {
                     AsyncRequest* req = nullptr) const;
 
     /**
-     * @brief Constant to tell startProvider to create a new provider with
-     * any Id that it finds available.
+     * @brief Creates a provider on the target service daemon.
+     *
+     * @param description JSON description of the provider.
+     * @param req Asynchronous request to wait on, if provided.
      */
-    static constexpr uint16_t NewProviderID = std::numeric_limits<uint16_t>::max();
+    void addProvider(const std::string& description,
+                     uint16_t*          provider_id_out = nullptr,
+                     AsyncRequest*      req = nullptr) const;
 
-    /**
-     * @brief Starts a new provider on the target service daemon.
-     *
-     * @param[in] name Name of the new provider.
-     * @param[in] type Type of the new provider.
-     * @param[in] provider_id Requested provider id.
-     * @param[out] provider_id_out Will be set to the created provider id.
-     * @param[in] pool Pool for the provider to use.
-     * @param[in] config Configuration (JSON-formatted).
-     * @param[in] dependencies Dependencies for the provider.
-     * @param[in] tags Tags.
-     * @param[in] req Asynchronous request to wait on, if provided.
-     *
-     * Note: passing nullptr to provider_id_out is valid, the result will simply be ignored.
-     */
-    void startProvider(const std::string& name, const std::string& type,
-                       uint16_t provider_id, uint16_t* provider_id_out = nullptr,
-                       const std::string& pool = "",
-                       const std::string&   config       = "{}",
-                       const DependencyMap& dependencies = DependencyMap(),
-                       const std::vector<std::string>& tags = {},
-                       AsyncRequest*        req          = nullptr) const;
 
     /**
      * @brief Request that a provider change its pool for another one.
@@ -178,35 +160,26 @@ class ServiceHandle {
     /**
      * @brief Creates a client on the target service daemon.
      *
-     * @param name Name of the new client.
-     * @param type Type of the new client.
-     * @param config Configuration (JSON-formatted).
-     * @param dependencies Dependencies for the client.
+     * @param description JSON description of the client.
      * @param req Asynchronous request to wait on, if provided.
      */
-    void addClient(const std::string& name, const std::string& type,
-                   const std::string&   config          = "{}",
-                   const DependencyMap& dependencies    = DependencyMap(),
-                   const std::vector<std::string>& tags = {},
-                   AsyncRequest*        req             = nullptr) const;
+    void addClient(const std::string& description,
+                   AsyncRequest*      req = nullptr) const;
 
     /**
      * @brief Creates a new ABT-IO instance on the target service daemon.
      *
-     * @param name Name of the new ABT-IO instance.
-     * @param pool Name of the pool to use.
-     * @param config Configuration (JSON-formatted).
+     * @param description JSON description.
      * @param req Asynchronous request to wait on, if provided.
      */
-    void addABTioInstance(const std::string& name, const std::string& pool,
-                          const std::string& config = "{}",
-                          AsyncRequest*      req    = nullptr) const;
+    void addABTioInstance(const std::string& description,
+                          AsyncRequest*      req = nullptr) const;
 
     /**
      * @brief Adds an SSG group to the target service daemon.
      * The group is created from the provided JSON configuration.
      *
-     * @param config JSON configuration.
+     * @param description JSON description.
      * @param req Asynchronous request to wait on, if provided.
      */
     void addSSGgroup(const std::string& config,

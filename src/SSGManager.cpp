@@ -5,6 +5,7 @@
  */
 #include "bedrock/SSGManager.hpp"
 #include "bedrock/MargoManager.hpp"
+#include "JsonUtil.hpp"
 #include "Exception.hpp"
 #include "SSGManagerImpl.hpp"
 #include <margo.h>
@@ -27,16 +28,6 @@ namespace bedrock {
 using nlohmann::json;
 using namespace std::string_literals;
 
-#define ASSERT_TYPE(_config, _type, _msg) \
-    if (!_config.is_##_type()) { throw DETAILED_EXCEPTION(_msg); }
-
-#define ASSERT_TYPE_OR_DEFAULT(_config, _key, _type, _default, _msg) \
-    if (!_config.contains(_key)) {                                   \
-        _config[_key] = _default;                                    \
-    } else if (!_config[_key].is_##_type()) {                        \
-        throw DETAILED_EXCEPTION(_msg);                                       \
-    }
-
 int SSGManagerImpl::s_num_ssg_init = 0;
 #ifdef ENABLE_MPI
 bool SSGManagerImpl::s_initialized_mpi = false;
@@ -53,120 +44,12 @@ class SSGUpdateHandler {
 #endif
 };
 
-#ifdef ENABLE_SSG
-static void validateGroupConfig(json&                           config,
-                                const std::vector<std::string>& existing_names,
-                                const MargoManager&             margo) {
-    // validate name field
-    auto default_name
-        = "__ssg_"s + std::to_string(existing_names.size()) + "__";
-    if (!config.contains("name")) { config["name"] = default_name; }
-    ASSERT_TYPE(config["name"], string, "SSG group name should be a string");
-    auto name = config["name"].get<std::string>();
-    if (std::find(existing_names.begin(), existing_names.end(), name)
-        != existing_names.end()) {
-        throw DETAILED_EXCEPTION("An SSG group with name \"{}\" is already defined");
-    }
-    // validate swim object
-    if (config.contains("swim") && !config["swim"].is_object()) {
-        throw DETAILED_EXCEPTION(
-            "\"swim\" entry in SSG group configuration should be an object");
-    } else if (!config.contains("swim")) {
-        config["swim"] = json::object();
-    }
-    auto& swim_config = config["swim"];
-    // validate period_length_ms
-    ASSERT_TYPE_OR_DEFAULT(swim_config, "period_length_ms", number_integer, 0,
-                           "\"swim.period_length_ms\" should be an integer");
-    // validate suspect_timeout_periods
-    ASSERT_TYPE_OR_DEFAULT(
-        swim_config, "suspect_timeout_periods", number_integer, -1,
-        "\"swim.suspect_timeout_periods\" should be an integer");
-    // validate subgroup_member_count
-    ASSERT_TYPE_OR_DEFAULT(
-        swim_config, "subgroup_member_count", number_integer, -1,
-        "\"swim.subgroup_member_count\" should be an integer");
-    // validate disabled
-    ASSERT_TYPE_OR_DEFAULT(swim_config, "disabled", boolean, false,
-                           "\"swim.disabled\" should be a boolean");
-    // validate credential
-    ASSERT_TYPE_OR_DEFAULT(config, "credential", number_integer, -1,
-                           "\"credential\" should be an integer");
-    // validate group_file
-    ASSERT_TYPE_OR_DEFAULT(config, "group_file", string, "",
-                           "\"group_file\" should be a string");
-    // validate bootstrap
-    if (!config.contains("bootstrap")) config["bootstrap"] = "init";
-    ASSERT_TYPE(config["bootstrap"], string,
-                "\"bootstrap\" field should be a string");
-    auto bootstrap = config["bootstrap"].get<std::string>();
-    if (bootstrap != "init" && bootstrap != "join" && bootstrap != "mpi"
-        && bootstrap != "pmix" && bootstrap != "init|join"
-        && bootstrap != "mpi|join" && bootstrap != "pmix|join") {
-        throw DETAILED_EXCEPTION(
-            "Invalid bootstrap value \"{}\" in SSG group configuration",
-            bootstrap);
-    }
-    if (config.contains("pool")) {
-        if (config["pool"].is_string()) {
-            auto pool_name = config["pool"].get<std::string>();
-            if (!margo.getPool(pool_name)) {
-                throw DETAILED_EXCEPTION(
-                    "Could not find pool \"{}\" in SSG configuration",
-                    pool_name);
-            }
-        } else if (config["pool"].is_number_integer()) {
-            auto pool_index = config["pool"].get<int>();
-            if (!margo.getPool(pool_index)) {
-                throw DETAILED_EXCEPTION(
-                    "Could not find pool number {} in SSG configuration",
-                    pool_index);
-            }
-        } else {
-            throw DETAILED_EXCEPTION(
-                "Invalid pool type in SSG group configuration (expected int or "
-                "string)");
-        }
-    }
-}
-
-static void extractConfigParameters(const json&         config,
-                                    const MargoManager& margo,
-                                    std::string& name, std::string& bootstrap,
-                                    ssg_group_config_t& group_config,
-                                    std::string& group_file,
-                                    std::shared_ptr<NamedDependency>& pool) {
-    name      = config["name"].get<std::string>();
-    bootstrap = config["bootstrap"].get<std::string>();
-    auto swim = config["swim"];
-    group_config.swim_period_length_ms
-        = swim["period_length_ms"].get<int32_t>();
-    group_config.swim_suspect_timeout_periods
-        = swim["suspect_timeout_periods"].get<int32_t>();
-    group_config.swim_subgroup_member_count
-        = swim["subgroup_member_count"].get<int32_t>();
-    group_config.swim_disabled  = swim["disabled"].get<bool>();
-    group_config.ssg_credential = config["credential"].get<int64_t>();
-    group_file                  = config["group_file"].get<std::string>();
-    if (config.contains("pool")) {
-        if (config["pool"].is_string()) {
-            pool = margo.getPool(config["pool"].get<std::string>());
-        } else {
-            pool = margo.getPool(config["pool"].get<size_t>());
-        }
-    } else {
-        pool = margo.getDefaultHandlerPool();
-    }
-}
-#endif
-
 SSGManager::SSGManager(const MargoManager& margo,
                        const Jx9Manager& jx9,
-                       const std::string&  configString)
+                       const json&  config)
 : self(std::make_shared<SSGManagerImpl>()) {
     self->m_margo_manager = margo;
     self->m_jx9_manager   = jx9;
-    auto config           = json::parse(configString);
 
     if(config.is_null()) return;
     if(!(config.is_array() || config.is_object()))
@@ -178,26 +61,12 @@ SSGManager::SSGManager(const MargoManager& margo,
             "Configuration has \"ssg\" entry but Bedrock wasn't compiled with SSG support");
     }
 #else
-
-    auto addGroup = [this, &margo](const auto& config) {
-        std::string                      name, bootstrap, group_file;
-        ssg_group_config_t               group_config;
-        std::shared_ptr<NamedDependency> pool;
-        extractConfigParameters(config, margo, name, bootstrap, group_config,
-                                group_file, pool);
-        createGroup(name, group_config, pool, bootstrap, group_file);
-    };
-
-    std::vector<std::string> existing_names;
     if (config.is_object()) {
-        validateGroupConfig(config, existing_names, margo);
-        addGroup(config);
+        addGroupFromJSON(config);
     } else if (config.is_array()) {
-        for (auto& c : config) {
-            validateGroupConfig(c, existing_names, margo);
-            existing_names.push_back(c["name"].get<std::string>());
+        for (const auto& c : config) {
+            addGroupFromJSON(c);
         }
-        for (const auto& c : config) { addGroup(c); }
     }
 
     self->updateJx9Ranks();
@@ -237,7 +106,7 @@ std::shared_ptr<NamedDependency> SSGManager::getGroup(const std::string& group_n
 #endif
 }
 
-std::shared_ptr<NamedDependency> SSGManager::getGroup(uint32_t group_index) const {
+std::shared_ptr<NamedDependency> SSGManager::getGroup(size_t group_index) const {
 #ifdef ENABLE_SSG
     if(group_index >= self->m_ssg_groups.size()) {
         throw DETAILED_EXCEPTION("Could not find SSG group at index {}", group_index);
@@ -260,11 +129,11 @@ size_t SSGManager::getNumGroups() const {
 }
 
 std::shared_ptr<NamedDependency>
-SSGManager::createGroup(const std::string&                      name,
-                        const ssg_group_config_t&               config,
-                        const std::shared_ptr<NamedDependency>& pool,
-                        const std::string& bootstrap_method,
-                        const std::string& group_file) {
+SSGManager::addGroup(const std::string&                      name,
+                     const ssg_group_config_t&               config,
+                     const std::shared_ptr<NamedDependency>& pool,
+                     const std::string&                      bootstrap,
+                     const std::string&                      group_file) {
 #ifndef ENABLE_SSG
     (void)name;
     (void)config;
@@ -279,17 +148,32 @@ SSGManager::createGroup(const std::string&                      name,
     auto           margo = MargoManager(self->m_margo_manager);
     auto           mid = margo.getMargoInstance();
 
+    auto it = std::find_if(self->m_ssg_groups.begin(), self->m_ssg_groups.end(),
+                           [&](auto& g) { return g->getName() == name; });
+    if (it != self->m_ssg_groups.end()) {
+        throw DETAILED_EXCEPTION("SSG group name \"{}\" already used", name);
+    }
+
+    if (SSGManagerImpl::s_num_ssg_init == 0) {
+        int ret = ssg_init();
+        if (ret != SSG_SUCCESS) {
+            throw DETAILED_EXCEPTION(
+                "Could not initialize SSG (ssg_init returned {})", ret);
+        }
+    }
+    SSGManagerImpl::s_num_ssg_init += 1;
+
     // The inner data of the ssg_entry will be set later.
     // The ssg_entry needs to be created here because the
     // membership callback needs it.
     auto ssg_entry = std::make_shared<SSGEntry>(self, name, pool);
 
     spdlog::trace("Creating SSG group {} with bootstrap method {}", name,
-                  bootstrap_method);
+                  bootstrap);
 
     (void)pool; // TODO add support for specifying the pool
 
-    auto method = bootstrap_method;
+    auto method = bootstrap;
 
     if (method == "init|join"
     ||  method == "mpi|join"
@@ -390,8 +274,7 @@ SSGManager::createGroup(const std::string&                      name,
         throw DETAILED_EXCEPTION("Bedrock was not compiled with PMIx support");
 #endif // ENABLE_PMIX
     } else {
-        throw DETAILED_EXCEPTION("Invalid SSG bootstrapping method {}",
-                        bootstrap_method);
+        throw DETAILED_EXCEPTION("Invalid SSG bootstrapping method {}", bootstrap);
     }
     int rank = -1;
     ret      = ssg_get_group_self_rank(gid, &rank);
@@ -411,7 +294,7 @@ SSGManager::createGroup(const std::string&                      name,
     }
     ssg_entry->setSSGid(gid);
     ssg_entry->config        = config;
-    ssg_entry->bootstrap     = bootstrap_method;
+    ssg_entry->bootstrap     = bootstrap;
     ssg_entry->group_file    = group_file;
     ssg_entry->pool          = pool;
     ssg_entry->rank          = rank;
@@ -424,40 +307,65 @@ SSGManager::createGroup(const std::string&                      name,
 }
 
 std::shared_ptr<NamedDependency>
-SSGManager::createGroupFromConfig(const std::string& configString) {
+SSGManager::addGroupFromJSON(const json& description) {
 #ifndef ENABLE_SSG
-    (void)configString;
+    (void)config;
     throw DETAILED_EXCEPTION("Bedrock wasn't compiled with SSG support");
     return 0;
 #else // ENABLE_SSG
-    auto config = json::parse(configString);
-    if (!config.is_object()) {
-        throw DETAILED_EXCEPTION("SSG group config should be an object");
+
+    static constexpr const char* configSchema = R"(
+    {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+            "pool": {"oneOf": [
+                {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+                {"type": "integer", "minimum": 0 }
+            ]},
+            "credential": {"type": "integer"},
+            "group_file": {"type": "string"},
+            "bootstrap": {"enum": ["init", "mpi", "pmix", "join", "init|join", "mpi|join", "pmix|join"]},
+            "swim": {
+                "type": "object",
+                "properties": {
+                    "period_length_ms": {"type": "integer"},
+                    "suspect_timeout_periods": {"type": "integer"},
+                    "subgroup_member_count": {"type": "integer"},
+                    "disabled": {"type": "boolean"}
+                }
+            }
+        },
+        "required": ["name"]
     }
-
-    std::vector<std::string> existing_names;
-    for (const auto& g : self->m_ssg_groups) {
-        existing_names.push_back(g->getName());
-    }
-
-    auto margo = MargoManager(self->m_margo_manager);
-    validateGroupConfig(config, existing_names, margo);
-
-    if (SSGManagerImpl::s_num_ssg_init == 0) {
-        int ret = ssg_init();
-        if (ret != SSG_SUCCESS) {
-            throw DETAILED_EXCEPTION("Could not initialize SSG (ssg_init returned {})",
-                            ret);
-        }
-    }
-    SSGManagerImpl::s_num_ssg_init += 1;
-
-    std::string                      name, bootstrap, group_file;
-    ssg_group_config_t               group_config;
+    )";
+    static const JsonValidator validator{configSchema};
+    validator.validate(description, "SSGManager");
+    auto name = description["name"].get<std::string>();
     std::shared_ptr<NamedDependency> pool;
-    extractConfigParameters(config, margo, name, bootstrap, group_config,
-                            group_file, pool);
-    return createGroup(name, group_config, pool, bootstrap, group_file);
+    if(description.contains("pool") && description["pool"].is_number()) {
+        pool = MargoManager(self->m_margo_manager)
+            .getPool(description["pool"].get<uint32_t>());
+    } else {
+        pool = MargoManager(self->m_margo_manager)
+            .getPool(description.value("pool", "__primary__"));
+    }
+    auto bootstrap = description.value("bootstrap", "init");
+    auto group_file = description.value("group_file", "");
+    ssg_group_config_t config = SSG_GROUP_CONFIG_INITIALIZER;
+    if(description.contains("credential"))
+        config.ssg_credential = description["credential"].get<int64_t>();
+    if(description.contains("swim") && !description["swim"].value("disabled", false)) {
+        auto& swim = description["swim"];
+        config.swim_disabled                = 0;
+        config.swim_period_length_ms        = swim.value("period_length_ms", 0);
+        config.swim_suspect_timeout_periods = swim.value("suspect_timeout_periods", -1);
+        config.swim_subgroup_member_count   = swim.value("subgroup_member_count", -1);
+    } else {
+        config.swim_disabled = 1;
+    }
+    return addGroup(name, config, pool, bootstrap, group_file);
 #endif // ENABLE_SSG
 }
 
@@ -518,11 +426,11 @@ hg_addr_t SSGManager::resolveAddress(const std::string& address) const {
 #endif // ENABLE_SSG
 }
 
-std::string SSGManager::getCurrentConfig() const {
+json SSGManager::getCurrentConfig() const {
 #ifndef ENABLE_SSG
-    return "[]";
+    return json::array();
 #else
-    return self->makeConfig().dump();
+    return self->makeConfig();
 #endif
 }
 

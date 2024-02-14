@@ -200,13 +200,14 @@ class SSGManager:
 
     def create(self, name: str, pool: str|int|Pool = "__primary__",
                config: str|dict|SSGSpec = "{}",
-               bootstrap: str = "init", group_file: str = "") -> SSGGroup:
+               bootstrap: str = "init", group_file: str = "",
+               credential: int = -1) -> SSGGroup:
         if not isinstance(pool, Pool):
             pool = self._server.margo.pools[pool]
+        pool = pool._internal
         if isinstance(config, str):
             config = json.loads(config)
-        pool = pool._internal
-        return SSGGroup(self._internal.create_group(name, config, pool, bootstrap, group_file))
+        return SSGGroup(self._internal.add_group(name, config, pool, bootstrap, group_file, credential))
 
 
 class AbtIOManager:
@@ -237,11 +238,12 @@ class AbtIOManager:
         except BedrockException:
             return False
 
-    def create(self, name: str, pool: str|Pool, config: str|dict = "{}") -> AbtIOInstance:
-        if isinstance(config, dict):
-            config = json.dumps(config)
-        if isinstance(pool, Pool):
-            pool = pool.name
+    def create(self, name: str, pool: str|int|Pool, config: str|dict = {}) -> AbtIOInstance:
+        if isinstance(config, str):
+            config = json.loads(config)
+        if not isinstance(pool, Pool):
+            pool = self._server.margo.pools[pool]
+        pool = pool._internal
         return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))
 
 
@@ -253,25 +255,20 @@ class ClientManager:
 
     @property
     def config(self) -> dict:
-        return json.loads(self._internal.config)
+        return self._internal.config
 
     @property
     def spec(self) -> list[ClientSpec]:
         return [ClientSpec.from_dict(client) for client in self.config]
 
     def __len__(self):
-        return len(self._internal.clients)
+        return self._internal.num_clients
 
-    def __getitem__(self, key: int|str) -> Provider:
-        clients = self._internal.clients
-        if isinstance(key, int):
-            key = clients[key].name
-        return self.lookup(key)
+    def __getitem__(self, key: int|str) -> Client:
+        return self._internal.get_client(key)
 
     def __delitem__(self, key: int|str) -> None:
-        if isinstance(key, int):
-            key = self._internal.clients[key].name
-        self._internal.destroy_client(key)
+        self._internal.remove_client(key)
 
     def __contains__(self, key: str) -> bool:
         try:
@@ -280,15 +277,12 @@ class ClientManager:
         except BedrockException:
             return False
 
-    def lookup(self, locator: str) -> Client:
-        return Client(self._internal.lookup_client(locator))
-
-    def lookup_or_create_anonymous(self, type: str) -> Client:
-        return Client(self._internal.lookup_client_or_create(type))
+    def get_or_create_anonymous(self, type: str) -> Client:
+        return Client(self._internal.get_client_or_create(type))
 
     def create(self, name: str, type: str, config: str|dict = "{}",
-               dependencies: Mapping[str,str] = {},
-               tags: List[str] = []) -> Client:
+               dependencies: dict[str,str|list[str]] = {},
+               tags: list[str] = []) -> Client:
         if isinstance(config, str):
             config = json.loads(config)
         info = {
@@ -298,7 +292,7 @@ class ClientManager:
             "tags": tags,
             "config": config
         }
-        return Client(self._internal.add_client_from_json(json.dumps(info)))
+        return Client(self._internal.add_client(info))
 
 
 class ProviderManager:
@@ -309,7 +303,7 @@ class ProviderManager:
 
     @property
     def config(self) -> dict:
-        return json.loads(self._internal.config)
+        return self._internal.config
 
     @property
     def spec(self) -> list[ProviderSpec]:
@@ -317,13 +311,10 @@ class ProviderManager:
         return [ProviderSpec.from_dict(provider, abt_spec) for provider in self.config]
 
     def __len__(self):
-        return len(self._internal.providers)
+        return self._internal.num_providers
 
     def __getitem__(self, key: int|str) -> Provider:
-        providers = self._internal.providers
-        if isinstance(key, int):
-            key = providers[key].name
-        return self.lookup(key)
+        return Provider(self, self._internal.get_provider(key))
 
     def __delitem__(self, key: str) -> None:
         self._internal.deregister_provider(key)
@@ -338,9 +329,10 @@ class ProviderManager:
     def lookup(self, locator: str):
         return Provider(self, self._internal.lookup_provider(locator))
 
-    def create(self, name: str, type: str, provider_id: int, pool: str|Pool,
-               config: str|dict = "{}", dependencies: Mapping[str,str] = {},
-               tags: List[str] = []) -> Provider:
+    def create(self, name: str, type: str, provider_id: int = 65535,
+               pool: str|int|Pool = "__primary__",
+               config: str|dict = {}, dependencies: dict[str,str|list[str]] = {},
+               tags: list[str] = []) -> Client:
         if isinstance(pool, Pool):
             pool = pool.name
         if isinstance(config, str):
@@ -353,7 +345,7 @@ class ProviderManager:
             "tags": tags,
             "config": config
         }
-        return Provider(self, self._internal.add_provider_from_json(json.dumps(info)))
+        return Provider(self, self._internal.add_provider(info))
 
     def migrate(self, provider: str, dest_addr: str,
                 dest_provider_id: str, migration_config: str|dict = "{}",

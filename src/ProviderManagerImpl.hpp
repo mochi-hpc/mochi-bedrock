@@ -97,7 +97,6 @@ class ProviderManagerImpl
     std::shared_ptr<Jx9ManagerImpl>   m_jx9_manager;
 
     tl::auto_remote_procedure m_lookup_provider;
-    tl::auto_remote_procedure m_list_providers;
     tl::auto_remote_procedure m_load_module;
     tl::auto_remote_procedure m_start_provider;
     tl::auto_remote_procedure m_change_provider_pool;
@@ -110,8 +109,6 @@ class ProviderManagerImpl
     : tl::provider<ProviderManagerImpl>(engine, provider_id),
       m_lookup_provider(define("bedrock_lookup_provider",
                                &ProviderManagerImpl::lookupProviderRPC, pool)),
-      m_list_providers(define("bedrock_list_providers",
-                              &ProviderManagerImpl::listProvidersRPC, pool)),
       m_load_module(define("bedrock_load_module",
                            &ProviderManagerImpl::loadModuleRPC, pool)),
       m_start_provider(define("bedrock_start_provider",
@@ -202,13 +199,6 @@ class ProviderManagerImpl
         }
     }
 
-    void listProvidersRPC(const tl::request& req) {
-        auto manager = ProviderManager(shared_from_this());
-        RequestResult<std::vector<ProviderDescriptor>> result;
-        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
-        result.value() = manager.listProviders();
-    }
-
     void loadModuleRPC(const tl::request& req, const std::string& name,
                        const std::string& path) {
         RequestResult<bool> result;
@@ -223,25 +213,13 @@ class ProviderManagerImpl
         }
     }
 
-    void startProviderRPC(const tl::request& req, const std::string& name,
-                          const std::string& type, uint16_t provider_id,
-                          const std::string& pool, const std::string& config,
-                          const DependencyMap& dependencies,
-                          const std::vector<std::string>& tags) {
+    void startProviderRPC(const tl::request& req, const std::string& description) {
         RequestResult<uint16_t> result;
         tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         auto manager = ProviderManager(shared_from_this());
         try {
-            auto c           = json::object();
-            c["name"]        = name;
-            c["type"]        = type;
-            if(provider_id != std::numeric_limits<uint16_t>::max())
-                c["provider_id"] = provider_id;
-            if (!pool.empty()) c["pool"] = pool;
-            if (!config.empty()) c["config"] = json::parse(config);
-            c["dependencies"] = dependencies;
-            c["tags"] = tags;
-            result.value() = manager.addProviderFromJSON(c.dump())->getProviderID();
+            auto c = json::parse(description);
+            result.value() = manager.addProviderFromJSON(c)->getProviderID();
         } catch (std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();

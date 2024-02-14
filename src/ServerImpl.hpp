@@ -43,7 +43,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
 
     tl::remote_procedure m_get_config_rpc;
     tl::remote_procedure m_query_config_rpc;
-    tl::remote_procedure m_add_client_rpc;
     tl::remote_procedure m_add_abtio_rpc;
     tl::remote_procedure m_add_ssg_group_rpc;
 
@@ -62,8 +61,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
           define("bedrock_get_config", &ServerImpl::getConfigRPC, m_tl_pool)),
       m_query_config_rpc(
           define("bedrock_query_config", &ServerImpl::queryConfigRPC, m_tl_pool)),
-      m_add_client_rpc(
-          define("bedrock_add_client", &ServerImpl::addClientRPC, m_tl_pool)),
       m_add_abtio_rpc(
           define("bedrock_add_abtio", &ServerImpl::addABTioRPC, m_tl_pool)),
       m_add_ssg_group_rpc(
@@ -81,7 +78,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
     ~ServerImpl() {
         m_get_config_rpc.deregister();
         m_query_config_rpc.deregister();
-        m_add_client_rpc.deregister();
         m_add_abtio_rpc.deregister();
         m_add_ssg_group_rpc.deregister();
         m_add_pool_rpc.deregister();
@@ -126,65 +122,24 @@ class ServerImpl : public tl::provider<ServerImpl> {
         req.respond(result);
     }
 
-    void addClientRPC(const tl::request& req, const std::string& name,
-                      const std::string& type, const std::string& config,
-                      const DependencyMap& dependencies,
-                      const std::vector<std::string>& tags) {
+    void addABTioRPC(const tl::request& req, const std::string& description) {
         RequestResult<bool> result;
-        json                jsonconfig;
+        result.success() = true;
         try {
-            if (!config.empty())
-                jsonconfig = json::parse(config);
-            else
-                jsonconfig = json::object();
-        } catch (...) {
-            result.error()   = "Invalid JSON configuration for client";
-            result.success() = false;
-            req.respond(result);
-            return;
-        }
-        json fullconfig      = json::object();
-        fullconfig["name"]   = name;
-        fullconfig["type"]   = type;
-        fullconfig["config"] = jsonconfig;
-        fullconfig["tags"]   = tags;
-        fullconfig["dependencies"] = json::object();
-        auto& depconfig      = fullconfig["dependencies"];
-        for (auto& p : dependencies) {
-            auto& name = p.first;
-            auto& list = p.second;
-            auto  dep  = json::array();
-            for (auto& v : list) { dep.push_back(v); }
-            depconfig[name] = dep;
-        }
-        try {
-            ClientManager(m_client_manager).addClientFromJSON(fullconfig.dump());
-        } catch (const Exception& ex) {
+            ABTioManager(m_abtio_manager).addABTioInstanceFromJSON(json::parse(description));
+        } catch (const std::exception& ex) {
             result.error()   = ex.what();
             result.success() = false;
         }
         req.respond(result);
     }
 
-    void addABTioRPC(const tl::request& req, const std::string& name,
-                     const std::string& pool, const std::string& config) {
+    void addSSGgroupRPC(const tl::request& req, const std::string& description) {
         RequestResult<bool> result;
         result.success() = true;
         try {
-            ABTioManager(m_abtio_manager).addABTioInstance(name, pool, config);
-        } catch (const Exception& ex) {
-            result.error()   = ex.what();
-            result.success() = false;
-        }
-        req.respond(result);
-    }
-
-    void addSSGgroupRPC(const tl::request& req, const std::string& config) {
-        RequestResult<bool> result;
-        result.success() = true;
-        try {
-            SSGManager(m_ssg_manager).createGroupFromConfig(config);
-        } catch (const Exception& ex) {
+            SSGManager(m_ssg_manager).addGroupFromJSON(json::parse(description));
+        } catch (const std::exception& ex) {
             result.error()   = ex.what();
             result.success() = false;
         }

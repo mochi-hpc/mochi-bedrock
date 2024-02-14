@@ -99,21 +99,21 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initializing SSG context
         spdlog::trace("Initializing SSGManager");
-        auto ssgConfig      = config["ssg"].dump();
+        auto& ssgConfig     = config["ssg"];
         auto ssgMgr         = SSGManager(margoMgr, jx9Manager, ssgConfig);
         self->m_ssg_manager = ssgMgr;
         spdlog::trace("SSGManager initialized");
 
         // Initialize abt-io context
         spdlog::trace("Initializing ABTioManager");
-        auto abtioConfig      = config["abt_io"].dump();
+        auto& abtioConfig     = config["abt_io"];
         auto abtioMgr         = ABTioManager(margoMgr, jx9Manager, abtioConfig);
         self->m_abtio_manager = abtioMgr;
         spdlog::trace("ABTioManager initialized");
 
         // Initialize mona manager
         spdlog::trace("Initializing MonaManager");
-        auto monaConfig      = config["mona"].dump();
+        auto& monaConfig     = config["mona"];
         auto monaMgr         = MonaManager(margoMgr, jx9Manager, monaConfig, address);
         self->m_mona_manager = monaMgr;
         spdlog::trace("MonaManager initialized");
@@ -149,12 +149,12 @@ Server::Server(const std::string& address, const std::string& configString,
         // Creating clients
         spdlog::trace("Initializing clients");
         clientManager.setDependencyFinder(dependencyFinder);
-        auto clientManagerConfig = config["clients"].dump();
+        auto& clientManagerConfig = config["clients"];
         clientManager.addClientListFromJSON(clientManagerConfig);
 
         // Starting up providers
         spdlog::trace("Initializing providers");
-        auto providerManagerConfig = config["providers"].dump();
+        auto& providerManagerConfig = config["providers"];
         providerManager.setDependencyFinder(dependencyFinder);
         providerManager.addProviderListFromJSON(providerManagerConfig);
         spdlog::trace("Providers initialized");

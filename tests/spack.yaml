@@ -22,6 +22,7 @@ spack:
   - py-pybind11
   - py-attrs
   - py-coverage
+  - valijson
   concretizer:
     unify: true
     reuse: true

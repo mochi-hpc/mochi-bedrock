@@ -89,17 +89,18 @@ class ClientManagerImpl
     std::shared_ptr<Jx9ManagerImpl>   m_jx9_manager;
 
     tl::remote_procedure m_lookup_client;
-    tl::remote_procedure m_list_clients;
+    tl::remote_procedure m_add_client;
 
     ClientManagerImpl(const tl::engine& engine, uint16_t provider_id,
                       const tl::pool& pool)
-    : tl::provider<ClientManagerImpl>(engine, provider_id),
-      m_lookup_client(define("bedrock_lookup_client",
-                             &ClientManagerImpl::lookupClientRPC, pool)),
-      m_list_clients(define("bedrock_list_clients",
-                            &ClientManagerImpl::listClientsRPC, pool)) {}
+    : tl::provider<ClientManagerImpl>(engine, provider_id)
+    , m_lookup_client(define("bedrock_lookup_client",
+                             &ClientManagerImpl::lookupClientRPC, pool))
+    , m_add_client(define("bedrock_add_client",
+                          &ClientManagerImpl::addClientRPC, pool))
+    {}
 
-    auto resolveSpec(const std::string& spec) {
+    auto findByName(const std::string& spec) {
         auto it = std::find_if(
             m_clients.begin(), m_clients.end(),
             [&spec](const std::shared_ptr<ClientEntry>& item) { return item->getName() == spec; });
@@ -119,12 +120,12 @@ class ClientManagerImpl
         double        t1      = tl::timer::wtime();
         RequestResult<ClientDescriptor> result;
         std::unique_lock<tl::mutex> lock(m_clients_mtx);
-        auto it = resolveSpec(name);
+        auto it = findByName(name);
         if (it == m_clients.end() && timeout > 0) {
             m_clients_cv.wait(lock, [this, &name, &it, t1, timeout]() {
                 // FIXME will not actually wake up after timeout
                 double t2 = tl::timer::wtime();
-                it = resolveSpec(name);
+                it = findByName(name);
                 return (t2 - t1 > timeout) || (it != m_clients.end());
             });
         }
@@ -138,10 +139,26 @@ class ClientManagerImpl
         req.respond(result);
     }
 
-    void listClientsRPC(const tl::request& req) {
-        auto manager = ClientManager(shared_from_this());
-        RequestResult<std::vector<ClientDescriptor>> result;
-        result.value() = manager.listClients();
+    void addClientRPC(const tl::request& req, const std::string& description) {
+        RequestResult<bool> result;
+        json                jsonconfig;
+        try {
+            if (!description.empty())
+                jsonconfig = json::parse(description);
+            else
+                jsonconfig = json::object();
+        } catch (const std::exception& ex) {
+            result.error()   = "Invalid JSON configuration for client";
+            result.success() = false;
+            req.respond(result);
+            return;
+        }
+        try {
+            ClientManager(shared_from_this()).addClientFromJSON(jsonconfig);
+        } catch (const Exception& ex) {
+            result.error()   = ex.what();
+            result.success() = false;
+        }
         req.respond(result);
     }
 };

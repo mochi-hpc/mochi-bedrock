@@ -7,6 +7,7 @@
 #define __BEDROCK_SSG_MANAGER_HPP
 
 #include <bedrock/MargoManager.hpp>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
 
@@ -33,17 +34,19 @@ class SSGManager {
     friend class DependencyFinder;
     friend class SSGUpdateHandler;
 
+    using json = nlohmann::json;
+
   public:
     /**
      * @brief Constructor from a JSON configurations string.
      *
      * @param margo MargoManager
      * @param jx9 Jx9Manager
-     * @param configString Configuration string.
+     * @param config JSON configuration.
      */
     SSGManager(const MargoManager& margo,
                const Jx9Manager& jx9,
-               const std::string& configString = "");
+               const json& config = json::object());
 
     /**
      * @brief Copy-constructor.
@@ -76,14 +79,31 @@ class SSGManager {
     operator bool() const;
 
     /**
-     * @brief Create a group from a full configuration.
+     * @brief Create a group from a JSON configuration.
      *
-     * @param config JSON-formatted configuration.
+     * @param description JSON description of the group.
      *
-     * @return The created group id.
+     * @return The created group as a NamedDependency.
+     *
+     * Example of JSON description:
+     *
+     * ```json
+     * {
+     *    "name": "my_ssg_group",
+     *    "pool": "my_pool",
+     *    "credential": 1234,
+     *    "group_file": "/path/to/group/file.ssg",
+     *    "bootstrap": "init|join",
+     *    "swim": {
+     *        "period_length_ms": 500,
+     *        "suspect_timeout_periods": 3,
+     *        "subgroup_member_count": 5
+     *    }
+     * }
+     * ```
      */
     std::shared_ptr<NamedDependency>
-        createGroupFromConfig(const std::string& config);
+        addGroupFromJSON(const json& description);
 
     /**
      * @brief Create a group and add it to the SSG context.
@@ -97,25 +117,29 @@ class SSGManager {
      * @return The newly created SSG group.
      */
     std::shared_ptr<NamedDependency>
-        createGroup(const std::string&        name,
-                    const ssg_group_config_t& config,
-                    const std::shared_ptr<NamedDependency>& pool,
-                    const std::string& bootstrap_method,
-                    const std::string& group_file = "");
+        addGroup(const std::string&        name,
+                 const ssg_group_config_t& config,
+                 const std::shared_ptr<NamedDependency>& pool,
+                 const std::string& bootstrap_method,
+                 const std::string& group_file = "");
 
     /**
-     * @brief Get the internal ssg_group_id_t corresponding to a group.
+     * @brief Get an internal SSG group by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return the internal ssg_group_id_t.
+     * @return a NamedDependency representing the group.
      */
     std::shared_ptr<NamedDependency> getGroup(const std::string& group_name) const;
 
     /**
-     * @brief Get the internal ssg_group_id_t corresponding to a group index.
+     * @brief Get an internal SSG group by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return the internal ssg_group_id_t.
+     * @return a NamedDependency representing the group.
      */
-    std::shared_ptr<NamedDependency> getGroup(uint32_t index) const;
+    std::shared_ptr<NamedDependency> getGroup(size_t index) const;
 
     /**
      * @brief Get the number of groups.
@@ -140,7 +164,7 @@ class SSGManager {
     /**
      * @brief Return the current JSON configuration.
      */
-    std::string getCurrentConfig() const;
+    json getCurrentConfig() const;
 
   private:
     std::shared_ptr<SSGManagerImpl> self;

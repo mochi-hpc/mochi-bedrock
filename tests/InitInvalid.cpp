@@ -20,10 +20,10 @@ TEST_CASE("Tests Server initialization", "[init-invalid]") {
             << jf[i]["test"].get<std::string>() << ")")
         {
             auto input_config = jf[i]["input"].dump();
-            REQUIRE_THROWS_MATCHES(
+            CAPTURE(input_config);
+            REQUIRE_THROWS_AS(
                 bedrock::Server("na+sm", input_config),
-                bedrock::Exception,
-                Catch::Matchers::Message(jf[i]["error"].get_ref<const std::string&>()));
+                bedrock::Exception);
         }
     }
 }

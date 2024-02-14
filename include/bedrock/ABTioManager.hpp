@@ -7,6 +7,7 @@
 #define __BEDROCK_ABTIO_MANAGER_HPP
 
 #include <thallium.hpp>
+#include <nlohmann/json.hpp>
 #include <memory>
 #include <bedrock/NamedDependency.hpp>
 
@@ -33,6 +34,8 @@ class ABTioManager {
     friend class ServerImpl;
     friend class DependencyFinder;
 
+    using json = nlohmann::json;
+
   public:
     /**
      * @brief Constructor from a configuration string. The configuration
@@ -45,7 +48,7 @@ class ABTioManager {
      */
     ABTioManager(const MargoManager& margo_ctx,
                  const Jx9Manager& jx9,
-                 const std::string&  configString);
+                 const json& config);
 
     /**
      * @brief Copy-constructor.
@@ -78,20 +81,24 @@ class ABTioManager {
     operator bool() const;
 
     /**
-     * @brief Get the internal abt_io_instance_id by its name.
+     * @brief Get an internal abt-io instance by its name.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return internal abt_io_instance_id or nullptr.
+     * @return a NamedDependency representing the ABT-IO instance.
      */
     std::shared_ptr<NamedDependency>
         getABTioInstance(const std::string& name) const;
 
     /**
-     * @brief Get the internal abt_io_instance_id by its index.
+     * @brief Get an internal abt-io instance by its index.
+     * If not found, this function will throw an Exception.
+     * If returned, the shared_ptr is guaranteed not to be null.
      *
-     * @return internal abt_io_instance_id or nullptr.
+     * @return a NamedDependency representing the ABT-IO instance.
      */
     std::shared_ptr<NamedDependency>
-        getABTioInstance(int index) const;
+        getABTioInstance(size_t index) const;
 
     /**
      * @brief Returns the number of abt-io instances stored.
@@ -103,17 +110,41 @@ class ABTioManager {
      *
      * @param name Name of the instance.
      * @param pool Name of the pool to use.
-     * @param config JSON-formatted configuration.
+     * @param config JSON configuration.
+     *
+     * @return the NamedDependency handle for the newly-created instance.
      */
     std::shared_ptr<NamedDependency>
-        addABTioInstance(const std::string& name,
-                         const std::string& pool,
-                         const std::string& config);
+        addABTioInstance(const std::string&                      name,
+                         const std::shared_ptr<NamedDependency>& pool = {},
+                         const json&                             config = {});
+
+
+    /**
+     * @brief Adds an ABT-IO istance as described by the
+     * provided JSON object.
+     *
+     * @param description ABT-IO instance description.
+     *
+     * @return the NamedDependency handle for the newly-created instance.
+     *
+     * Example of JSON description:
+     *
+     * ```json
+     * {
+     *    "name": "my_abt_io_instance",
+     *    "pool": "my_pool",
+     *    "config": {}
+     * }
+     * ```
+     */
+    std::shared_ptr<NamedDependency>
+        addABTioInstanceFromJSON(const json& description);
 
     /**
      * @brief Return the current JSON configuration.
      */
-    std::string getCurrentConfig() const;
+    json getCurrentConfig() const;
 
   private:
     std::shared_ptr<ABTioManagerImpl> self;

@@ -82,21 +82,13 @@ PYBIND11_MODULE(pybedrock_client, m) {
                const std::string& path) {
                     sh.loadModule(name, path);
             }, "name"_a, "path"_a)
-        .def("start_provider",
+        .def("add_provider",
             [](const ServiceHandle& sh,
-               const std::string& name,
-               const std::string& type,
-               uint16_t provider_id,
-               const std::string& pool,
-               const std::string& config,
-               const DependencyMap& deps,
-               const std::vector<std::string>& tags) {
+               const std::string& description) {
                     uint16_t provider_id_out;
-                    sh.startProvider(name, type, provider_id, &provider_id_out, pool, config, deps, tags);
+                    sh.addProvider(description, &provider_id_out);
                     return provider_id_out;
-            }, "name"_a, "type"_a, "provider_id"_a=ServiceHandle::NewProviderID,
-               "pool"_a=std::string(""), "config"_a=std::string("{}"),
-               "dependencies"_a=DependencyMap(), "tags"_a=std::vector<std::string>{})
+            }, "description"_a)
         .def("change_provider_pool",
              [](const ServiceHandle& sh,
                 const std::string& provider_name,
@@ -105,29 +97,22 @@ PYBIND11_MODULE(pybedrock_client, m) {
              })
         .def("add_client",
             [](const ServiceHandle& sh,
-               const std::string& name,
-               const std::string& type,
-               const std::string& config,
-               const DependencyMap& deps,
-               const std::vector<std::string>& tags) {
-                    sh.addClient(name, type, config, deps, tags);
-            }, "name"_a, "type"_a, "config"_a=std::string("{}"),
-               "dependencies"_a=DependencyMap(), "tags"_a=std::vector<std::string>{})
+               const std::string& description) {
+                    sh.addClient(description);
+            }, "description"_a)
         .def("add_abtio_instance",
             [](const ServiceHandle& sh,
-               const std::string& name,
-               const std::string& pool,
-               const std::string& config) {
-                    sh.addABTioInstance(name, pool, config);
-            }, "name"_a, "pool"_a, "config"_a = std::string("{}"))
+               const std::string& description) {
+                    sh.addABTioInstance(description);
+            }, "description"_a = std::string("{}"))
         .def("add_ssg_group", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addSSGgroup(config);
             },
-            "config"_a)
+            "description"_a)
         .def("add_pool", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addPool(config);
             },
-            "config"_a)
+            "description"_a)
         .def("remove_pool", [](const ServiceHandle& sh, const std::string& pool_name) {
                 sh.removePool(pool_name);
             },
@@ -135,7 +120,7 @@ PYBIND11_MODULE(pybedrock_client, m) {
         .def("add_xstream", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addXstream(config);
             },
-            "config"_a)
+            "description"_a)
         .def("remove_xstream", [](const ServiceHandle& sh, const std::string& es_name) {
                 sh.removeXstream(es_name);
             },

@@ -68,60 +68,21 @@ class ServiceHandle:
     def remove_xstream(self, name: str):
         self._internal.remove_xstream(name)
 
-    def add_ssg_group(self, config: str|dict|SSGSpec):
-        config = self._ensure_config_str(config)
-        self._internal.add_ssg_group(config)
+    def add_ssg_group(self, description: str|dict|SSGSpec):
+        description = self._ensure_config_str(description)
+        self._internal.add_ssg_group(description)
 
-    def add_abtio_instance(self, config: str|dict|AbtIOSpec):
-        if isinstance(config, str):
-            config = json.loads(config)
-        elif isinstance(config, AbtIOSpec):
-            config = config.to_dict()
-        if "config" not in config:
-            config["config"] = {}
-        self._internal.add_abtio_instance(
-            name=config["name"], pool=config["pool"],
-            config=json.dumps(config["config"]))
+    def add_abtio_instance(self, description: str|dict|AbtIOSpec):
+        description = self._ensure_config_str(description)
+        self._internal.add_abtio_instance(description)
 
-    def add_client(self, config: str|dict|ClientSpec):
-        if isinstance(config, str):
-            config = json.loads(config)
-        elif isinstance(config, ClientSpec):
-            config = config.to_dict()
-        if "config" not in config:
-            config["config"] = {}
-        if "dependencies" not in config:
-            config["dependencies"] = {}
-        if "tags" not in config:
-            config["tags"] = []
-        self._internal.add_client(
-            name=config["name"],
-            type=config["type"],
-            config=json.dumps(config["config"]),
-            dependencies=config["dependencies"],
-            tags=config["tags"])
+    def add_client(self, description: str|dict|ClientSpec):
+        description = self._ensure_config_str(description)
+        self._internal.add_client(description)
 
-    def add_provider(self, config: str|dict|ProviderSpec):
-        if isinstance(config, str):
-            config = json.loads(config)
-        elif isinstance(config, ProviderSpec):
-            config = config.to_dict()
-        if "config" not in config:
-            config["config"] = {}
-        if "dependencies" not in config:
-            config["dependencies"] = {}
-        if "tags" not in config:
-            config["tags"] = []
-        if "pool" not in config:
-            config["pool"] = "__primary__"
-        return self._internal.start_provider(
-            name=config["name"],
-            type=config["type"],
-            provider_id=config["provider_id"],
-            pool=config["pool"],
-            config=json.dumps(config["config"]),
-            dependencies=config["dependencies"],
-            tags=config["tags"])
+    def add_provider(self, description: str|dict|ProviderSpec):
+        description = self._ensure_config_str(description)
+        return self._internal.add_provider(description)
 
     def change_provider_pool(self, provider_name: str, pool_name: str):
         self._internal.change_provider_pool(
