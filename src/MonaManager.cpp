@@ -99,7 +99,7 @@ MonaManager::addMonaInstance(const std::string& name,
                              const std::string& address) {
 #ifndef ENABLE_MONA
     (void)name;
-    (void)pool_name;
+    (void)pool;
     (void)address;
     throw DETAILED_EXCEPTION("Bedrock wasn't compiled with MoNA support");
 #else

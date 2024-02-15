@@ -46,7 +46,7 @@ class SSGUpdateHandler {
 
 SSGManager::SSGManager(const MargoManager& margo,
                        const Jx9Manager& jx9,
-                       const json&  config)
+                       const json& config)
 : self(std::make_shared<SSGManagerImpl>()) {
     self->m_margo_manager = margo;
     self->m_jx9_manager   = jx9;
@@ -138,7 +138,7 @@ SSGManager::addGroup(const std::string&                      name,
     (void)name;
     (void)config;
     (void)pool;
-    (void)bootstrap_method;
+    (void)bootstrap;
     (void)group_file;
     throw DETAILED_EXCEPTION("Bedrock wasn't compiled with SSG support");
     return nullptr;
@@ -309,7 +309,7 @@ SSGManager::addGroup(const std::string&                      name,
 std::shared_ptr<NamedDependency>
 SSGManager::addGroupFromJSON(const json& description) {
 #ifndef ENABLE_SSG
-    (void)config;
+    (void)description;
     throw DETAILED_EXCEPTION("Bedrock wasn't compiled with SSG support");
     return 0;
 #else // ENABLE_SSG

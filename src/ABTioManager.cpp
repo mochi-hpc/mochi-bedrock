@@ -94,7 +94,7 @@ ABTioManager::addABTioInstance(const std::string&                      name,
                                const json&                             config) {
 #ifndef ENABLE_ABT_IO
     (void)name;
-    (void)pool_name;
+    (void)pool;
     (void)config;
     throw DETAILED_EXCEPTION("Bedrock was not compiled with ABT-IO support");
 #else
