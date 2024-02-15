@@ -1,0 +1,12 @@
+#!/bin/bash
+
+bedrockctl() {
+    if [ "$1" = "connect" ]; then
+        export BEDROCKCTL_CONNECTION="$2"
+    elif [ "$1" = "disconnect" ]; then
+        unset BEDROCKCTL_CONNECTION
+    else
+        BEDROCKCTL_PYTHONPATH=@CMAKE_INSTALL_PREFIX@/lib/python@Python3_VERSION_MAJOR@.@Python3_VERSION_MINOR@/site-packages
+        PYTHONPATH=$PYTHONPATH:$BEDROCKCTL_PYTHONPATH python3 -m mochi.bedrock.bedrockctl $@
+    fi
+}

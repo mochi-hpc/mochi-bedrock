@@ -10,6 +10,12 @@ pybind11_strip (pybedrock_server)
 
 set (PY_VERSION ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR})
 
+configure_file (bedrockctl-setup.sh.in ${CMAKE_BINARY_DIR}/bin/bedrockctl-setup.sh USE_SOURCE_PERMISSIONS @ONLY)
+
+install (FILES ${CMAKE_BINARY_DIR}/bin/bedrockctl-setup.sh
+         DESTINATION bin
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+
 install (TARGETS pybedrock_client pybedrock_server
          EXPORT bedrock-targets
          ARCHIVE DESTINATION lib/python${PY_VERSION}/site-packages

@@ -43,6 +43,10 @@ ServiceHandle::operator bool() const { return static_cast<bool>(self); }
 
 Client ServiceHandle::client() const { return Client(self->m_client); }
 
+tl::provider_handle ServiceHandle::providerHandle() const {
+    return self->m_ph;
+}
+
 #define SEND_RPC_WITH_BOOL_RESULT(...) do {\
     if (req == nullptr) { \
         RequestResult<bool> response = rpc.on(ph)(__VA_ARGS__); \

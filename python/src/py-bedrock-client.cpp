@@ -64,6 +64,12 @@ PYBIND11_MODULE(pybedrock_client, m) {
              "provider_id"_a=0);
     py11::class_<ServiceHandle>(m, "ServiceHandle")
         .def_property_readonly("client", &ServiceHandle::client)
+        .def_property_readonly("address", [](const ServiceHandle& sh) {
+                return static_cast<std::string>(sh.providerHandle());
+            })
+        .def_property_readonly("provider_id", [](const ServiceHandle& sh) {
+                return sh.providerHandle().provider_id();
+            })
         .def("get_config",
              [](const ServiceHandle& sh) {
                 std::string config;
