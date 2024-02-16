@@ -1,10 +1,11 @@
 import os
+import typer
 from typing import Optional
 from ..client import Client
 from pymargo.core import Engine
 
 
-class Service:
+class ServiceContext:
 
     def __init__(self, target=None):
         if target is None:
@@ -13,7 +14,7 @@ class Service:
             self.connection = target
         if self.connection is None:
             print(f"Error: bedrockctl not connected")
-            typer.Exit(code=-1)
+            raise typer.Exit(code=-1)
         if "://" in self.connection:
             self.protocol = connection.split(":")[0]
         elif os.path.exists(self.connection) and os.path.isfile(self.connection):
@@ -21,7 +22,7 @@ class Service:
             self.protocol = pyssg.get_group_transport_from_file(self.connection)
         else:
             print(f"Error: could not find file or address {self.connection}")
-            typer.Exit(code=-1)
+            raise typer.Exit(code=-1)
 
     def __enter__(self):
         self.engine = Engine(self.protocol)
