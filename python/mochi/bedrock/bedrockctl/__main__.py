@@ -18,6 +18,9 @@ app.add_typer(module_app, name="module")
 from .provider import app as provider_app
 app.add_typer(provider_app, name="provider")
 
+from .client import app as client_app
+app.add_typer(client_app, name="client")
+
 
 @app.command()
 def status():
