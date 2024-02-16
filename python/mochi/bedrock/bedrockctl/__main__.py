@@ -12,6 +12,13 @@ app.add_typer(pool_app, name="pool")
 from .xstream import app as xstream_app
 app.add_typer(xstream_app, name="xstream")
 
+from .module import app as module_app
+app.add_typer(module_app, name="module")
+
+from .provider import app as provider_app
+app.add_typer(provider_app, name="provider")
+
+
 @app.command()
 def status():
     """

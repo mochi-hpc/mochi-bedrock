@@ -89,7 +89,7 @@ def remove(
                 help="Comma-separated list of ranks")] = None
         ):
     """
-    Create a new pool in the target Bedrock process(es).
+    Remove an xstream from the target Bedrock process(es).
     """
     from ._util import ServiceContext
     with ServiceContext(target) as service:

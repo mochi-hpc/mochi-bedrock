@@ -1,6 +1,6 @@
 import os
 import typer
-from typing import Optional
+from typing import Optional, List
 from ..client import Client
 from pymargo.core import Engine
 
@@ -41,3 +41,50 @@ class ServiceContext:
         import pyssg
         pyssg.finalize()
         self.engine.finalize()
+
+
+def _parse_config_from_args(args: List[str]):
+    config = {}
+    while len(args) != 0:
+        arg = args[0]
+        args.pop(0)
+        if len(args) == 0:
+            print(f"Error: configuration argument {arg} has no value")
+            raise typer.Exit(code=-1)
+        if not arg.startswith("--config."):
+            continue
+        value = args[0]
+        args.pop(0)
+        if value in ["True", "true"]:
+            value = True
+        elif value in ["False", "false"]:
+            value = False
+        elif value.isdecimal():
+            value = int(value)
+        elif value.replace(".","", 1).isnumeric():
+            value = float(value)
+        field_names = arg.split(".")
+        field_names.pop(0)
+        section = config
+        for i in range(len(field_names)):
+            if i == len(field_names) - 1:
+                section[field_names[i]] = value
+            else:
+                if field_names[i] not in section:
+                    section[field_names[i]] = {}
+                section = section[field_names[i]]
+    return config
+
+
+def _parse_dependencies(deps: List[str]):
+    dependencies = {}
+    for dep in deps:
+        if dep.count(":") != 1:
+            print(f"Error: ill-formatted dependency {dep}")
+            raise typer.Exit(code=-1)
+        key, value = tuple(dep.split(":"))
+        if key in dependencies:
+            print(f"Error: dependency {key} specified multiple times")
+            raise typer.Exit(code=-1)
+        dependencies[key] = value
+    return dependencies
