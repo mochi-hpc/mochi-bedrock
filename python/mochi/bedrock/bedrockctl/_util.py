@@ -88,3 +88,25 @@ def _parse_dependencies(deps: List[str]):
             raise typer.Exit(code=-1)
         dependencies[key] = value
     return dependencies
+
+
+def parse_target_ranks(input_string, sort=False):
+    import re
+    match = re.fullmatch(r'(\d+(-\d+)?)(,\d+(-\d+)?)*', input_string)
+    if match is None:
+        print(f"Invalid rank list: {input_string}")
+        raise typer.Exit(code=-1)
+    ranks = []
+    for part in input_string.split(','):
+        if '-' in part:
+            start, end = map(int, part.split('-'))
+            if start > end:
+                print("Invalid range in rank list: {start} > {end}")
+                raise typer.Exit(code=-1)
+            ranks.extend(range(start, end + 1))
+        else:
+            ranks.append(int(part))
+    if sort:
+        return list(sorted(ranks))
+    else:
+        return ranks
