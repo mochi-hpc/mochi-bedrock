@@ -47,7 +47,7 @@ def create(
     with ServiceContext(target) as service:
         for i in range(len(service)):
             try:
-                sh = service[i].add_client(client)
+                service[i].add_client(client)
             except ClientException as e:
                 print(f"Error adding client in {service[i].address}: {str(e)}")
         del service

@@ -49,7 +49,7 @@ def create(
     with ServiceContext(target) as service:
         for i in range(len(service)):
             try:
-                sh = service[i].add_pool(PoolSpec(
+                service[i].add_pool(PoolSpec(
                     name=name, kind=kind.value, access=access.value))
             except ClientException as e:
                 print(f"Error adding pool in {service[i].address}: {str(e)}")
@@ -93,7 +93,7 @@ def remove(
     with ServiceContext(target) as service:
         for i in range(len(service)):
             try:
-                sh = service[i].remove_pool(name)
+                service[i].remove_pool(name)
             except ClientException as e:
                 print(f"Error removing pool in {service[i].address}: {str(e)}")
         del service
