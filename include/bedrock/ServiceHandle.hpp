@@ -73,6 +73,11 @@ class ServiceHandle {
     Client client() const;
 
     /**
+     * @brief Returns the provider handle underlying the ServiceHandle.
+     */
+    tl::provider_handle providerHandle() const;
+
+    /**
      * @brief Ask the remote service daemon to load a module library.
      *
      * @param name Name of the module.

@@ -33,6 +33,14 @@ class ServiceHandle:
         return self._client
 
     @property
+    def address(self):
+        return self._internal.address
+
+    @property
+    def provider_id(self):
+        return self._internal.provider_id
+
+    @property
     def config(self):
         return json.loads(self._internal.get_config())
 

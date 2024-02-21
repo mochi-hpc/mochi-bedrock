@@ -52,7 +52,7 @@ class MargoManagerImpl {
     std::vector<std::shared_ptr<PoolRef>> m_pools;
 
     json makeConfig() const {
-        char* str    = margo_get_config(m_mid);
+        char* str    = margo_get_config_opt(m_mid, MARGO_CONFIG_USE_NAMES);
         auto  config = json::parse(str);
         free(str);
         return config;

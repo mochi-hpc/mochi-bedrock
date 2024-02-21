@@ -22,6 +22,9 @@ spack:
   - py-pybind11
   - py-attrs
   - py-coverage
+  - py-typer
+  - py-rich
+  - py-mochi-ssg
   - valijson
   concretizer:
     unify: true

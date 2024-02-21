@@ -448,7 +448,7 @@ class PoolSpec:
         on_setattr=attr.setters.frozen)
     kind: str = attr.ib(
         default='fifo_wait',
-        validator=in_(['fifo', 'fifo_wait']))
+        validator=in_(['fifo', 'fifo_wait', 'prio', 'prio_wait', 'earliest_first']))
     access: str = attr.ib(
         default='mpmc',
         validator=in_(['private', 'spsc', 'mpsc', 'spmc', 'mpmc']))
