@@ -27,8 +27,10 @@ def create(
     """
     Create a new ABT-IO instance in the target Bedrock process(es).
     """
-    from ._util import _parse_config_from_args
-    config = _parse_config_from_args(ctx.args)
+    from ._util import parse_config_from_args
+    config = parse_config_from_args(ctx.args)
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     abt_io = {
         "name": name,
         "pool": pool,
@@ -37,6 +39,8 @@ def create(
     from ._util import ServiceContext
     with ServiceContext(target) as service:
         for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                continue
             try:
                 service[i].add_abtio_instance(abt_io)
             except ClientException as e:
@@ -55,10 +59,15 @@ def list(target: Annotated[
     """
     Lists the ABT-IO instances in each of the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     from rich import print
     with ServiceContext(target) as service:
         config = { a: c["abt_io"] for a, c in service.config.items() }
+        for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                del config[service[i].address]
         print(config)
         del service
 

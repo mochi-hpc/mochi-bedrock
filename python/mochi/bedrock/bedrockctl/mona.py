@@ -29,8 +29,10 @@ def create(
     """
     print("This command is not implemented yet")
     raise typer.Exit(code=-1)
-    from ._util import _parse_config_from_args
-    config = _parse_config_from_args(ctx.args)
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
+    from ._util import parse_config_from_args
+    config = parse_config_from_args(ctx.args)
     mona = {
         "name": name,
         "pool": pool,
@@ -39,6 +41,8 @@ def create(
     from ._util import ServiceContext
     with ServiceContext(target) as service:
         for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                continue
             try:
                 service[i].add_mona_instance(mona)
             except ClientException as e:
@@ -57,10 +61,15 @@ def list(target: Annotated[
     """
     Lists the MoNA instances in each of the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     from rich import print
     with ServiceContext(target) as service:
         config = { a: c["mona"] for a, c in service.config.items() }
+        for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                del config[service[i].address]
         print(config)
         del service
 

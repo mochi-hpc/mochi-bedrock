@@ -26,9 +26,13 @@ def load(
     """
     Load a new module in the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     with ServiceContext(target) as service:
         for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                continue
             try:
                 sh = service[i].load_module(name, path)
             except ClientException as e:
@@ -51,6 +55,9 @@ def list(target: Annotated[
     from rich import print
     with ServiceContext(target) as service:
         config = { a: c["libraries"] for a, c in service.config.items() }
+        for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                del config[service[i].address]
         print(config)
         del service
 

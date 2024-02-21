@@ -45,9 +45,13 @@ def create(
     """
     Create a new pool in the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     with ServiceContext(target) as service:
         for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                continue
             try:
                 service[i].add_pool(PoolSpec(
                     name=name, kind=kind.value, access=access.value))
@@ -67,10 +71,15 @@ def list(target: Annotated[
     """
     Lists the pools in each of the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     from rich import print
     with ServiceContext(target) as service:
         config = { a: c["margo"]["argobots"]["pools"] for a, c in service.config.items() }
+        for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                del config[service[i].address]
         print(config)
         del service
 
@@ -89,9 +98,13 @@ def remove(
     """
     Remove a pool from the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     with ServiceContext(target) as service:
         for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                continue
             try:
                 service[i].remove_pool(name)
             except ClientException as e:

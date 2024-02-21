@@ -39,6 +39,8 @@ def create(
     """
     Create a new SSG group in the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     ssg_group = {
         "name": name,
         "pool": pool,
@@ -54,10 +56,12 @@ def create(
     }
     from ._util import ServiceContext
     with ServiceContext(target) as service:
-        # TODO: for now we need rank 0 to "init" the group
+        # TODO: for now we need the first rank to "init" the group
         # then the next processes need to "join" it. It would be
         # better to be able to add a list of addresses as agument.
         for i in range(0, len(service)):
+            if not rank_is_in(i, ranks):
+                continue
             try:
                 service[i].add_ssg_group(ssg_group)
                 ssg_group["bootstrap"] = "join"
@@ -79,10 +83,15 @@ def list(target: Annotated[
     """
     Lists the SSG groups in each of the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     from rich import print
     with ServiceContext(target) as service:
         config = { a: c["ssg"] for a, c in service.config.items() }
+        for i in range(len(service)):
+            if not rank_is_in(i, ranks):
+                del config[service[i].address]
         print(config)
         del service
 

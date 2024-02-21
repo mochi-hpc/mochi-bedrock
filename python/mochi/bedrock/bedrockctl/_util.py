@@ -43,7 +43,7 @@ class ServiceContext:
         self.engine.finalize()
 
 
-def _parse_config_from_args(args: List[str]):
+def parse_config_from_args(args: List[str]):
     config = {}
     while len(args) != 0:
         arg = args[0]
@@ -76,7 +76,7 @@ def _parse_config_from_args(args: List[str]):
     return config
 
 
-def _parse_dependencies(deps: List[str]):
+def parse_dependencies(deps: List[str]):
     dependencies = {}
     for dep in deps:
         if dep.count(":") != 1:
@@ -91,6 +91,8 @@ def _parse_dependencies(deps: List[str]):
 
 
 def parse_target_ranks(input_string, sort=False):
+    if input_string is None:
+        return None
     import re
     match = re.fullmatch(r'(\d+(-\d+)?)(,\d+(-\d+)?)*', input_string)
     if match is None:
@@ -110,3 +112,10 @@ def parse_target_ranks(input_string, sort=False):
         return list(sorted(ranks))
     else:
         return ranks
+
+
+def rank_is_in(rank, ranks: Optional[List[int]]):
+    if ranks is None:
+        return True
+    else:
+        return rank in ranks
