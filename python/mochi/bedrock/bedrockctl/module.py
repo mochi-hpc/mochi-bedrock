@@ -51,6 +51,8 @@ def list(target: Annotated[
     """
     Lists the modules loaded in each of the target Bedrock process(es).
     """
+    from ._util import parse_target_ranks, rank_is_in
+    ranks = parse_target_ranks(ranks)
     from ._util import ServiceContext
     from rich import print
     with ServiceContext(target) as service:
