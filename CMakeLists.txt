@@ -51,10 +51,9 @@ endif ()
 find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)
-# search for nlohmann/json
+# search for nlohmann/json and schema validator
 find_package (nlohmann_json REQUIRED)
-# search for valijson
-find_package (valijson REQUIRED)
+find_package (nlohmann_json_schema_validator REQUIRED)
 # search for TCLAP
 find_package (TCLAP REQUIRED)
 # search for spdlog

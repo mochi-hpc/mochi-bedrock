@@ -7,30 +7,30 @@
 #define BEDROCK_JSON_UTIL_H
 
 #include <nlohmann/json.hpp>
-#include <valijson/adapters/nlohmann_json_adapter.hpp>
-#include <valijson/schema.hpp>
-#include <valijson/schema_parser.hpp>
-#include <valijson/validator.hpp>
+#include <nlohmann/json-schema.hpp>
 #include <string>
 #include "Exception.hpp"
 
 namespace bedrock {
 
+using nlohmann::json;
+using nlohmann::json_schema::json_validator;
+
 struct JsonValidator {
 
-    using json = nlohmann::json;
+    json_validator m_validator;
 
-    json             schemaDocument;
-    valijson::Schema schemaValidator;
-
-    JsonValidator(const char* schema_str) {
-        schemaDocument = json::parse(schema_str);
-        valijson::SchemaParser schemaParser;
-        valijson::adapters::NlohmannJsonAdapter schemaAdapter(schemaDocument);
-        schemaParser.populateSchema(schemaAdapter, schemaValidator);
+    JsonValidator(const json& schema) {
+        m_validator.set_root_schema(schema);
     }
 
-    using ErrorList = std::vector<std::string>;
+    JsonValidator(json&& schema) {
+        m_validator.set_root_schema(std::move(schema));
+    }
+
+    JsonValidator(const char* schema) {
+        m_validator.set_root_schema(json::parse(schema));
+    }
 
     json parseAndValidate(const char* config_str, const char* context = nullptr) const {
         json config;
@@ -44,31 +44,13 @@ struct JsonValidator {
     }
 
     void validate(const json& config, const char* context = nullptr) const {
-        valijson::Validator validator;
-        valijson::ValidationResults validationResults;
-        valijson::adapters::NlohmannJsonAdapter jsonAdapter(config);
-        validator.validate(schemaValidator, jsonAdapter, &validationResults);
-        if(validationResults.numErrors() == 0) return;
-        std::stringstream ss;
-        auto it=validationResults.begin();
-        for(size_t i=0;
-            i < validationResults.numErrors(); ++i, ++it) {
-            if (context || it->context.size() != 1) {
-                ss << "In ";
-                if(context) ss << context;
-                if (it->context.size() != 1) {
-                    ss << ' ';
-                    for(size_t j = 1; j < it->context.size(); ++j) {
-                        ss << it->context[j];
-                    }
-                }
-                ss << ": ";
-            }
-            ss << it->description;
-            if(i < validationResults.numErrors() - 1)
-                ss << '\n';
+        try {
+            m_validator.validate(config);
+        } catch(const std::exception& ex) {
+            throw Exception("Error validating JSON ({}): {}",
+                  context ? context : "unknown context",
+                  ex.what());
         }
-        throw Exception{ss.str()};
     }
 
 };

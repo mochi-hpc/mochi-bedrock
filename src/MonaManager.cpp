@@ -126,7 +126,7 @@ MonaManager::addMonaInstance(const std::string& name,
 
 std::shared_ptr<NamedDependency>
 MonaManager::addMonaInstanceFromJSON(const json& description) {
-    static constexpr const char* configSchema = R"(
+    static const json configSchema = R"(
     {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "type": "object",
@@ -140,7 +140,7 @@ MonaManager::addMonaInstanceFromJSON(const json& description) {
         },
         "required": ["name"]
     }
-    )";
+    )"_json;
     static const JsonValidator validator{configSchema};
     validator.validate(description, "MonaManager");
     auto name = description["name"].get<std::string>();

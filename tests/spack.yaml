@@ -14,6 +14,7 @@ spack:
   - mochi-ssg+mpi ^mpich
   - mochi-mona
   - nlohmann-json
+  - nlohmann-json-schema-validator
   - spdlog
   - fmt
   - tclap
@@ -25,7 +26,6 @@ spack:
   - py-typer
   - py-rich
   - py-mochi-ssg
-  - valijson
   concretizer:
     unify: true
     reuse: true
@@ -40,6 +40,8 @@ spack:
       require: "@0.12.0:"
     py-attrs:
       require: "@22.2.0:"
+    nlohmann-json-schema-validator:
+      require: "@:2.3.0"
   mirrors:
     mochi-buildcache:
       url: oci://ghcr.io/mochi-hpc/mochi-spack-buildcache

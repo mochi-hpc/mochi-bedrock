@@ -130,7 +130,7 @@ ABTioManager::addABTioInstance(const std::string&                      name,
 
 std::shared_ptr<NamedDependency>
 ABTioManager::addABTioInstanceFromJSON(const json& description) {
-    static constexpr const char* configSchema = R"(
+    static const json configSchema = R"(
     {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "type": "object",
@@ -144,7 +144,7 @@ ABTioManager::addABTioInstanceFromJSON(const json& description) {
         },
         "required": ["name"]
     }
-    )";
+    )"_json;
     static const JsonValidator validator{configSchema};
     validator.validate(description, "ABTioManager");
     auto name = description["name"].get<std::string>();

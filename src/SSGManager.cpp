@@ -314,7 +314,7 @@ SSGManager::addGroupFromJSON(const json& description) {
     return 0;
 #else // ENABLE_SSG
 
-    static constexpr const char* configSchema = R"(
+    static json const configSchema = R"(
     {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "type": "object",
@@ -339,7 +339,7 @@ SSGManager::addGroupFromJSON(const json& description) {
         },
         "required": ["name"]
     }
-    )";
+    )"_json;
     static const JsonValidator validator{configSchema};
     validator.validate(description, "SSGManager");
     auto name = description["name"].get<std::string>();

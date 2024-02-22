@@ -188,7 +188,7 @@ void ClientManager::removeClient(size_t index) {
 std::shared_ptr<NamedDependency>
 ClientManager::addClientFromJSON(const json& description) {
     auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
-    static constexpr const char* configSchema = R"(
+    static const json configSchema = R"(
     {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "type": "object",
@@ -213,7 +213,7 @@ ClientManager::addClientFromJSON(const json& description) {
         },
         "required": ["name", "type"]
     }
-    )";
+    )"_json;
     static const JsonValidator validator{configSchema};
     validator.validate(description, "ClientManager");
 
