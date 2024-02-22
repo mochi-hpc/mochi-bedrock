@@ -247,8 +247,12 @@ ClientManager::addClientFromJSON(const json& description) {
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
             if (!(dependency.flags & BEDROCK_ARRAY)) {
+                if (dep_config.is_array() && dep_config.size() == 1) {
+                    // an array of length 1 can be converted into a single string
+                    dep_config = dep_config[0];
+                }
                 if (!dep_config.is_string()) {
-                    throw DETAILED_EXCEPTION("Dependency {} should be a string",
+                    throw DETAILED_EXCEPTION("Dependency \"{}\" should be a string",
                                     dependency.name);
                 }
                 auto ptr = dependencyFinder.find(
@@ -257,8 +261,14 @@ ClientManager::addClientFromJSON(const json& description) {
                 resolved_dependency_map[dependency.name].dependencies.push_back(ptr);
                 resolved_dependency_map[dependency.name].is_array = false;
             } else {
+                if (dep_config.is_string()) {
+                    // a single string can be converted into an array of size 1
+                    auto tmp_array = json::array();
+                    tmp_array.push_back(dep_config);
+                    dep_config = tmp_array;
+                }
                 if (!dep_config.is_array()) {
-                    throw DETAILED_EXCEPTION("Dependency {} should be an array",
+                    throw DETAILED_EXCEPTION("Dependency \"{}\" should be an array",
                                     dependency.name);
                 }
                 std::vector<std::string> deps;
