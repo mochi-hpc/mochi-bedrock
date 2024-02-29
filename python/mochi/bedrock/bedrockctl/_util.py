@@ -48,11 +48,11 @@ def parse_config_from_args(args: List[str]):
     while len(args) != 0:
         arg = args[0]
         args.pop(0)
+        if not arg.startswith("--config."):
+            continue
         if len(args) == 0:
             print(f"Error: configuration argument {arg} has no value")
             raise typer.Exit(code=-1)
-        if not arg.startswith("--config."):
-            continue
         value = args[0]
         args.pop(0)
         if value in ["True", "true"]:
