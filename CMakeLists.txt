@@ -79,7 +79,6 @@ if (${ENABLE_MPI})
     find_package (MPI REQUIRED)
     add_definitions (-DENABLE_MPI)
     set (OPTIONAL_MPI MPI::MPI_C)
-    set (OPTIONAL_SERVER_DEPS mpi)
 endif ()
 # search for mona
 if (ENABLE_MONA)
