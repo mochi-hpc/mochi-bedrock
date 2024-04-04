@@ -89,6 +89,7 @@ if (ENABLE_MONA)
 endif ()
 # search for Python
 if (ENABLE_PYTHON)
+    set (Python3_FIND_STRATEGY LOCATION)
     find_package (Python3 COMPONENTS Interpreter Development REQUIRED)
     find_package (pybind11 REQUIRED)
     add_subdirectory (python)
