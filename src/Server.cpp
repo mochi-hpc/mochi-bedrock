@@ -19,9 +19,6 @@
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <fstream>
-#ifdef ENABLE_MPI
-#include <mpi.h>
-#endif
 
 namespace tl = thallium;
 
@@ -30,28 +27,12 @@ namespace bedrock {
 using namespace std::string_literals;
 using nlohmann::json;
 
-
-#ifdef ENABLE_MPI
-bool   s_initialized_mpi = false;
-size_t s_initiaze_mpi_count = 0;
-#endif
-
-
 Server::Server(const std::string& address, const std::string& configString,
                ConfigType configType, const Jx9ParamMap& jx9Params) {
 
-#ifdef ENABLE_MPI
-    int mpi_is_initialized;
-    MPI_Initialized(&mpi_is_initialized);
-    if(!mpi_is_initialized) {
-        MPI_Init(nullptr, nullptr);
-        s_initialized_mpi = true;
-    }
-    if(s_initialized_mpi)
-        s_initiaze_mpi_count += 1;
-#endif
-
     std::string jsonConfigString;
+
+    auto mpi = std::make_shared<MPI>();
 
     auto jx9Manager = Jx9Manager{};
 
@@ -114,6 +95,7 @@ Server::Server(const std::string& address, const std::string& configString,
     // Create self
     self = std::unique_ptr<ServerImpl>(
             new ServerImpl(margoMgr, bedrock_provider_id, bedrock_pool));
+    self->m_mpi = mpi;
     self->m_jx9_manager = jx9Manager;
 
     try {
@@ -191,14 +173,6 @@ Server::Server(const std::string& address, const std::string& configString,
 
 Server::~Server() {
     if(self) finalize();
-#ifdef ENABLE_MPI
-    if(s_initialized_mpi) {
-        s_initiaze_mpi_count -= 1;
-        if(s_initiaze_mpi_count == 0)
-            MPI_Finalize();
-        s_initialized_mpi = false;
-    }
-#endif
 }
 
 MargoManager Server::getMargoManager() const { return self->m_margo_manager; }

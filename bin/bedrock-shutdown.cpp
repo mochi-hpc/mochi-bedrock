@@ -20,9 +20,10 @@ static std::string              g_protocol;
 static std::vector<std::string> g_addresses;
 static std::string              g_log_level;
 static std::string              g_ssg_file;
+static std::string              g_flock_file;
 
-static void        parseCommandLine(int argc, char** argv);
-static void        resolveSSGAddresses(thallium::engine& engine);
+static void parseCommandLine(int argc, char** argv);
+static void resolveSSGAddresses(thallium::engine& engine);
 
 int main(int argc, char** argv) {
     parseCommandLine(argc, argv);
@@ -50,9 +51,11 @@ int main(int argc, char** argv) {
 }
 
 static void parseCommandLine(int argc, char** argv) {
+    #define VALUE(string) #string
+    #define TO_LITERAL(string) VALUE(string)
     try {
         TCLAP::CmdLine cmd("Query the configuration from Bedrock daemons", ' ',
-                           "0.4");
+                           TO_LITERAL(BEDROCK_VERSION));
         TCLAP::UnlabeledValueArg<std::string> protocol(
             "protocol", "Protocol (e.g. ofi+tcp)", true, "na+sm", "protocol");
         TCLAP::ValueArg<std::string> logLevel(
@@ -63,17 +66,23 @@ static void parseCommandLine(int argc, char** argv) {
             "s", "ssg-file",
             "SSG file from which to read addresses of Bedrock daemons", false,
             "", "filename");
+        TCLAP::ValueArg<std::string> flockFile(
+            "f", "flock-file",
+            "Flock file from which to read addresses of Bedrock daemons", false,
+            "", "filename");
         TCLAP::MultiArg<std::string> addresses(
             "a", "addresses", "Address of a Bedrock daemon", false, "address");
         TCLAP::SwitchArg prettyJSON("p", "pretty", "Print human-readable JSON",
                                     false);
         cmd.add(protocol);
         cmd.add(logLevel);
+        cmd.add(flockFile);
         cmd.add(ssgFile);
         cmd.add(addresses);
         cmd.parse(argc, argv);
         g_addresses   = addresses.getValue();
         g_log_level   = logLevel.getValue();
+        g_flock_file  = flockFile.getValue();
         g_ssg_file    = ssgFile.getValue();
         g_protocol    = protocol.getValue();
     } catch (TCLAP::ArgException& e) {
@@ -84,6 +93,22 @@ static void parseCommandLine(int argc, char** argv) {
 }
 
 static void resolveSSGAddresses(thallium::engine& engine) {
+    if(!g_flock_file.empty()) {
+        json flock_file_content;
+        std::ifstream flock_file{g_flock_file};
+        if(!flock_file.good()) {
+            spdlog::critical("Could not open flock file {}", g_flock_file);
+            exit(-1);
+        }
+        flock_file >> flock_file_content;
+        std::unordered_set<std::string> addresses;
+        for(auto& member : flock_file_content["members"]) {
+            auto& address = member["address"].get_ref<const std::string&>();
+            if(addresses.count(address)) continue;
+            g_addresses.push_back(address);
+            addresses.insert(address);
+        }
+    }
     if (g_ssg_file.empty()) return;
 #ifndef ENABLE_SSG
     (void)engine;

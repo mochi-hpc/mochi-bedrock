@@ -14,6 +14,7 @@
 #include "DependencyFinderImpl.hpp"
 #include "SSGManagerImpl.hpp"
 #include "Jx9ManagerImpl.hpp"
+#include "MPI.hpp"
 #include "bedrock/Jx9Manager.hpp"
 #include "bedrock/RequestResult.hpp"
 #include "bedrock/ModuleContext.hpp"
@@ -30,6 +31,7 @@ namespace tl = thallium;
 class ServerImpl : public tl::provider<ServerImpl> {
 
   public:
+    std::shared_ptr<MPI>                  m_mpi;
     std::shared_ptr<Jx9ManagerImpl>       m_jx9_manager;
     std::shared_ptr<MargoManagerImpl>     m_margo_manager;
     std::shared_ptr<ABTioManagerImpl>     m_abtio_manager;

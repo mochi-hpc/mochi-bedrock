@@ -12,7 +12,8 @@ set (server-src-files
      Module.cpp
      MargoLogging.cpp
      NamedDependency.cpp
-     Jx9Manager.cpp)
+     Jx9Manager.cpp
+     MPI.cpp)
 
 set (client-src-files
      Client.cpp

@@ -174,9 +174,6 @@ class SSGManagerImpl {
 
 
     static int s_num_ssg_init;
-#ifdef ENABLE_MPI
-    static bool s_initialized_mpi;
-#endif
 #ifdef ENABLE_PMIX
     static bool s_initialized_pmix;
 #endif

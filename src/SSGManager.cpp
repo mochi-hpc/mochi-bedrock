@@ -29,9 +29,6 @@ using nlohmann::json;
 using namespace std::string_literals;
 
 int SSGManagerImpl::s_num_ssg_init = 0;
-#ifdef ENABLE_MPI
-bool SSGManagerImpl::s_initialized_mpi = false;
-#endif
 #ifdef ENABLE_PMIX
 bool SSGManagerImpl::s_initialized_pmix = false;
 #endif
@@ -238,12 +235,6 @@ SSGManager::addGroup(const std::string&                      name,
 
     } else if (method == "mpi") {
 #ifdef ENABLE_MPI
-        int flag;
-        MPI_Initialized(&flag);
-        if (!flag) {
-            MPI_Init(NULL, NULL);
-            SSGManagerImpl::s_initialized_mpi = true;
-        }
         ret = ssg_group_create_mpi(
             mid, name.c_str(), MPI_COMM_WORLD,
             const_cast<ssg_group_config_t*>(&config),

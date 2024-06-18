@@ -21,12 +21,13 @@ static std::string              g_protocol;
 static std::vector<std::string> g_addresses;
 static std::string              g_log_level;
 static std::string              g_ssg_file;
+static std::string              g_flock_file;
 static std::string              g_jx9_file;
 static std::string              g_jx9_script_content;
 static uint16_t                 g_provider_id;
 static bool                     g_pretty;
 
-static void        parseCommandLine(int argc, char** argv);
+static void parseCommandLine(int argc, char** argv);
 
 int main(int argc, char** argv) {
     parseCommandLine(argc, argv);
@@ -50,6 +51,23 @@ int main(int argc, char** argv) {
         ssg_init();
 #endif
 
+        if(!g_flock_file.empty()) {
+            json flock_file_content;
+            std::ifstream flock_file{g_flock_file};
+            if(!flock_file.good()) {
+                spdlog::critical("Could not open flock file {}", g_flock_file);
+                exit(-1);
+            }
+            flock_file >> flock_file_content;
+            std::unordered_set<std::string> addresses;
+            for(auto& member : flock_file_content["members"]) {
+                auto& address = member["address"].get_ref<const std::string&>();
+                if(addresses.count(address)) continue;
+                g_addresses.push_back(address);
+                addresses.insert(address);
+            }
+        }
+
         bedrock::Client client(engine);
 
         auto sgh = g_ssg_file.empty() ? client.makeServiceGroupHandle(g_addresses, g_provider_id)
@@ -69,9 +87,11 @@ int main(int argc, char** argv) {
 }
 
 static void parseCommandLine(int argc, char** argv) {
+    #define VALUE(string) #string
+    #define TO_LITERAL(string) VALUE(string)
     try {
         TCLAP::CmdLine cmd("Query the configuration from Bedrock daemons", ' ',
-                           "0.6.0");
+                           TO_LITERAL(BEDROCK_VERSION));
         TCLAP::UnlabeledValueArg<std::string> protocol(
             "protocol", "Protocol (e.g. ofi+tcp)", true, "na+sm", "protocol");
         TCLAP::ValueArg<std::string> logLevel(
@@ -82,6 +102,10 @@ static void parseCommandLine(int argc, char** argv) {
             "i", "provider-id",
             "Provider id to use when contacting Bedrock daemons", false, 0,
             "int");
+        TCLAP::ValueArg<std::string> flockFile(
+            "f", "flock-file",
+            "Flock file from which to read addresses of Bedrock daemons", false,
+            "", "filename");
 #ifdef ENABLE_SSG
         TCLAP::ValueArg<std::string> ssgFile(
             "s", "ssg-file",
@@ -97,6 +121,7 @@ static void parseCommandLine(int argc, char** argv) {
                                     false);
         cmd.add(protocol);
         cmd.add(logLevel);
+        cmd.add(flockFile);
 #ifdef ENABLE_SSG
         cmd.add(ssgFile);
 #endif
@@ -107,6 +132,7 @@ static void parseCommandLine(int argc, char** argv) {
         cmd.parse(argc, argv);
         g_addresses   = addresses.getValue();
         g_log_level   = logLevel.getValue();
+        g_flock_file  = flockFile.getValue();
 #ifdef ENABLE_SSG
         g_ssg_file    = ssgFile.getValue();
 #endif
