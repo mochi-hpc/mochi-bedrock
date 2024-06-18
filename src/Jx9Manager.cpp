@@ -8,6 +8,9 @@
 #include "Jx9ManagerImpl.hpp"
 #include <nlohmann/json.hpp>
 #include <map>
+#ifdef ENABLE_MPI
+#include <mpi.h>
+#endif
 
 namespace bedrock {
 
@@ -65,6 +68,37 @@ std::string Jx9Manager::executeQuery(
         throw DETAILED_EXCEPTION("Jx9 script failed to compile: {}", err);
     }
 
+    // installing MPI_COMM_WORLD
+    json comm_world = nullptr;
+#ifdef ENABLE_MPI
+    int mpi_rank, mpi_size;
+    int mpi_initialized;
+    MPI_Initialized(&mpi_initialized);
+    if(mpi_initialized) {
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+        comm_world = json::object();
+        comm_world["rank"] = mpi_rank;
+        comm_world["size"] = mpi_size;
+    }
+#endif
+    jx9_value* jx9_comm_world = nullptr;
+    try {
+        jx9_comm_world = jx9ValueFromJson(comm_world, vm);
+    } catch (...) {
+        jx9_vm_release(vm);
+        throw DETAILED_EXCEPTION("Could not create Jx9 value for MPI_COMM_WORLD");
+    }
+    ret = jx9_vm_config(vm, JX9_VM_CONFIG_CREATE_VAR, "MPI_COMM_WORLD",
+                        jx9_comm_world);
+    if (ret != JX9_OK) {
+        jx9_release_value(vm, jx9_comm_world);
+        jx9_vm_release(vm);
+        throw DETAILED_EXCEPTION("Could not install variable \"MPI_COMM_WORLD\" in Jx9 VM");
+    }
+    jx9_release_value(vm, jx9_comm_world);
+
+    // helper lambda to install variables in the VM
     auto set_variable = [&](const std::string& varname, const std::string& value) {
         jx9_value* jx9v    = nullptr;
         try {

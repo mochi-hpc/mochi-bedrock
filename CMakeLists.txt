@@ -16,6 +16,13 @@ option (ENABLE_SSG      "Enable SSG support" ON)
 option (ENABLE_ABT_IO   "Enable ABT-IO support" ON)
 option (ENABLE_PYTHON   "Enable Python support" OFF)
 
+# library version set here (e.g. for shared libs).
+set (BEDROCK_VERSION_MAJOR 0)
+set (BEDROCK_VERSION_MINOR 11)
+set (BEDROCK_VERSION_PATCH 0)
+set (BEDROCK_VERSION
+     "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
+
 # add our cmake module directory to the path
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
      "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -94,13 +101,6 @@ if (ENABLE_PYTHON)
     find_package (pybind11 REQUIRED)
     add_subdirectory (python)
 endif ()
-
-# library version set here (e.g. for shared libs).
-set (BEDROCK_VERSION_MAJOR 0)
-set (BEDROCK_VERSION_MINOR 10)
-set (BEDROCK_VERSION_PATCH 0)
-set (BEDROCK_VERSION
-     "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 
 add_subdirectory (bin)
 add_subdirectory (src)
