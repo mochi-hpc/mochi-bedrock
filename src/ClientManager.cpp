@@ -3,12 +3,12 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/ClientManager.hpp"
-#include "bedrock/ModuleContext.hpp"
-#include "bedrock/AbstractServiceFactory.hpp"
-#include "bedrock/DependencyFinder.hpp"
+#include <bedrock/ClientManager.hpp>
+#include <bedrock/ModuleContext.hpp>
+#include <bedrock/AbstractServiceFactory.hpp>
+#include <bedrock/DependencyFinder.hpp>
+#include <bedrock/DetailedException.hpp>
 
-#include "Exception.hpp"
 #include "ClientManagerImpl.hpp"
 #include "JsonUtil.hpp"
 
@@ -64,14 +64,14 @@ std::shared_ptr<NamedDependency> ClientManager::getClient(const std::string& nam
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->findByName(name);
     if (it == self->m_clients.end())
-        throw DETAILED_EXCEPTION("Could not find client \"{}\"", name);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find client \"{}\"", name);
     return *it;
 }
 
 std::shared_ptr<NamedDependency> ClientManager::getClient(size_t index) const {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     if (index >= self->m_clients.size())
-        throw DETAILED_EXCEPTION("Could not find client at index {}", index);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find client at index {}", index);
     return self->m_clients[index];
 }
 
@@ -88,14 +88,14 @@ std::shared_ptr<NamedDependency> ClientManager::getOrCreateAnonymous(const std::
         // such a client
         auto service_factory = ModuleContext::getServiceFactory(type);
         if (!service_factory) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Could not find service factory for client type \"{}\"", type);
         }
         // find out if such a client has required dependencies
         for (const auto& dependency :
              service_factory->getClientDependencies("{}")) {
             if (dependency.flags & BEDROCK_REQUIRED)
-                throw DETAILED_EXCEPTION(
+                throw BEDROCK_DETAILED_EXCEPTION(
                     "Could not create default client of type \"{}\" because"
                     " it requires dependency \"{}\"",
                     type, dependency.name);
@@ -121,7 +121,7 @@ ClientManager::addClient(const std::string&              name,
     std::shared_ptr<ClientEntry> entry;
     auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Could not find service factory for client type \"{}\"", type);
     }
 
@@ -129,7 +129,7 @@ ClientManager::addClient(const std::string&              name,
         std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
         auto                       it = self->findByName(name);
         if (it != self->m_clients.end()) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Name \"{}\" is already used by another client", name);
         }
 
@@ -163,10 +163,10 @@ void ClientManager::removeClient(const std::string& name) {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     auto                       it = self->findByName(name);
     if (it == self->m_clients.end()) {
-        throw DETAILED_EXCEPTION("Could not find client with name \"{}\"", name);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find client with name \"{}\"", name);
     }
     if(it->use_count() > 1) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Cannot destroy client \"{}\" as it is used as dependency",
             (*it)->getName());
     }
@@ -176,9 +176,9 @@ void ClientManager::removeClient(const std::string& name) {
 void ClientManager::removeClient(size_t index) {
     std::lock_guard<tl::mutex> lock(self->m_clients_mtx);
     if (index >= self->m_clients.size())
-        throw DETAILED_EXCEPTION("Could not find client at index {}", index);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find client at index {}", index);
     if(self->m_clients[index].use_count() > 1) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Cannot destroy client at index {} as it is used as dependency",
             index);
     }
@@ -228,7 +228,7 @@ ClientManager::addClientFromJSON(const json& description) {
 
     auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Could not find service factory for client type \"{}\"", type);
     }
 
@@ -252,7 +252,7 @@ ClientManager::addClientFromJSON(const json& description) {
                     dep_config = dep_config[0];
                 }
                 if (!dep_config.is_string()) {
-                    throw DETAILED_EXCEPTION("Dependency \"{}\" should be a string",
+                    throw BEDROCK_DETAILED_EXCEPTION("Dependency \"{}\" should be a string",
                                     dependency.name);
                 }
                 auto ptr = dependencyFinder.find(
@@ -268,7 +268,7 @@ ClientManager::addClientFromJSON(const json& description) {
                     dep_config = tmp_array;
                 }
                 if (!dep_config.is_array()) {
-                    throw DETAILED_EXCEPTION("Dependency \"{}\" should be an array",
+                    throw BEDROCK_DETAILED_EXCEPTION("Dependency \"{}\" should be an array",
                                     dependency.name);
                 }
                 std::vector<std::string> deps;
@@ -281,7 +281,7 @@ ClientManager::addClientFromJSON(const json& description) {
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Missing dependency \"{}\" of type \"{}\" in provider configuration",
                 dependency.name, dependency.type);
         }
@@ -293,7 +293,7 @@ ClientManager::addClientFromJSON(const json& description) {
 void ClientManager::addClientListFromJSON(const json& list) {
     if (list.is_null()) { return; }
     if (!list.is_array()) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ClientManager::addClientListFromJSON (expected array)");
     }

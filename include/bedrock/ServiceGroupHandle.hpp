@@ -72,8 +72,8 @@ class ServiceGroupHandle {
     Client client() const;
 
     /**
-     * @brief If the ServiceGroupHandle was built from an SSG group,
-     * this function will refresh the group view.
+     * @brief If the ServiceGroupHandle was built from an SSG group
+     * or a Flock group, this function will refresh the group view.
      */
     void refresh() const;
 

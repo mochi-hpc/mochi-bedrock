@@ -39,7 +39,7 @@ class TestServiceGroupHandleInit(unittest.TestCase):
     def test_make_service_group_handle_from_gid(self):
         ssg_group = self.server.ssg["my_group"]
         gid = ssg_group.handle
-        sgh = self.client.make_service_group_handle(gid)
+        sgh = self.client.make_service_group_handle_from_ssg(gid)
         self.assertIsInstance(sgh, mbc.ServiceGroupHandle)
         sgh.refresh() # just to get code coverage
 
@@ -63,7 +63,7 @@ class TestServiceGroupHandle(unittest.TestCase):
         }
         self.server = mbs.Server(address="na+sm", config=config)
         self.client = mbc.Client(self.server.margo.engine)
-        self.sgh = self.client.make_service_group_handle(
+        self.sgh = self.client.make_service_group_handle_from_ssg(
             self.server.ssg["my_group"].handle)
 
     def tearDown(self):

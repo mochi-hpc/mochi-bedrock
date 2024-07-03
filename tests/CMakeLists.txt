@@ -7,7 +7,7 @@ configure_file (InvalidConfigs.json InvalidConfigs.json COPYONLY)
 foreach (test-module-source ${test-module-sources})
     get_filename_component (name ${test-module-source} NAME_WE)
     add_library (${name} SHARED ${test-module-source})
-    target_link_libraries (${name} PRIVATE bedrock-server coverage_config)
+    target_link_libraries (${name} PUBLIC bedrock::module-api PRIVATE coverage_config)
 endforeach ()
 
 foreach (test-source ${test-sources})

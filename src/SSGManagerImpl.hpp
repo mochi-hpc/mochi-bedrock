@@ -6,11 +6,11 @@
 #ifndef __BEDROCK_SSG_CONTEXT_IMPL_H
 #define __BEDROCK_SSG_CONTEXT_IMPL_H
 
-#include "bedrock/MargoManager.hpp"
-#include "bedrock/SSGManager.hpp"
-#include "bedrock/Jx9Manager.hpp"
-#include "bedrock/NamedDependency.hpp"
-#include "Exception.hpp"
+#include <bedrock/MargoManager.hpp>
+#include <bedrock/SSGManager.hpp>
+#include <bedrock/Jx9Manager.hpp>
+#include <bedrock/NamedDependency.hpp>
+#include <bedrock/DetailedException.hpp>
 #include "MargoManagerImpl.hpp"
 #include <spdlog/spdlog.h>
 #include <memory>
@@ -118,7 +118,7 @@ class SSGManagerImpl {
         if (SSGManagerImpl::s_num_ssg_init == 0) {
             int ret = ssg_init();
             if (ret != SSG_SUCCESS) {
-                throw DETAILED_EXCEPTION("Could not initialize SSG (ssg_init returned {})",
+                throw BEDROCK_DETAILED_EXCEPTION("Could not initialize SSG (ssg_init returned {})",
                         ret);
             }
         }

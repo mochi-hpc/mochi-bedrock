@@ -24,9 +24,9 @@ class TestProviderManager(unittest.TestCase):
                 }
             },
             "libraries": {
-                "module_a": "libModuleA.so",
-                "module_b": "libModuleB.so",
-                "module_c": "libModuleC.so",
+                "module_a": "./libModuleA.so",
+                "module_b": "./libModuleB.so",
+                "module_c": "./libModuleC.so",
             },
             "providers": [
                 {

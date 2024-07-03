@@ -3,15 +3,12 @@ set (server-src-files
      Server.cpp
      ABTioManager.cpp
      MargoManager.cpp
-     ModuleContext.cpp
      MonaManager.cpp
      SSGManager.cpp
      ProviderManager.cpp
      ClientManager.cpp
      DependencyFinder.cpp
-     Module.cpp
      MargoLogging.cpp
-     NamedDependency.cpp
      Jx9Manager.cpp
      MPI.cpp)
 
@@ -44,6 +41,7 @@ target_compile_options (bedrock-server PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-server
     PRIVATE nlohmann_json_schema_validator::validator jx9 coverage_config
     PUBLIC
+    bedrock::module-api
     thallium
     nlohmann_json::nlohmann_json
     spdlog::spdlog

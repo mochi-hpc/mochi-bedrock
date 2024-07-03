@@ -32,7 +32,7 @@ class ServiceContext:
         if "://" in self.connection:
             self.service = client.make_service_group_handle([self.connection])
         else:
-            self.service = client.make_service_group_handle(self.connection)
+            self.service = client.make_service_group_handle_from_ssg(self.connection)
         return self.service
 
     def __exit__(self, type, value, traceback):

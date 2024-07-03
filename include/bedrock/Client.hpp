@@ -99,7 +99,7 @@ class Client {
      *
      * @return ServiceGroupHandle instance.
      */
-    ServiceGroupHandle makeServiceGroupHandle(
+    ServiceGroupHandle makeServiceGroupHandleFromSSGFile(
             const std::string& groupfile,
             uint16_t provider_id=0) const;
 
@@ -123,7 +123,9 @@ class Client {
      *
      * @return ServiceGroupHandle instance.
      */
-    ServiceGroupHandle makeServiceGroupHandle(uint64_t gid, uint16_t provider_id=0) const;
+    ServiceGroupHandle makeServiceGroupHandleFromSSGGroup(
+            uint64_t gid,
+            uint16_t provider_id=0) const;
 
     /**
      * @brief Checks that the Client instance is valid.

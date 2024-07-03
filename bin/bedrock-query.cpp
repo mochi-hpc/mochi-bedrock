@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
         bedrock::Client client(engine);
 
         auto sgh = g_ssg_file.empty() ? client.makeServiceGroupHandle(g_addresses, g_provider_id)
-                                      : client.makeServiceGroupHandle(g_ssg_file, g_provider_id);
+                                      : client.makeServiceGroupHandleFromSSGFile(g_ssg_file, g_provider_id);
 
         std::string result;
         if (g_jx9_script_content.empty())

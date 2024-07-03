@@ -18,7 +18,7 @@ class TestSSGManager(unittest.TestCase):
                 }
             ],
             "libraries": {
-                "module_a": "libModuleA.so"
+                "module_a": "./libModuleA.so"
             },
             "providers": [
                 {

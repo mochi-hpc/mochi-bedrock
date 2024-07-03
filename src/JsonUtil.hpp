@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
 #include <string>
-#include "Exception.hpp"
+#include <bedrock/DetailedException.hpp>
 
 namespace bedrock {
 

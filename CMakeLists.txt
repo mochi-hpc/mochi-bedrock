@@ -12,13 +12,14 @@ option (ENABLE_TESTS    "Build tests" OFF)
 option (ENABLE_EXAMPLES "Build examples" OFF)
 option (ENABLE_MPI      "Enable MPI support" OFF)
 option (ENABLE_MONA     "Enable MoNA support" OFF)
-option (ENABLE_SSG      "Enable SSG support" ON)
-option (ENABLE_ABT_IO   "Enable ABT-IO support" ON)
+option (ENABLE_SSG      "Enable SSG support" OFF)
+option (ENABLE_FLOCK    "Enable Flock support" OFF)
+option (ENABLE_ABT_IO   "Enable ABT-IO support" OFF)
 option (ENABLE_PYTHON   "Enable Python support" OFF)
 
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
-set (BEDROCK_VERSION_MINOR 11)
+set (BEDROCK_VERSION_MINOR 12)
 set (BEDROCK_VERSION_PATCH 0)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
@@ -56,6 +57,9 @@ if (ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif ()
 endif ()
 
+# search for bedrock-module-api
+find_package (bedrock-module-api REQUIRED)
+# search for pkg-config
 find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)
@@ -81,6 +85,14 @@ if (ENABLE_SSG)
     add_definitions (-DENABLE_SSG)
     set (OPTIONAL_SSG PkgConfig::SSG)
     set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} ssg")
+    set (OPTIONAL_CLIENT_DEPS "${OPTIONAL_CLIENT_DEPS} ssg")
+endif ()
+if (ENABLE_FLOCK)
+    find_package (flock REQUIRED)
+    add_definitions (-DENABLE_FLOCK)
+    set (OPTIONAL_FLOCK flock::client)
+    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} flock-client")
+    set (OPTIONAL_CLIENT_DEPS "${OPTIONAL_CLIENT_DEPS} flock-client")
 endif ()
 # search for MPI
 if (${ENABLE_MPI})

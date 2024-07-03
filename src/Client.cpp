@@ -3,16 +3,15 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/Exception.hpp"
-#include "bedrock/Client.hpp"
-#include "bedrock/ServiceHandle.hpp"
-#include "bedrock/ServiceGroupHandle.hpp"
-#include "bedrock/RequestResult.hpp"
+#include <bedrock/DetailedException.hpp>
+#include <bedrock/Client.hpp>
+#include <bedrock/ServiceHandle.hpp>
+#include <bedrock/ServiceGroupHandle.hpp>
+#include <bedrock/RequestResult.hpp>
 
 #include "ClientImpl.hpp"
 #include "ServiceHandleImpl.hpp"
 #include "ServiceGroupHandleImpl.hpp"
-#include "Exception.hpp"
 
 #include <thallium/serialization/stl/string.hpp>
 #ifdef ENABLE_SSG
@@ -60,16 +59,16 @@ ServiceHandle Client::makeServiceHandle(const std::string& address,
     return ServiceHandle(service_impl);
 }
 
-ServiceGroupHandle Client::makeServiceGroupHandle(
+ServiceGroupHandle Client::makeServiceGroupHandleFromSSGFile(
         const std::string& groupfile,
         uint16_t provider_id) const {
-#ifdef ENABLE_SSG
     std::vector<std::string> addresses;
+#ifdef ENABLE_SSG
     int num_addrs = SSG_ALL_MEMBERS;
     ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
     int ret = ssg_group_id_load(groupfile.c_str(), &num_addrs, &gid);
     if (ret != SSG_SUCCESS)
-        throw DETAILED_EXCEPTION("Could not load group file {} "
+        throw BEDROCK_DETAILED_EXCEPTION("Could not load group file {} "
             "(ssg_group_id_load returned {})", groupfile, ret);
     auto sg_impl = std::make_shared<ServiceGroupHandleImpl>(self, provider_id);
     sg_impl->m_gid = gid;
@@ -80,11 +79,11 @@ ServiceGroupHandle Client::makeServiceGroupHandle(
 #else
     (void)groupfile;
     (void)provider_id;
-    throw DETAILED_EXCEPTION("Bedrock was not built with SSG support");
+    throw BEDROCK_DETAILED_EXCEPTION("Bedrock was not built with SSG support");
 #endif
 }
 
-ServiceGroupHandle Client::makeServiceGroupHandle(
+ServiceGroupHandle Client::makeServiceGroupHandleFromSSGGroup(
         uint64_t gid,
         uint16_t provider_id) const {
 #ifdef ENABLE_SSG
@@ -97,7 +96,7 @@ ServiceGroupHandle Client::makeServiceGroupHandle(
 #else
     (void)gid;
     (void)provider_id;
-    throw DETAILED_EXCEPTION("Bedrock was not built with SSG support");
+    throw BEDROCK_DETAILED_EXCEPTION("Bedrock was not built with SSG support");
 #endif
 }
 

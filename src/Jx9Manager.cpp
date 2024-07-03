@@ -3,8 +3,8 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/Jx9Manager.hpp"
-#include "Exception.hpp"
+#include <bedrock/Jx9Manager.hpp>
+#include <bedrock/DetailedException.hpp>
 #include "Jx9ManagerImpl.hpp"
 #include <nlohmann/json.hpp>
 #include <map>
@@ -50,7 +50,7 @@ static jx9_value* jx9ValueFromJson(const json& object, jx9_vm* vm);
 std::string Jx9Manager::executeQuery(
     const std::string&                                  script,
     const std::unordered_map<std::string, std::string>& variables) const {
-    if (!self) throw DETAILED_EXCEPTION("Calling executeQuery on invalid Jx9Manager");
+    if (!self) throw BEDROCK_DETAILED_EXCEPTION("Calling executeQuery on invalid Jx9Manager");
     std::lock_guard<tl::mutex> lock(self->m_mtx);
     int                        ret;
 
@@ -65,7 +65,7 @@ std::string Jx9Manager::executeQuery(
         jx9_config(self->m_engine, JX9_CONFIG_ERR_LOG, &errLog, &errLogLength);
         auto err = std::string(errLog, errLogLength);
         if(err[errLogLength-1] == '\n') err.resize(errLogLength-1);
-        throw DETAILED_EXCEPTION("Jx9 script failed to compile: {}", err);
+        throw BEDROCK_DETAILED_EXCEPTION("Jx9 script failed to compile: {}", err);
     }
 
     // installing MPI_COMM_WORLD
@@ -87,14 +87,14 @@ std::string Jx9Manager::executeQuery(
         jx9_comm_world = jx9ValueFromJson(comm_world, vm);
     } catch (...) {
         jx9_vm_release(vm);
-        throw DETAILED_EXCEPTION("Could not create Jx9 value for MPI_COMM_WORLD");
+        throw BEDROCK_DETAILED_EXCEPTION("Could not create Jx9 value for MPI_COMM_WORLD");
     }
     ret = jx9_vm_config(vm, JX9_VM_CONFIG_CREATE_VAR, "MPI_COMM_WORLD",
                         jx9_comm_world);
     if (ret != JX9_OK) {
         jx9_release_value(vm, jx9_comm_world);
         jx9_vm_release(vm);
-        throw DETAILED_EXCEPTION("Could not install variable \"MPI_COMM_WORLD\" in Jx9 VM");
+        throw BEDROCK_DETAILED_EXCEPTION("Could not install variable \"MPI_COMM_WORLD\" in Jx9 VM");
     }
     jx9_release_value(vm, jx9_comm_world);
 
@@ -105,7 +105,7 @@ std::string Jx9Manager::executeQuery(
             jx9v = jx9ValueFromJson(json::parse(value), vm);
         } catch (...) {
             jx9_vm_release(vm);
-            throw DETAILED_EXCEPTION("Could not create Jx9 value from variable \"{}\"",
+            throw BEDROCK_DETAILED_EXCEPTION("Could not create Jx9 value from variable \"{}\"",
                             varname);
         }
         ret = jx9_vm_config(vm, JX9_VM_CONFIG_CREATE_VAR, varname.c_str(),
@@ -113,7 +113,7 @@ std::string Jx9Manager::executeQuery(
         if (ret != JX9_OK) {
             jx9_release_value(vm, jx9v);
             jx9_vm_release(vm);
-            throw DETAILED_EXCEPTION("Could not install variable \"{}\" in Jx9 VM",
+            throw BEDROCK_DETAILED_EXCEPTION("Could not install variable \"{}\" in Jx9 VM",
                             varname);
         }
         jx9_release_value(vm, jx9v);
@@ -149,7 +149,7 @@ std::string Jx9Manager::executeQuery(
     ret = jx9_vm_exec(vm, &exit_status);
     if (ret != JX9_OK) {
         jx9_vm_release(vm);
-        throw DETAILED_EXCEPTION("Jx9 VM execution failed with error code {}", ret);
+        throw BEDROCK_DETAILED_EXCEPTION("Jx9 VM execution failed with error code {}", ret);
     }
 
     // extract VM return value
@@ -157,7 +157,7 @@ std::string Jx9Manager::executeQuery(
     ret = jx9_vm_config(vm, JX9_VM_CONFIG_EXEC_VALUE, &ret_value);
     if (ret != JX9_OK) {
         jx9_vm_release(vm);
-        throw DETAILED_EXCEPTION("Could not extract return value from Jx9 VM");
+        throw BEDROCK_DETAILED_EXCEPTION("Could not extract return value from Jx9 VM");
     }
 
     // serialize ret_value into a string

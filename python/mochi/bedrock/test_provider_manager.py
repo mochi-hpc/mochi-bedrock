@@ -9,8 +9,8 @@ class TestProviderManager(unittest.TestCase):
     def setUp(self):
         config = {
             "libraries": {
-                "module_a": "libModuleA.so",
-                "module_b": "libModuleB.so"
+                "module_a": "./libModuleA.so",
+                "module_b": "./libModuleB.so"
             },
             "providers": [
                 {
