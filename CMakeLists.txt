@@ -57,6 +57,9 @@ if (ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif ()
 endif ()
 
+# search for bedrock-module-api
+find_package (bedrock-module-api REQUIRED)
+# search for pkg-config
 find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)

@@ -3,11 +3,11 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/ABTioManager.hpp"
-#include "bedrock/MargoManager.hpp"
-#include "bedrock/Jx9Manager.hpp"
+#include <bedrock/ABTioManager.hpp>
+#include <bedrock/MargoManager.hpp>
+#include <bedrock/Jx9Manager.hpp>
+#include <bedrock/DetailedException.hpp>
 #include "JsonUtil.hpp"
-#include "Exception.hpp"
 #include "ABTioManagerImpl.hpp"
 #include <margo.h>
 
@@ -26,11 +26,11 @@ ABTioManager::ABTioManager(const MargoManager& margoCtx,
     if (config.is_null()) return;
 #ifndef ENABLE_ABT_IO
     if (!(config.is_array() && config.empty()))
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Configuration has an \"abt_io\" field but Bedrock wasn't compiled with ABT-IO support");
 #else
     if (!config.is_array()) {
-        throw DETAILED_EXCEPTION("\"abt_io\" field in configuration should be an array");
+        throw BEDROCK_DETAILED_EXCEPTION("\"abt_io\" field in configuration should be an array");
     }
     for(auto& description : config) {
         addABTioInstanceFromJSON(description);
@@ -58,12 +58,12 @@ std::shared_ptr<NamedDependency>
 ABTioManager::getABTioInstance(const std::string& name) const {
 #ifndef ENABLE_ABT_IO
     (void)name;
-    throw DETAILED_EXCEPTION("Bedrock was not compiler with ABT-IO support");
+    throw BEDROCK_DETAILED_EXCEPTION("Bedrock was not compiler with ABT-IO support");
 #else
     auto it = std::find_if(self->m_instances.begin(), self->m_instances.end(),
                            [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_instances.end())
-        throw DETAILED_EXCEPTION("Could not find ABT-IO instance \"{}\"", name);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find ABT-IO instance \"{}\"", name);
     return *it;
 #endif
 }
@@ -72,10 +72,10 @@ std::shared_ptr<NamedDependency>
 ABTioManager::getABTioInstance(size_t index) const {
 #ifndef ENABLE_ABT_IO
     (void)index;
-    throw DETAILED_EXCEPTION("Bedrock was not compiler with ABT-IO support");
+    throw BEDROCK_DETAILED_EXCEPTION("Bedrock was not compiler with ABT-IO support");
 #else
     if (index >= self->m_instances.size())
-        throw DETAILED_EXCEPTION("Could not find ABT-IO instance at index {}", index);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find ABT-IO instance at index {}", index);
     return self->m_instances[index];
 #endif
 }
@@ -96,7 +96,7 @@ ABTioManager::addABTioInstance(const std::string&                      name,
     (void)name;
     (void)pool;
     (void)config;
-    throw DETAILED_EXCEPTION("Bedrock was not compiled with ABT-IO support");
+    throw BEDROCK_DETAILED_EXCEPTION("Bedrock was not compiled with ABT-IO support");
 #else
     json     abt_io_config;
     // check if the name doesn't already exist
@@ -104,13 +104,13 @@ ABTioManager::addABTioInstance(const std::string&                      name,
         self->m_instances.begin(), self->m_instances.end(),
         [&name](const auto& instance) { return instance->getName() == name; });
     if (it != self->m_instances.end()) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "ABT-IO instance name \"{}\" already used",
             name);
     }
     // get the config of this ABT-IO instance
     if (!config.is_object() && !config.is_null()) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "\"config\" field in ABT-IO instance configuration should be an object");
     }
     // all good, can instanciate
@@ -120,7 +120,7 @@ ABTioManager::addABTioInstance(const std::string&                      name,
     abt_io_info.progress_pool = pool->getHandle<ABT_pool>();
     abt_io_instance_id abt_io = abt_io_init_ext(&abt_io_info);
     if (abt_io == ABT_IO_INSTANCE_NULL) {
-        throw DETAILED_EXCEPTION("Could not initialize ABT-IO instance \"{}\"", name);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not initialize ABT-IO instance \"{}\"", name);
     }
     auto entry = std::make_shared<ABTioEntry>(name, abt_io, pool);
     self->m_instances.push_back(entry);

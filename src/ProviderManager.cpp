@@ -3,13 +3,13 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/ProviderManager.hpp"
-#include "bedrock/ModuleContext.hpp"
-#include "bedrock/AbstractServiceFactory.hpp"
-#include "bedrock/DependencyFinder.hpp"
-#include "Exception.hpp"
-#include "JsonUtil.hpp"
+#include <bedrock/ProviderManager.hpp>
+#include <bedrock/ModuleContext.hpp>
+#include <bedrock/AbstractServiceFactory.hpp>
+#include <bedrock/DependencyFinder.hpp>
+#include <bedrock/DetailedException.hpp>
 
+#include "JsonUtil.hpp"
 #include "ProviderManagerImpl.hpp"
 
 #include <thallium/serialization/stl/vector.hpp>
@@ -60,7 +60,7 @@ ProviderManager::lookupProvider(const std::string& spec) const {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end())
-        throw DETAILED_EXCEPTION("Could not find provider with spec \"{}\"", spec);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find provider with spec \"{}\"", spec);
     return *it;
 }
 
@@ -75,14 +75,14 @@ std::shared_ptr<ProviderDependency> ProviderManager::getProvider(const std::stri
         self->m_providers.begin(), self->m_providers.end(),
         [&name](const auto& p) { return p->getName() == name; });
     if (it == self->m_providers.end())
-        throw DETAILED_EXCEPTION("Could not find provider \"{}\"", name);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find provider \"{}\"", name);
     return *it;
 }
 
 std::shared_ptr<ProviderDependency> ProviderManager::getProvider(size_t index) const {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     if (index >= self->m_providers.size())
-        throw DETAILED_EXCEPTION("Could not find provider at index {}", index);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find provider at index {}", index);
     return self->m_providers[index];
 }
 
@@ -96,7 +96,7 @@ ProviderManager::registerProvider(
     std::shared_ptr<LocalProvider> entry;
     auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Could not find service factory for provider type \"{}\"", type);
     }
 
@@ -104,7 +104,7 @@ ProviderManager::registerProvider(
         std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
         auto                       it = self->resolveSpec(name);
         if (it != self->m_providers.end()) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Name \"{}\" already used by another provider", name);
         }
 
@@ -114,7 +114,7 @@ ProviderManager::registerProvider(
         it = std::find_if(self->m_providers.begin(), self->m_providers.end(),
                 [provider_id](const auto& p) { return p->getProviderID() == provider_id; });
         if (it != self->m_providers.end()) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Another provider already uses provider ID {}", provider_id);
         }
 
@@ -149,7 +149,7 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
     if (it == self->m_providers.end()) {
-        throw DETAILED_EXCEPTION("Could not find provider for spec \"{}\"", spec);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find provider for spec \"{}\"", spec);
     }
     spdlog::trace("Deregistering provider {}", spec);
     self->m_providers.erase(it);
@@ -158,7 +158,7 @@ void ProviderManager::deregisterProvider(const std::string& spec) {
 std::shared_ptr<ProviderDependency>
 ProviderManager::addProviderFromJSON(const json& description) {
     if (!self->m_dependency_finder) {
-        throw DETAILED_EXCEPTION("No DependencyFinder set in ProviderManager");
+        throw BEDROCK_DETAILED_EXCEPTION("No DependencyFinder set in ProviderManager");
     }
     auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
 
@@ -208,7 +208,7 @@ ProviderManager::addProviderFromJSON(const json& description) {
 
     auto service_factory = ModuleContext::getServiceFactory(type);
     if (!service_factory) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Could not find service factory for provider type \"{}\"", type);
     }
 
@@ -243,7 +243,7 @@ ProviderManager::addProviderFromJSON(const json& description) {
                     dep_config = dep_config[0];
                 }
                 if (!dep_config.is_string()) {
-                    throw DETAILED_EXCEPTION("Dependency \"{}\" should be a string",
+                    throw BEDROCK_DETAILED_EXCEPTION("Dependency \"{}\" should be a string",
                             dependency.name);
                 }
                 auto dep_handle = dependencyFinder.find(
@@ -260,7 +260,7 @@ ProviderManager::addProviderFromJSON(const json& description) {
                     dep_config = tmp_array;
                 }
                 if (!dep_config.is_array()) {
-                    throw DETAILED_EXCEPTION("Dependency \"{}\" should be an array",
+                    throw BEDROCK_DETAILED_EXCEPTION("Dependency \"{}\" should be an array",
                             dependency.name);
                 }
                 std::vector<std::string> deps;
@@ -273,7 +273,7 @@ ProviderManager::addProviderFromJSON(const json& description) {
                 }
             }
         } else if (dependency.flags & BEDROCK_REQUIRED) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Missing dependency \"{}\" of type \"{}\" in provider configuration",
                 dependency.name, dependency.type);
         }
@@ -286,7 +286,7 @@ ProviderManager::addProviderFromJSON(const json& description) {
 void ProviderManager::addProviderListFromJSON(const json& list) {
     if (list.is_null()) { return; }
     if (!list.is_array()) {
-        throw DETAILED_EXCEPTION(
+        throw BEDROCK_DETAILED_EXCEPTION(
             "Invalid JSON configuration passed to "
             "ProviderManager::addProviderListFromJSON (should be an array)");
     }
@@ -301,12 +301,12 @@ void ProviderManager::changeProviderPool(const std::string& provider,
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
-        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+        throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
     // find the pool
     auto margo_manager = MargoManager(self->m_margo_manager);
     auto pool = margo_manager.getPool(pool_name);
     if(!pool) {
-        throw DETAILED_EXCEPTION("Could not find pool named \"{}\"", pool_name);
+        throw BEDROCK_DETAILED_EXCEPTION("Could not find pool named \"{}\"", pool_name);
     }
     // call the provider's change_pool callback
     (*it)->factory->changeProviderPool((*it)->getHandle<void*>(), pool->getHandle<ABT_pool>());
@@ -323,7 +323,7 @@ void ProviderManager::migrateProvider(
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
-        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+        throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
     // call the provider's migrateProvider callback
     try {
         (*it)->factory->migrateProvider(
@@ -345,7 +345,7 @@ void ProviderManager::snapshotProvider(
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
-        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+        throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
     // call the provider's snapshotProvider callback
     try {
         (*it)->factory->snapshotProvider(
@@ -366,7 +366,7 @@ void ProviderManager::restoreProvider(
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
-        throw DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
+        throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
     // call the provider's restoreProvider callback
     try {
         (*it)->factory->restoreProvider(

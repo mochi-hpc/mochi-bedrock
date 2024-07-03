@@ -3,17 +3,17 @@
  *
  * See COPYRIGHT in top-level directory.
  */
-#include "bedrock/Server.hpp"
-#include "bedrock/MargoManager.hpp"
-#include "bedrock/ABTioManager.hpp"
-#include "bedrock/MonaManager.hpp"
-#include "bedrock/ModuleContext.hpp"
-#include "bedrock/ProviderManager.hpp"
-#include "bedrock/ClientManager.hpp"
-#include "bedrock/DependencyFinder.hpp"
-#include "bedrock/SSGManager.hpp"
-#include "bedrock/Jx9Manager.hpp"
-#include "Exception.hpp"
+#include <bedrock/Server.hpp>
+#include <bedrock/MargoManager.hpp>
+#include <bedrock/ABTioManager.hpp>
+#include <bedrock/MonaManager.hpp>
+#include <bedrock/ModuleContext.hpp>
+#include <bedrock/ProviderManager.hpp>
+#include <bedrock/ClientManager.hpp>
+#include <bedrock/DependencyFinder.hpp>
+#include <bedrock/SSGManager.hpp>
+#include <bedrock/Jx9Manager.hpp>
+#include <bedrock/Exception.hpp>
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include <spdlog/spdlog.h>
@@ -72,7 +72,7 @@ Server::Server(const std::string& address, const std::string& configString,
     spdlog::trace("Reading Bedrock config");
     if (!config.contains("bedrock")) config["bedrock"] = json::object();
     if (!config["bedrock"].is_object())
-        throw DETAILED_EXCEPTION("Invalid entry type for \"bedrock\" (expected object)");
+        throw BEDROCK_DETAILED_EXCEPTION("Invalid entry type for \"bedrock\" (expected object)");
     auto   bedrockConfig = config["bedrock"];
     double dependency_timeout
         = bedrockConfig.value("dependency_resolution_timeout", 30.0);
@@ -83,10 +83,10 @@ Server::Server(const std::string& address, const std::string& configString,
         if (bedrockPoolRef.is_string()) {
             bedrock_pool = margoMgr.getPool(bedrockPoolRef.get<std::string>());
         } else {
-            throw DETAILED_EXCEPTION("Invalid type in Bedrock's \"pool\" entry");
+            throw BEDROCK_DETAILED_EXCEPTION("Invalid type in Bedrock's \"pool\" entry");
         }
         if (!bedrock_pool) {
-            throw DETAILED_EXCEPTION(
+            throw BEDROCK_DETAILED_EXCEPTION(
                 "Invalid pool reference {} in Bedrock configuration",
                 bedrockPoolRef.dump());
         }

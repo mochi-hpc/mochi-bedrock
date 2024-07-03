@@ -4,10 +4,10 @@ spack:
   - pkg-config
   - mochi-margo
   - mochi-thallium
+  - mochi-bedrock-module-api
   - mochi-abt-io
   - mochi-ssg+mpi
   - mochi-mona
-  - mochi-flock+mpi
   - nlohmann-json
   - nlohmann-json-schema-validator
   - spdlog
