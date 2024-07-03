@@ -169,7 +169,17 @@ class Client:
             self._internal.make_service_handle(address=address, provider_id=provider_id),
             self)
 
-    def make_service_group_handle(self, group: str|int|list[str], provider_id: int = 0):
+    def make_service_group_handle(self, addresses: list[str], provider_id: int = 0):
         return ServiceGroupHandle(
-            self._internal.make_service_group_handle(group, provider_id),
+            self._internal.make_service_group_handle(addresses, provider_id),
             self)
+
+    def make_service_group_handle_from_ssg(self, group: str|int, provider_id: int = 0):
+        if isinstance(group, int):
+            return ServiceGroupHandle(
+                self._internal.make_service_group_handle_from_ssg_group(group, provider_id),
+                self)
+        else:
+            return ServiceGroupHandle(
+                self._internal.make_service_group_handle_from_ssg_file(group, provider_id),
+                self)

@@ -4,9 +4,9 @@ libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name: bedrock-client
-Description: <insert description here>
+Description: Client library for Mochi Bedrock
 Version: @BEDROCK_VERSION@
 
-Requires: thallium spdlog nlohmann_json fmt
+Requires: thallium spdlog nlohmann_json fmt @OPTIONAL_CLIENT_DEPS@
 Libs: -L${libdir} @CLIENT_PRIVATE_LIBS@ -lstdc++
 Cflags: -I${includedir}

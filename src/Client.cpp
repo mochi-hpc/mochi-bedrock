@@ -60,11 +60,11 @@ ServiceHandle Client::makeServiceHandle(const std::string& address,
     return ServiceHandle(service_impl);
 }
 
-ServiceGroupHandle Client::makeServiceGroupHandle(
+ServiceGroupHandle Client::makeServiceGroupHandleFromSSGFile(
         const std::string& groupfile,
         uint16_t provider_id) const {
-#ifdef ENABLE_SSG
     std::vector<std::string> addresses;
+#ifdef ENABLE_SSG
     int num_addrs = SSG_ALL_MEMBERS;
     ssg_group_id_t gid = SSG_GROUP_ID_INVALID;
     int ret = ssg_group_id_load(groupfile.c_str(), &num_addrs, &gid);
@@ -84,7 +84,7 @@ ServiceGroupHandle Client::makeServiceGroupHandle(
 #endif
 }
 
-ServiceGroupHandle Client::makeServiceGroupHandle(
+ServiceGroupHandle Client::makeServiceGroupHandleFromSSGGroup(
         uint64_t gid,
         uint16_t provider_id) const {
 #ifdef ENABLE_SSG
