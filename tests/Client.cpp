@@ -145,7 +145,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
             // load libModuleA.so asynchronously
             bedrock::AsyncRequest req;
-            serviceHandle.loadModule("module_b", "libModuleB.so", &req);
+            serviceHandle.loadModule("module_b", "./libModuleB.so", &req);
             req.wait();
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_b") != nullptr);
             // load libModuleC.so, which does not exist
