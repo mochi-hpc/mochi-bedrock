@@ -141,7 +141,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
 
         SECTION("Load a library") {
             // load libModuleA.so synchronously
-            serviceHandle.loadModule("module_a", "libModuleA.so");
+            serviceHandle.loadModule("module_a", "./libModuleA.so");
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
             // load libModuleA.so asynchronously
             bedrock::AsyncRequest req;
@@ -156,7 +156,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
 
         SECTION("Add and remove providers") {
             // load module_a
-            serviceHandle.loadModule("module_a", "libModuleA.so");
+            serviceHandle.loadModule("module_a", "./libModuleA.so");
             REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
             // create a provider of type module_a
             REQUIRE_NOTHROW(serviceHandle.addProvider(R"(
