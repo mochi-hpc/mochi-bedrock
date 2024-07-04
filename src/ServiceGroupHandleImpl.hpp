@@ -52,8 +52,8 @@ class ServiceGroupHandleImpl {
             ssg_group_destroy(m_gid);
 #endif
 #ifdef ENABLE_FLOCK
-        flock_group_handle_release(m_flock_gh);
-        flock_client_finalize(m_flock_client);
+        if(m_flock_gh) flock_group_handle_release(m_flock_gh);
+        if(m_flock_client) flock_client_finalize(m_flock_client);
 #endif
     }
 
