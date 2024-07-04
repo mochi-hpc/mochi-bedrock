@@ -7,19 +7,50 @@ from pymargo.core import Engine
 
 class ServiceContext:
 
+    ssg_prefix = "ssg://"
+    flock_prefix = "flock://"
+
     def __init__(self, target=None):
-        if target is None:
-            self.connection = os.environ.get("BEDROCKCTL_CONNECTION", None)
-        else:
-            self.connection = target
+        self.connection = target or os.environ.get("BEDROCKCTL_CONNECTION", None)
         if self.connection is None:
             print(f"Error: bedrockctl not connected")
             raise typer.Exit(code=-1)
-        if "://" in self.connection:
-            self.protocol = connection.split(":")[0]
-        elif os.path.exists(self.connection) and os.path.isfile(self.connection):
+        # SSG file
+        if self.connection.startswith(ServiceContext.ssg_prefix):
+            group_file = self.connection[len(ServiceContext.ssg_prefix):]
+            if not (os.path.exists(group_file) and os.path.isfile(group_file)):
+                print(f"Error: could not access SSG file {group_file}")
+                raise typer.Exit(code=-1)
             import pyssg
-            self.protocol = pyssg.get_group_transport_from_file(self.connection)
+            self.protocol = pyssg.get_group_transport_from_file(group_file)
+        # Flock file
+        elif self.connection.startswith(ServiceContext.flock_prefix):
+            group_file = self.connection[len(ServiceContext.flock_prefix):]
+            try:
+                import json
+                with open(group_file, 'r') as file:
+                    data = json.load(file)
+                if "members" not in data or not isinstance(data["members"], list):
+                    print(f"Error: {group_file} does not appear to be a correct Flock file")
+                    raise typer.Exit(code=-1)
+                first_member = data["members"][0]
+                if not isinstance(first_member, dict):
+                    print(f"Error: {group_file} does not appear to be a correct Flock file")
+                    raise typer.Exit(code=-1)
+                if "address" not in first_member:
+                    print(f"Error: {group_file} does not appear to be a correct Flock file")
+                    raise typer.Exit(code=-1)
+                address = first_member["address"]
+                self.protocol = address.split(":")[0]
+            except json.JSONDecodeError:
+                print("Error: {group_file} does not contain valid JSON")
+                raise typer.Exit(code=-1)
+            except (FileNotFoundError, IOError):
+                print(f"Error: could not access Flock file {group_file}")
+                raise typer.Exit(code=-1)
+        # Address
+        elif "://" in self.connection:
+            self.protocol = connection.split(":")[0]
         else:
             print(f"Error: could not find file or address {self.connection}")
             raise typer.Exit(code=-1)
@@ -27,19 +58,24 @@ class ServiceContext:
     def __enter__(self):
         self.engine = Engine(self.protocol)
         client = Client(self.engine)
-        import pyssg
-        pyssg.init()
-        if "://" in self.connection:
-            self.service = client.make_service_group_handle([self.connection])
+        if self.connection.startswith(ServiceContext.ssg_prefix):
+            import pyssg
+            pyssg.init()
+            self.service = client.make_service_group_handle_from_ssg(
+                self.connection[len(ServiceContext.ssg_prefix):])
+        elif self.connection.startswith(ServiceContext.flock_prefix):
+            self.service = client.make_service_group_handle_from_flock(
+                self.connection[len(ServiceContext.flock_prefix):])
         else:
-            self.service = client.make_service_group_handle_from_ssg(self.connection)
+            self.service = client.make_service_group_handle([self.connection])
         return self.service
 
     def __exit__(self, type, value, traceback):
         self.service = None
         del self.service
-        import pyssg
-        pyssg.finalize()
+        if self.connection.startswith(ServiceContext.ssg_prefix):
+            import pyssg
+            pyssg.finalize()
         self.engine.finalize()
 
 

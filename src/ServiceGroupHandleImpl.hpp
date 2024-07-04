@@ -179,7 +179,15 @@ class ServiceGroupHandleImpl {
             throw BEDROCK_DETAILED_EXCEPTION(
                 "Could not create flock group handle: {}", std::to_string(ret));
         }
-        return FromFlockGroup(std::move(client), fgh, provider_id, fclient);
+        std::shared_ptr<ServiceGroupHandleImpl> result;
+        try {
+            result = FromFlockGroup(std::move(client), fgh, provider_id, fclient);
+        } catch(...) {
+            flock_group_handle_release(fgh);
+            throw;
+        }
+        flock_group_handle_release(fgh);
+        return result;
 #else
         (void)client;
         (void)groupfile;

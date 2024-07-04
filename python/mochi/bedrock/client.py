@@ -183,3 +183,8 @@ class Client:
             return ServiceGroupHandle(
                 self._internal.make_service_group_handle_from_ssg_file(group, provider_id),
                 self)
+
+    def make_service_group_handle_from_flock(self, groupfile: str, provider_id: int = 0):
+        return ServiceGroupHandle(
+                self._internal.make_service_group_handle_from_flock_file(groupfile, provider_id),
+                self)

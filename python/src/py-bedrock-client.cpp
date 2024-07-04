@@ -41,7 +41,7 @@ PYBIND11_MODULE(pybedrock_client, m) {
                 uint16_t provider_id) {
                 return client.makeServiceGroupHandleFromSSGFile(groupfile, provider_id);
              },
-             "Create a ServiceHandle instance",
+             "Create a ServiceGroupHandle instance",
              "group_file"_a,
              "provider_id"_a=0)
         .def("make_service_group_handle",
@@ -50,7 +50,7 @@ PYBIND11_MODULE(pybedrock_client, m) {
                 uint16_t provider_id) {
                 return client.makeServiceGroupHandle(addresses, provider_id);
              },
-             "Create a ServiceHandle instance",
+             "Create a ServiceGroupHandle instance",
              "addresses"_a,
              "provider_id"_a=0)
         .def("make_service_group_handle_from_ssg_group",
@@ -59,8 +59,17 @@ PYBIND11_MODULE(pybedrock_client, m) {
                 uint16_t provider_id) {
                 return client.makeServiceGroupHandleFromSSGGroup(gid, provider_id);
              },
-             "Create a ServiceHandle instance",
+             "Create a ServiceGroupHandle instance",
              "group_id"_a,
+             "provider_id"_a=0)
+        .def("make_service_group_handle_from_flock_file",
+             [](const Client& client,
+                const std::string& groupfile,
+                uint16_t provider_id) {
+                return client.makeServiceGroupHandleFromFlockFile(groupfile, provider_id);
+             },
+             "Create a ServiceGroupHandle instance",
+             "group_file"_a,
              "provider_id"_a=0);
     py11::class_<ServiceHandle>(m, "ServiceHandle")
         .def_property_readonly("client", &ServiceHandle::client)
