@@ -106,18 +106,6 @@ class Client {
     /**
      * @brief Creates a handle to a group of Bedrock processes.
      *
-     * @param addresses Array of addresses.
-     * @param provider_id Provider ID of the bedrock providers.
-     *
-     * @return ServiceGroupHandle instance.
-     */
-    ServiceGroupHandle makeServiceGroupHandle(
-            const std::vector<std::string>& addresses,
-            uint16_t provider_id=0) const;
-
-    /**
-     * @brief Creates a handle to a group of Bedrock processes.
-     *
      * @param gid Existing SSG group id.
      * @param provider_id Provider ID of the bedrock providers.
      *
@@ -125,6 +113,18 @@ class Client {
      */
     ServiceGroupHandle makeServiceGroupHandleFromSSGGroup(
             uint64_t gid,
+            uint16_t provider_id=0) const;
+
+    /**
+     * @brief Creates a handle to a group of Bedrock processes.
+     *
+     * @param addresses Array of addresses.
+     * @param provider_id Provider ID of the bedrock providers.
+     *
+     * @return ServiceGroupHandle instance.
+     */
+    ServiceGroupHandle makeServiceGroupHandle(
+            const std::vector<std::string>& addresses,
             uint16_t provider_id=0) const;
 
     /**
