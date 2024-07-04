@@ -10,6 +10,11 @@
 #include <thallium.hpp>
 #include <memory>
 
+// forward declared to avoid including flock if Bedrock
+// wasn't built with support for it.
+typedef struct flock_group_handle* flock_group_handle_t;
+typedef struct flock_client* flock_client_t;
+
 namespace bedrock {
 
 class ClientImpl;
@@ -116,7 +121,33 @@ class Client {
             uint16_t provider_id=0) const;
 
     /**
+     * @brief Creates a handle to a group of Bedrock processes
+     * from an Flock group file.
+     *
+     * @param groupfile Flock group file.
+     * @param provider_id Provider ID of the bedrock providers.
+     *
+     * @return ServiceGroupHandle instance.
+     */
+    ServiceGroupHandle makeServiceGroupHandleFromFlockFile(
+            const std::string& groupfile,
+            uint16_t provider_id=0) const;
+
+    /**
      * @brief Creates a handle to a group of Bedrock processes.
+     *
+     * @param handle Existing Flock group handle.
+     * @param provider_id Provider ID of the bedrock providers.
+     *
+     * @return ServiceGroupHandle instance.
+     */
+    ServiceGroupHandle makeServiceGroupHandleFromFlockGroup(
+            flock_group_handle_t handle,
+            uint16_t provider_id=0) const;
+
+    /**
+     * @brief Creates a handle to a group of Bedrock processes
+     * from a list of addresses. This type of group cannot be refreshed.
      *
      * @param addresses Array of addresses.
      * @param provider_id Provider ID of the bedrock providers.

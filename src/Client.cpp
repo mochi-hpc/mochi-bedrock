@@ -77,6 +77,24 @@ ServiceGroupHandle Client::makeServiceGroupHandleFromSSGGroup(
     return result;
 }
 
+ServiceGroupHandle Client::makeServiceGroupHandleFromFlockFile(
+        const std::string& groupfile,
+        uint16_t provider_id) const {
+    auto impl = ServiceGroupHandleImpl::FromFlockFile(self, groupfile, provider_id);
+    auto result = ServiceGroupHandle{std::move(impl)};
+    result.refresh();
+    return result;
+}
+
+ServiceGroupHandle Client::makeServiceGroupHandleFromFlockGroup(
+        flock_group_handle_t handle,
+        uint16_t provider_id) const {
+    auto impl = ServiceGroupHandleImpl::FromFlockGroup(self, handle, provider_id);
+    auto result = ServiceGroupHandle{std::move(impl)};
+    result.refresh();
+    return result;
+}
+
 ServiceGroupHandle Client::makeServiceGroupHandle(
         const std::vector<std::string>& addresses,
         uint16_t provider_id) const {

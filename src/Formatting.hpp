@@ -8,6 +8,9 @@
 
 #include <mercury.h>
 #include <string>
+#ifdef ENABLE_FLOCK
+#include <flock/flock-common.h>
+#endif
 
 namespace std {
 
@@ -18,7 +21,20 @@ static inline auto to_string(hg_return_t ret) -> string {
         default:
             return "<unknown>";
     }
+#undef X
 }
+
+#ifdef ENABLE_FLOCK
+static inline auto to_string(flock_return_t ret) -> string {
+#define X(__name__, __description__) case __name__: return __description__;
+    switch(ret) {
+        FLOCK_RETURN_VALUES
+        default:
+            return "<unknown>";
+    }
+#undef X
+}
+#endif
 
 }
 
