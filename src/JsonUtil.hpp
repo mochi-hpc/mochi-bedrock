@@ -55,6 +55,35 @@ struct JsonValidator {
 
 };
 
+static inline void expandJson(const json& input, json& output) {
+    for (auto it = input.begin(); it != input.end(); ++it) {
+        std::istringstream key_stream(it.key());
+        std::string segment;
+        json* current = &output;
+
+        while (std::getline(key_stream, segment, '.')) {
+            if (!key_stream.eof()) {
+                if (current->find(segment) == current->end() || !(*current)[segment].is_object()) {
+                    (*current)[segment] = json::object();
+                }
+                current = &(*current)[segment];
+            } else {
+                if (it.value().is_object()) {
+                    expandJson(it.value(), (*current)[segment]);
+                } else {
+                    (*current)[segment] = it.value();
+                }
+            }
+        }
+    }
+}
+
+static inline json expandSimplifiedJSON(const json& input) {
+    json output = json::object();
+    expandJson(input, output);
+    return output;
+}
+
 }
 
 #endif

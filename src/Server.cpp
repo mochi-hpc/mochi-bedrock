@@ -16,6 +16,7 @@
 #include <bedrock/Exception.hpp>
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
+#include "JsonUtil.hpp"
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <fstream>
@@ -56,6 +57,7 @@ Server::Server(const std::string& address, const std::string& configString,
     } else {
         config = json::object();
     }
+    config = expandSimplifiedJSON(config);
     spdlog::trace("Parsing done");
 
     // Extract margo section from the config
