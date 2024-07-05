@@ -32,3 +32,6 @@ endif()
 check_required_components(bedrock)
 
 include ("${CMAKE_CURRENT_LIST_DIR}/bedrock-targets.cmake")
+
+add_library (bedrock::server ALIAS bedrock-server)
+add_library (bedrock::client ALIAS bedrock-client)

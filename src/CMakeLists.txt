@@ -66,6 +66,7 @@ target_compile_options (bedrock-client PUBLIC -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-client
     PRIVATE coverage_config
     ${OPTIONAL_SSG}
+    ${OPTIONAL_FLOCK}
     PUBLIC
     thallium
     spdlog::spdlog
