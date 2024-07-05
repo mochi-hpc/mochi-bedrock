@@ -39,7 +39,7 @@ add_library (bedrock-server ${server-src-files})
 add_library (bedrock::server ALIAS bedrock-server)
 target_compile_options (bedrock-server PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-server
-    PRIVATE nlohmann_json_schema_validator::validator jx9 coverage_config
+    PRIVATE nlohmann_json_schema_validator::validator toml11::toml11 jx9 coverage_config
     PUBLIC
     bedrock::module-api
     thallium

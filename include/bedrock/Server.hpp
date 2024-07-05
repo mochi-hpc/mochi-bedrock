@@ -26,7 +26,8 @@ class ServerImpl;
  */
 enum class ConfigType {
     JSON,
-    JX9
+    JX9,
+    TOML
 };
 
 /**

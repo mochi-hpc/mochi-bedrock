@@ -72,6 +72,8 @@ find_package (TCLAP REQUIRED)
 find_package (spdlog REQUIRED)
 # search for fmt
 find_package (fmt REQUIRED)
+# search for toml11
+find_package (toml11 REQUIRED)
 # search for abt-io
 if (ENABLE_ABT_IO)
     pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)

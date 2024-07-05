@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include <bedrock/Server.hpp>
+#include <bedrock/MargoManager.hpp>
 #include <bedrock/Client.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -71,5 +72,31 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
                 throw;
             }
         }
+    }
+
+    SECTION("Initialize from TOML") {
+
+        const std::string input_config = R"(
+[margo]
+use_progress_thread = false
+
+[[margo.argobots.pools]]
+name   = "my_pool_1"
+access = "mpmc"
+kind   = "fifo_wait"
+
+[[margo.argobots.pools]]
+name   = "my_pool_2"
+access = "mpmc"
+kind   = "fifo"
+)";
+        bedrock::Server server("na+sm", input_config, bedrock::ConfigType::TOML);
+        {
+            auto margo_manager = server.getMargoManager();
+            REQUIRE(margo_manager.getNumPools() == 3);
+            REQUIRE(margo_manager.getPool((uint32_t)0)->getName() == "my_pool_1");
+            REQUIRE(margo_manager.getPool(1)->getName() == "my_pool_2");
+        }
+        server.finalize();
     }
 }

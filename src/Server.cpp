@@ -17,6 +17,7 @@
 #include "MargoLogging.hpp"
 #include "ServerImpl.hpp"
 #include "JsonUtil.hpp"
+#include "TomlUtil.hpp"
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 #include <fstream>
@@ -31,7 +32,7 @@ using nlohmann::json;
 Server::Server(const std::string& address, const std::string& configString,
                ConfigType configType, const Jx9ParamMap& jx9Params) {
 
-    std::string jsonConfigString;
+    std::string configStr;
 
     auto mpi = std::make_shared<MPI>();
 
@@ -39,26 +40,38 @@ Server::Server(const std::string& address, const std::string& configString,
 
     if(configType == ConfigType::JX9) {
         spdlog::trace("Interpreting JX9 template configuration");
-        jsonConfigString = jx9Manager.executeQuery(configString, jx9Params);
+        configStr = jx9Manager.executeQuery(configString, jx9Params);
+        configType = ConfigType::JSON;
         spdlog::trace("JX9 template configuration interpreted");
-    } else {
-        jsonConfigString = configString;
+    } else { // JSON or TOML
+        configStr = configString;
     }
 
-    // Read JSON config
-    spdlog::trace("Parsing JSON configuration");
+    // Read JSON or TOML config
     json config;
-    if (!jsonConfigString.empty()) {
-        try {
-            config = json::parse(jsonConfigString);
-        } catch(const std::exception& ex) {
-            throw Exception(ex.what());
+    if(configType == ConfigType::JSON) {
+        spdlog::trace("Parsing JSON configuration");
+        if (!configStr.empty()) {
+            try {
+                config = json::parse(configStr);
+            } catch(const std::exception& ex) {
+                throw Exception(ex.what());
+            }
+        } else {
+            config = json::object();
         }
-    } else {
-        config = json::object();
+        config = expandSimplifiedJSON(config);
+        spdlog::trace("Parsing done");
+    } else { // TOML
+        spdlog::trace("Parsing TOML configuration");
+        toml::value tomlConfig;
+        try {
+            tomlConfig = toml::parse_str(configStr);
+        } catch(const std::exception& ex) {
+            throw Exception{ex.what()};
+        }
+        config = Toml2Json(tomlConfig);
     }
-    config = expandSimplifiedJSON(config);
-    spdlog::trace("Parsing done");
 
     // Extract margo section from the config
     spdlog::trace("Initializing MargoManager");
