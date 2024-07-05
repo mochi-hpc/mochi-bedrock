@@ -11,6 +11,7 @@ spack:
   - mochi-flock
   - nlohmann-json
   - nlohmann-json-schema-validator
+  - toml11
   - spdlog
   - tclap
   - mercury
@@ -34,6 +35,8 @@ spack:
       require: "@0.12.0:"
     mochi-flock:
       require: "@0.3.0:"
+    toml11:
+      require: "@4.0.0:"
     py-attrs:
       require: "@22.2.0:"
     nlohmann-json-schema-validator:
