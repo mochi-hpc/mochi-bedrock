@@ -77,7 +77,7 @@ static void parseCommandLine(int argc, char** argv) {
             "Log level (trace, debug, info, warning, error, critical, off)",
             false, "info", "level");
         TCLAP::ValueArg<std::string> configFile(
-            "c", "config", "JSON or JX9 configuration file", false, "", "config-file");
+            "c", "config", "JSON, JX9, or TOML configuration file", false, "", "config-file");
         TCLAP::ValueArg<std::string> outConfigFile(
             "o", "output-config", "JSON file to write after deployment", false,
             "", "config-file");
@@ -85,6 +85,8 @@ static void parseCommandLine(int argc, char** argv) {
             "", "stdin", "Read configuration from standard input", false);
         TCLAP::SwitchArg jx9Switch(
             "j", "jx9", "Interpret configuration as a Jx9 script", false);
+        TCLAP::SwitchArg tomlSwitch(
+            "t", "toml", "Configuration is in TOML format instead of JSON", false);
         TCLAP::ValueArg<std::string> jx9Params(
             "", "jx9-context", "Comma-separated list of Jx9 parameters for the Jx9 script",
             false, "", "x=1,y=2,z=something,...");
@@ -95,6 +97,7 @@ static void parseCommandLine(int argc, char** argv) {
         cmd.add(stdinSwitch);
         cmd.add(jx9Switch);
         cmd.add(jx9Params);
+        cmd.add(tomlSwitch);
         cmd.parse(argc, argv);
         g_address     = address.getValue();
         g_log_level   = logLevel.getValue();
@@ -108,11 +111,18 @@ static void parseCommandLine(int argc, char** argv) {
             exit(-1);
         }
         if (jx9Switch.getValue()) {
+            if (tomlSwitch.getValue()) {
+                std::cerr << "error: cannot use both --jx9/-j and --toml/-t" << std::endl;
+                exit(-1);
+            }
             g_config_type = bedrock::ConfigType::JX9;
         } else if(jx9Params.isSet()) {
             std::cerr << "error: passing Jx9 parameters for a JSON configuration"
                       << std::endl;
             exit(-1);
+        }
+        if (tomlSwitch.getValue()) {
+            g_config_type = bedrock::ConfigType::TOML;
         }
     } catch (TCLAP::ArgException& e) {
         std::cerr << "error: " << e.error() << " for arg " << e.argId()
