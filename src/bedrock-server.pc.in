@@ -7,6 +7,6 @@ Name: bedrock-server
 Description: Server library for Mochi Bedrock
 Version: @BEDROCK_VERSION@
 
-Requires: thallium @OPTIONAL_SERVER_DEPS@ spdlog nlohmann_json fmt
+Requires: thallium @OPTIONAL_SERVER_DEPS@ bedrock-module-api spdlog nlohmann_json fmt
 Libs: -L${libdir} @SERVER_PRIVATE_LIBS@ -lstdc++
 Cflags: -I${includedir}
