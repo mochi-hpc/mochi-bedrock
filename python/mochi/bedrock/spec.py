@@ -868,7 +868,7 @@ class ArgobotsSpec:
         the ArgobotsSpec's state is not valid.
         """
         attr.validate(self)
-        if len(self._xstreams):
+        if len(self._xstreams) == 0:
             raise ValueError('No XstreamSpec found')
         for es in self._xstreams:
             es.validate()
