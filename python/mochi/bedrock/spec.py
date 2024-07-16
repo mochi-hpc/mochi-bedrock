@@ -940,12 +940,8 @@ class MargoSpec:
         default=100, validator=instance_of(int))
     enable_abt_profiling: bool = attr.ib(
         default=False, validator=instance_of(bool))
-    enable_diagnostics: bool = attr.ib(
-        default=False, validator=instance_of(bool))
     handle_cache_size: int = attr.ib(
         default=32, validator=instance_of(int))
-    profile_sparkline_timeslice_msec: int = attr.ib(
-        default=1000, validator=instance_of(int))
     progress_pool: PoolSpec = attr.ib(
         default=Factory(lambda self: self.argobots.pools[0],
                         takes_self=True),
