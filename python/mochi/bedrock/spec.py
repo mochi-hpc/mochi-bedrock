@@ -16,7 +16,69 @@ import json
 import attr
 from attr import Factory
 from attr.validators import instance_of, in_
-from typing import List, NoReturn, Union, Optional
+from typing import List, NoReturn, Union, Optional, Sequence, Any
+
+
+def _CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
+                       default: Any|None = None, weights: Sequence[float]|None = None,
+                       ordered: bool = False, meta: dict|None = None):
+    """
+    ConfigSpace helper function to create either a Categorical or a Constant hyperparameter.
+    """
+    from ConfigSpace import Categorical, Constant
+    try:
+        return Categorical(name=name, items=items, default=default,
+                           weights=weights, ordered=ordered, meta=meta)
+    except TypeError:
+        return Constant(name=name, value=items, meta=meta)
+
+
+def _IntegerOrConst(name: str, bounds: int|tuple[int, int], *,
+                    distribution: Any = None, default: int|None = None,
+                    log: bool = False, meta: dict|None = None):
+    """
+    ConfigSpace helper function to create either an Integer or a Constant hyperparameter.
+    """
+    from ConfigSpace import Integer, Constant
+    if isinstance(bounds, int):
+        return Constant(name=name, value=bounds, meta=meta)
+    elif bounds[0] == bounds[1]:
+        return Constant(name=name, value=bounds[0], meta=meta)
+    else:
+        return Integer(name=name, bounds=bounds, distribution=distribution,
+                       default=default, log=log, meta=meta)
+
+def _FloatOrConst(name: str, bounds: float|tuple[float, float], *,
+                  distribution: Any = None, default: float|None = None,
+                  log: bool = False, meta: dict|None = None):
+    """
+    ConfigSpace helper function to create either a Float or a Constant hyperparameter.
+    """
+    from ConfigSpace import Float, Constant
+    if isinstance(bounds, float):
+        return Constant(name=name, value=bounds, meta=meta)
+    elif bounds[0] == bounds[1]:
+        return Constant(name=name, value=bounds[0], meta=meta)
+    else:
+        return Float(name=name, bounds=bounds, distribution=distribution,
+                     default=default, log=log, meta=meta)
+
+
+class _Configurable:
+
+    @classmethod
+    def from_config(cls, config: 'Configuration', prefix: str = '', **kwargs):
+        expected = set(attribute.name for attribute in cls.__attrs_attrs__)
+        for param, value in config.items():
+            if not param.startswith(prefix):
+                continue
+            param = param[len(prefix):]
+            if not param in expected:
+                continue
+            if param in kwargs:
+                continue
+            kwargs[param] = value.item() if hasattr(value, 'item') else value
+        return cls(**kwargs)
 
 
 def _check_validators(instance, attribute, value):
@@ -318,7 +380,7 @@ class SpecListDecorator:
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class MercurySpec:
+class MercurySpec(_Configurable):
     """Mercury specifications.
 
     :param address: Address or protocol (e.g. "na+sm")
@@ -424,13 +486,40 @@ class MercurySpec:
     def protocol(self) -> str:
         return self.address.split(':')[0]
 
+    @staticmethod
+    def space(auto_sm: bool|list[bool] = [True, False],
+              na_no_block: bool|list[bool] = [True, False],
+              no_bulk_eager: bool|list[bool] = [True, False],
+              request_post_init: int|tuple[int,int] = 256,
+              request_post_incr: int|tuple[int,int] = 256,
+              input_eager_size: int|tuple[int,int] = 4080,
+              output_eager_size: int|tuple[int,int] = 4080,
+              na_max_expected_size: int|tuple[int,int] = 0,
+              na_max_unexpected_size: int|tuple[int,int] = 0,
+              **kwargs):
+        """
+        Create a ConfigurationSpace object to generate MercurySpecs.
+        """
+        from ConfigSpace import ConfigurationSpace
+        cs = ConfigurationSpace()
+        cs.add(_CategoricalOrConst('auto_sm', auto_sm))
+        cs.add(_CategoricalOrConst('na_no_block', na_no_block))
+        cs.add(_CategoricalOrConst('no_bulk_eager', no_bulk_eager))
+        cs.add(_IntegerOrConst('request_post_init', request_post_init))
+        cs.add(_IntegerOrConst('request_post_incr', request_post_incr))
+        cs.add(_IntegerOrConst('input_eager_size', input_eager_size))
+        cs.add(_IntegerOrConst('output_eager_size', output_eager_size))
+        cs.add(_IntegerOrConst('na_max_expected_size', na_max_expected_size))
+        cs.add(_IntegerOrConst('na_max_unexpected_size', na_max_unexpected_size))
+        return cs
+
 
 @attr.s(auto_attribs=True,
         on_setattr=_check_validators,
         kw_only=True,
         hash=False,
         eq=False)
-class PoolSpec:
+class PoolSpec(_Configurable):
     """Argobots pool specification.
 
     :param name: Name of the pool
@@ -496,6 +585,16 @@ class PoolSpec:
         is not valid.
         """
         attr.validate(self)
+
+    @staticmethod
+    def space(pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio', 'prio_wait', 'earliest_first']):
+        """
+        Create a ConfigurationSpace to generate PoolSpec objects.
+        """
+        from ConfigSpace import ConfigurationSpace
+        cs = ConfigurationSpace()
+        cs.add(_CategoricalOrConst('kind', pool_kinds))
+        return cs
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
@@ -581,6 +680,44 @@ class SchedulerSpec:
         state of the SchedulerSpec is not valid.
         """
         attr.validate(self)
+
+    @staticmethod
+    def space(max_num_pools: int,
+              scheduler_types: str|list[str] = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
+              pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0)):
+        """
+        Create a ConfigurationSpace to generate SchedulerSpec objects.
+
+        This function requires to be provided with the maximum number of pools that a
+        scheduler can be associated with.
+        """
+        from ConfigSpace import ConfigurationSpace, Float
+        cs = ConfigurationSpace()
+        cs.add(_CategoricalOrConst('type', scheduler_types))
+        for i in range(0, max_num_pools):
+            if isinstance(pool_association_weights, list):
+                weight = pool_association_weights[i]
+            else:
+                weight = pool_association_weights
+            cs.add(_FloatOrConst(f'pool_association_weight[{i}]', weight, default=-1.0))
+        return cs
+
+    @staticmethod
+    def from_config(pools: list[PoolSpec],
+                    config: 'Configuration', prefix: str = ''):
+        type = config[f'{prefix}type']
+        pool_weights = []
+        for i in range(0, len(pools)):
+            weight_name = f'{prefix}pool_association_weight[{i}]'
+            weight = config[weight_name]
+            pool_weights.append((weight, i))
+        pool_weights = sorted(pool_weights)
+        if pool_weights[-1][0] <= 0:
+            pools = [pools[pool_weights[-1][1]]]
+        else:
+            pools = [pools[i] for w, i in pool_weights if w > 0]
+        return SchedulerSpec(type=type, pools=pools)
+
 
 
 @attr.s(auto_attribs=True,
@@ -688,6 +825,23 @@ class XstreamSpec:
         """
         attr.validate(self)
         self.scheduler.validate()
+
+    @staticmethod
+    def space(*args, **kwargs):
+        from ConfigSpace import ConfigurationSpace
+        cs = ConfigurationSpace()
+        cs.add_configuration_space(
+            prefix='scheduler', delimiter='.',
+            configuration_space=SchedulerSpec.space(*args, **kwargs))
+        return cs
+
+    @staticmethod
+    def from_config(name: str, pools: list[PoolSpec],
+                    config: 'Configuration',
+                    prefix: str = ''):
+        sched_spec = SchedulerSpec.from_config(
+            pools=pools, config=config, prefix=f'{prefix}scheduler.')
+        return XstreamSpec(name=name, scheduler=sched_spec)
 
 
 def _default_pools_list() -> List[PoolSpec]:
@@ -883,6 +1037,98 @@ class ArgobotsSpec:
         for p in self._pools:
             p.validate()
 
+    @staticmethod
+    def space(num_pools : int|tuple[int,int] = 1,
+              num_xstreams : int|tuple[int,int] = 1,
+              pool_kinds : list[str] = ['fifo_wait', 'fifo', 'prio', 'prio_wait', 'earliest_first'],
+              scheduler_types: str|list[str] = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
+              pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0),
+              **kwargs):
+        from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction
+        import itertools
+        cs = ConfigurationSpace()
+        min_num_pools = num_pools if isinstance(num_pools, int) else num_pools[0]
+        max_num_pools = num_pools if isinstance(num_pools, int) else num_pools[1]
+        hp_num_pools = _IntegerOrConst("num_pools", num_pools)
+        min_num_xstreams = num_xstreams if isinstance(num_xstreams, int) else num_xstreams[0]
+        max_num_xstreams = num_xstreams if isinstance(num_xstreams, int) else num_xstreams[1]
+        hp_num_xstreams = _IntegerOrConst("num_xstreams", num_xstreams)
+        cs = ConfigurationSpace()
+        cs.add(hp_num_pools)
+        cs.add(hp_num_xstreams)
+        for i in range(0, max_num_xstreams):
+            xstream_cs = XstreamSpec.space(
+                max_num_pools=max_num_pools,
+                scheduler_types=scheduler_types,
+                pool_association_weights=pool_association_weights)
+            cs.add_configuration_space(
+                prefix=f'xstreams[{i}]', delimiter='.',
+                configuration_space=xstream_cs)
+            if i >= min_num_xstreams and not isinstance(num_xstreams, int):
+                for param in xstream_cs:
+                    if 'pool_association_weight' in  param:
+                        continue
+                    cs.add(GreaterThanCondition(cs[f'xstreams[{i}].{param}'], hp_num_xstreams, i))
+        for i in range(0, max_num_pools):
+            pool_cs = PoolSpec.space(pool_kinds=pool_kinds)
+            cs.add_configuration_space(
+                prefix=f'pools[{i}]', delimiter='.',
+                configuration_space=pool_cs)
+            if i >= min_num_pools and not isinstance(num_pools, int):
+                for param in pool_cs:
+                    cs.add(GreaterThanCondition(cs[f'pools[{i}].{param}'], hp_num_pools, i))
+        for i, j in itertools.product(range(0, max_num_pools),
+                                      range(0, max_num_xstreams)):
+            hp_weight = cs[f'xstreams[{j}].scheduler.pool_association_weight[{i}]']
+            conditions = []
+            if i > min_num_pools-1 and not isinstance(num_pools, int):
+                conditions.append(GreaterThanCondition(hp_weight, hp_num_pools, i))
+            if j > min_num_xstreams-1 and not isinstance(num_xstreams, int):
+                conditions.append(GreaterThanCondition(hp_weight, hp_num_xstreams, j))
+            if len(conditions) == 1:
+                cs.add(conditions[0])
+            elif len(conditions) > 1:
+                cs.add(AndConjunction(*conditions))
+        return cs
+
+    @staticmethod
+    def from_config(config: 'Configuration',
+                    prefix: str = '',
+                    pool_name_prefix: str = 'pool_',
+                    xstream_name_prefix: str = 'xstream_',
+                    **kwargs):
+        # create pool specs
+        num_pools = config[f'{prefix}num_pools']
+        pool_specs = []
+        for i in range(0, num_pools):
+            pool_name = f'{pool_name_prefix}{i}'
+            pool_spec = PoolSpec.from_config(
+                name=pool_name, access='mpmc',
+                config=config, prefix=f'{prefix}pools[{i}].')
+            pool_specs.append(pool_spec)
+        # create xstream specs
+        num_xstreams = config[f'{prefix}num_xstreams']
+        xstream_specs = []
+        used_pools = set()
+        for i in range(0, num_xstreams):
+            xstream_name = '__primary__' if i == 0 else f'{xstream_name_prefix}{i}'
+            xstream_spec = XstreamSpec.from_config(
+                name=xstream_name, pools=pool_specs,
+                config=config, prefix=f'{prefix}xstreams[{i}].')
+            xstream_specs.append(xstream_spec)
+            for pool in xstream_spec.scheduler.pools:
+                used_pools.add(pool)
+        # deal with unused pools
+        for i in range(0, num_pools):
+            if pool_specs[i] in used_pools:
+                continue
+            weights = [
+                (config[f'{prefix}xstreams[{j}].scheduler.pool_association_weight[{i}]'], j) \
+                for j in range(0, num_xstreams)]
+            weights = sorted(weights)
+            xstream_specs[weights[-1][1]].scheduler.pools.append(pool_specs[i])
+        return ArgobotsSpec(pools=pool_specs, xstreams=xstream_specs)
+
 
 def _mercury_from_args(arg) -> MercurySpec:
     """Convert an argument into a MercurySpec. The argument may be a string
@@ -914,9 +1160,6 @@ class MargoSpec:
 
     :param enable_abt_profiling: Enable Argobots profiling
     :type enable_abt_profiling: bool
-
-    :param enable_diagnostics: Enable diagnostics
-    :type enable_diagnostics: bool
 
     :param handle_cache_size: Handle cache size
     :type handle_cache_size: int
@@ -1024,6 +1267,74 @@ class MargoSpec:
             raise ValueError(
                 f'rpc_pool "{self.rpc_pool.name}" not found' +
                 ' in ArgobotsSpec')
+
+    @staticmethod
+    def space(handle_cache_size: int|tuple[int,int] = 32,
+              progress_timeout_ub_msec: int|tuple[int,int] = 100,
+              progress_pool: int|tuple[int,int]|None = None,
+              rpc_pool: int|tuple[int,int]|None = None,
+              num_pools : int|tuple[int,int] = 1,
+              num_xstreams : int|tuple[int,int] = 1,
+              **kwargs):
+        from ConfigSpace import (
+                ConfigurationSpace,
+                ForbiddenAndConjunction,
+                ForbiddenInClause,
+                ForbiddenEqualsClause)
+        min_num_pools = num_pools if isinstance(num_pools, int) else num_pools[0]
+        max_num_pools = num_pools if isinstance(num_pools, int) else num_pools[1]
+        cs = ConfigurationSpace()
+        cs.add(_IntegerOrConst('handle_cache_size', handle_cache_size))
+        cs.add(_IntegerOrConst('progress_timeout_ub_msec', progress_timeout_ub_msec))
+        argobots_cs = ArgobotsSpec.space(
+            num_pools=num_pools, num_xstreams=num_xstreams, **kwargs)
+        mercury_cs = MercurySpec.space(**kwargs)
+        cs.add_configuration_space(
+            prefix='argobots', delimiter='.',
+            configuration_space=argobots_cs)
+        cs.add_configuration_space(
+            prefix='mercury', delimiter='.',
+            configuration_space=mercury_cs)
+        hp_num_pools = cs['argobots.num_pools']
+        # Note: rpc_pool and progress_pool are categorical because AI tools should not
+        # make the assumption that adding/removing 1 to the value will lead to a smaller
+        # change than adding/removing a larger value.
+        hp_rpc_pool = _CategoricalOrConst('rpc_pool', list(range(max_num_pools)))
+        hp_progress_pool = _CategoricalOrConst('progress_pool', list(range(max_num_pools)))
+        cs.add(hp_rpc_pool)
+        cs.add(hp_progress_pool)
+        for i in range(min_num_pools, max_num_pools):
+            cs.add(ForbiddenAndConjunction(
+                ForbiddenInClause(hp_rpc_pool, list(range(i, max_num_pools))),
+                ForbiddenEqualsClause(hp_num_pools, i)))
+            cs.add(ForbiddenAndConjunction(
+                ForbiddenInClause(hp_progress_pool, list(range(i, max_num_pools))),
+                ForbiddenEqualsClause(hp_num_pools, i)))
+        return cs
+
+    @staticmethod
+    def from_config(config: 'Configuration', prefix: str = '', **kwargs):
+        mercury_spec = MercurySpec.from_config(
+            prefix=f'{prefix}mercury.', config=config, **kwargs)
+        argobots_spec = ArgobotsSpec.from_config(
+            prefix=f'{prefix}argobots.', config=config, **kwargs)
+        extra = {}
+        if 'handle_cache_size' not in kwargs:
+            extra['handle_cache_size'] = int(config[f'{prefix}handle_cache_size'])
+        else:
+            extra['handle_cache_size'] = kwargs['handle_cache_size']
+        if 'progress_timeout_ub_msec' not in kwargs:
+            extra['progress_timeout_ub_msec'] = int(config[f'{prefix}progress_timeout_ub_msec'])
+        else:
+            extra['progress_timeout_ub_msec'] = kwargs[f'progress_timeout_ub_msec']
+        progress_pool = argobots_spec.pools[config[f'{prefix}progress_pool']]
+        rpc_pool = argobots_spec.pools[config[f'{prefix}rpc_pool']]
+        return MargoSpec(
+            mercury=mercury_spec,
+            argobots=argobots_spec,
+            progress_pool=progress_pool,
+            rpc_pool=rpc_pool,
+            **extra)
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
@@ -1751,6 +2062,22 @@ class ProcSpec:
             if c.type not in self._libraries:
                 raise ValueError('Could not find module library for' +
                                  f'module type {p.name}')
+
+    @staticmethod
+    def space(**kwargs):
+        from ConfigSpace import ConfigurationSpace
+        margo_space = MargoSpec.space(**kwargs)
+        cs = ConfigurationSpace()
+        cs.add_configuration_space(
+            prefix='margo', delimiter='.',
+            configuration_space=margo_space)
+        return cs
+
+    @staticmethod
+    def from_config(config: 'Configuration', prefix: str = '', **kwargs):
+        margo_spec = MargoSpec.from_config(
+            config=config, prefix=f'{prefix}margo.', **kwargs)
+        return ProcSpec(margo=margo_spec)
 
 
 attr.resolve_types(MercurySpec, globals(), locals())

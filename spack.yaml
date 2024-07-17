@@ -21,6 +21,7 @@ spack:
   - py-typer
   - py-rich
   - py-mochi-ssg
+  - py-configspace
   concretizer:
     unify: true
     reuse: true
@@ -41,3 +42,5 @@ spack:
       require: "@22.2.0:"
     nlohmann-json-schema-validator:
       require: "@2.3.0:"
+    py-configspace:
+      require: "@1.0.1:"
