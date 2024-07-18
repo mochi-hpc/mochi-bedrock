@@ -106,7 +106,7 @@ class MargoManager {
      *
      * @return reference to the thallium engine.
      */
-    const tl::engine& getThalliumEngine() const;
+    tl::engine getThalliumEngine() const;
 
     /**
      * @brief Get the default handle pool from Margo.

@@ -1041,7 +1041,7 @@ class ArgobotsSpec:
     def space(num_pools : int|tuple[int,int] = 1,
               num_xstreams : int|tuple[int,int] = 1,
               pool_kinds : list[str] = ['fifo_wait', 'fifo', 'prio', 'prio_wait', 'earliest_first'],
-              scheduler_types: str|list[str] = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
+              scheduler_types: str|list[str]|None = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
               pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0),
               **kwargs):
         from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction

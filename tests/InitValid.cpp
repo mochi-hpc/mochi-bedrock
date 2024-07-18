@@ -40,13 +40,13 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
             auto expected_config = jf[i]["output"];
             try {
                 bedrock::Server server("na+sm", input_config);
+                auto engine = server.getMargoManager().getThalliumEngine();
                 SECTION("Get configuration directly from Server object") {
                     auto output_config = json::parse(server.getCurrentConfig());
                     cleanupOutputConfig(output_config);
                     REQUIRE(output_config == expected_config);
                 }
                 SECTION("Get configuration synchronously using a Client") {
-                    auto& engine = server.getMargoManager().getThalliumEngine();
                     bedrock::Client client(engine);
                     auto service_handle = client.makeServiceHandle(engine.self(), 0);
                     std::string output_config_str;
@@ -56,7 +56,6 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
                     REQUIRE(output_config == expected_config);
                 }
                 SECTION("Get configuration asynchronously using a Client") {
-                    auto& engine = server.getMargoManager().getThalliumEngine();
                     bedrock::Client client(engine);
                     auto service_handle = client.makeServiceHandle(engine.self(), 0);
                     std::string output_config_str;

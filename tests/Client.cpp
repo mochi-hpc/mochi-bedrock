@@ -11,7 +11,7 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
 
     bedrock::Server server("na+sm");
     {
-        auto& engine = server.getMargoManager().getThalliumEngine();
+        auto engine = server.getMargoManager().getThalliumEngine();
         bedrock::Client client(engine);
         auto serviceHandle = client.makeServiceHandle(engine.self(), 0);
 

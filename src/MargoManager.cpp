@@ -76,7 +76,7 @@ margo_instance_id MargoManager::getMargoInstance() const {
     return self->m_mid;
 }
 
-const tl::engine& MargoManager::getThalliumEngine() const {
+tl::engine MargoManager::getThalliumEngine() const {
     auto guard = std::unique_lock<tl::mutex>(self->m_mtx);
     return self->m_engine;
 }
