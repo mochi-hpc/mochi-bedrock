@@ -16,7 +16,7 @@ import json
 import attr
 from attr import Factory
 from attr.validators import instance_of, in_
-from typing import List, NoReturn, Union, Optional, Sequence, Any
+from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable
 
 
 def _CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
@@ -1731,6 +1731,60 @@ class ProviderSpec:
         :type abt_spec: ArgobotsSpec
         """
         return ProviderSpec.from_dict(json.loads(json_string), abt_spec)
+
+    @staticmethod
+    def space(type: str, max_num_pools: int, tags: list[str] = [],
+              pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (0.0, 1.0),
+              provider_config_space: Optional['ConfigurationSpace'] = None,
+              dependency_config_space: Optional['ConfigurationSpace'] = None):
+        from ConfigSpace import ConfigurationSpace, Categorical, Constant
+        cs = ConfigurationSpace()
+        cs.add(Categorical('type', [type]))
+        cs.add(Constant('num_tags', len(tags)))
+        for i in range(len(tags)):
+            cs.add(Categorical(f'tags[{i}]', [tags[i]]))
+        if provider_config_space is not None:
+            cs.add_configuration_space(
+                prefix='config', delimiter='.',
+                configuration_space=provider_config_space)
+        if dependency_config_space is not None:
+            cs.add_configuration_space(
+                prefix='dependencies', delimiter='.',
+                configuration_space=dependency_config_space)
+        for i in range(0, max_num_pools):
+            if isinstance(pool_association_weights, list):
+                weight = pool_association_weights[i]
+            else:
+                weight = pool_association_weights
+            cs.add(_FloatOrConst(f'pool_association_weight[{i}]', weight))
+        return cs
+
+    @staticmethod
+    def from_config(name: str, provider_id: int, pools: list[PoolSpec],
+                    config: 'Configuration',
+                    resolve_provider_config: Callable[['Configuration', str], dict]|None = None,
+                    resolve_provider_dependencies: Callable[['Configuration', str], dict]|None = None,
+                    prefix: str = ''):
+        from ConfigSpace import Configuration
+        type = config[f'{prefix}type']
+        num_tags = int(config[f'{prefix}num_tags'])
+        tags = [config[f'{prefix}tags[{i}]'] for i in range(num_tags)]
+        pool_weights = [(
+            float(config[f'{prefix}pool_association_weight[{i}]']), i
+        ) for i in range(len(pools))]
+        pool = pools[max(pool_weights)[1]]
+        if resolve_provider_config is None:
+            provider_config = {}
+        else:
+            provider_config = resolve_provider_config(config, f'{prefix}config.')
+        if resolve_provider_dependencies is None:
+            provider_dependencies = {}
+        else:
+            provider_dependencies = resolve_provider_dependencies(config, f'{prefix}dependencies.')
+        return ProviderSpec(
+            name=name, type=type, provider_id=provider_id,
+            pool=pool, config=provider_config, tags=tags,
+            dependencies=provider_dependencies)
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
