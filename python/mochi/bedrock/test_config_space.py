@@ -55,12 +55,35 @@ class TestConfigSpace(unittest.TestCase):
         config_cs.add(Integer("x", (0,9)))
         config_cs.add(Integer("y", (1,42)))
 
+        def resolve_provider_config(config: 'Configuration', prefix: str) -> dict:
+            x = config[f'{prefix}x']
+            y = config[f'{prefix}y']
+            return {'x':x, 'y':y}
+
+        def resolve_provider_dependencies(config: 'Configuration', prefix: str) -> dict:
+            return {'abc': 'def'}
+
         space = ProviderSpec.space(
             type='yokan', max_num_pools=5,
             tags=['tag1', 'tag2'],
-            provider_config_space=config_cs)
+            provider_config_space=config_cs,
+            provider_config_resolver=resolve_provider_config,
+            dependency_resolver=resolve_provider_dependencies)
 
         config = space.sample_configuration()
+
+        spec = ProviderSpec.from_config(
+            name='my_yokan_provider', provider_id=1,
+            pools=pools, config=config)
+
+    def test_proc_with_providers(self):
+        from ConfigSpace import ConfigurationSpace, Integer
+
+        max_num_pools = 5
+
+        provider_config_cs = ConfigurationSpace()
+        provider_config_cs.add(Integer("x", (0,9)))
+        provider_config_cs.add(Integer("y", (1,42)))
 
         def resolve_provider_config(config: 'Configuration', prefix: str) -> dict:
             x = config[f'{prefix}x']
@@ -70,10 +93,24 @@ class TestConfigSpace(unittest.TestCase):
         def resolve_provider_dependencies(config: 'Configuration', prefix: str) -> dict:
             return {'abc': 'def'}
 
-        spec = ProviderSpec.from_config(
-            name='my_yokan_provider', provider_id=1,
-            pools=pools, config=config,
-            resolve_provider_config=resolve_provider_config)
+        provider_space_factories = [
+            {
+                "family": "databases",
+                "space": ProviderSpec.space(
+                    type='yokan',
+                    max_num_pools=max_num_pools, tags=['tag1', 'tag2'],
+                    provider_config_space=provider_config_cs,
+                    provider_config_resolver=resolve_provider_config,
+                    dependency_resolver=resolve_provider_dependencies),
+                "count": (1,3)
+            }
+        ]
+
+        space = ProcSpec.space(num_pools=(2, max_num_pools), num_xstreams=(2, 3),
+                               provider_space_factories=provider_space_factories)
+        config = space.sample_configuration()
+        spec = ProcSpec.from_config(address='na+sm', config=config)
+
 
 if __name__ == '__main__':
     unittest.main()

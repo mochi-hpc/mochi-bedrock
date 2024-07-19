@@ -16,7 +16,7 @@ import json
 import attr
 from attr import Factory
 from attr.validators import instance_of, in_
-from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable
+from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable, Mapping
 
 
 def _CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
@@ -43,7 +43,10 @@ def _IntegerOrConst(name: str, bounds: int|tuple[int, int], *,
     if isinstance(bounds, int):
         return Constant(name=name, value=bounds, meta=meta)
     elif bounds[0] == bounds[1]:
-        return Constant(name=name, value=bounds[0], meta=meta)
+        c = Constant(name=name, value=bounds[0], meta=meta)
+        setattr(c, "upper", bounds[0])
+        setattr(c, "lower", bounds[0])
+        return c
     else:
         return Integer(name=name, bounds=bounds, distribution=distribution,
                        default=default, log=log, meta=meta)
@@ -56,9 +59,14 @@ def _FloatOrConst(name: str, bounds: float|tuple[float, float], *,
     """
     from ConfigSpace import Float, Constant
     if isinstance(bounds, float):
-        return Constant(name=name, value=bounds, meta=meta)
+        c = Constant(name=name, value=bounds, meta=meta)
+        setattr(c, "upper", bounds)
+        setattr(c, "lower", bounds)
+        return c
     elif bounds[0] == bounds[1]:
-        return Constant(name=name, value=bounds[0], meta=meta)
+        c = Constant(name=name, value=bounds[0], meta=meta)
+        setattr(c, "upper", bounds[0])
+        setattr(c, "lower", bounds[0])
     else:
         return Float(name=name, bounds=bounds, distribution=distribution,
                      default=default, log=log, meta=meta)
@@ -127,6 +135,9 @@ class SpecListDecorator:
             return None
         else:
             return match[0]
+
+    def __len__(self):
+        return len(self._list)
 
     def __getitem__(self, key):
         """Get an item using the [] operator. The key may be an integer or
@@ -502,15 +513,15 @@ class MercurySpec(_Configurable):
         """
         from ConfigSpace import ConfigurationSpace
         cs = ConfigurationSpace()
-        cs.add(_CategoricalOrConst('auto_sm', auto_sm))
-        cs.add(_CategoricalOrConst('na_no_block', na_no_block))
-        cs.add(_CategoricalOrConst('no_bulk_eager', no_bulk_eager))
-        cs.add(_IntegerOrConst('request_post_init', request_post_init))
-        cs.add(_IntegerOrConst('request_post_incr', request_post_incr))
-        cs.add(_IntegerOrConst('input_eager_size', input_eager_size))
-        cs.add(_IntegerOrConst('output_eager_size', output_eager_size))
-        cs.add(_IntegerOrConst('na_max_expected_size', na_max_expected_size))
-        cs.add(_IntegerOrConst('na_max_unexpected_size', na_max_unexpected_size))
+        cs.add(_CategoricalOrConst('auto_sm', auto_sm, default=True))
+        cs.add(_CategoricalOrConst('na_no_block', na_no_block, default=False))
+        cs.add(_CategoricalOrConst('no_bulk_eager', no_bulk_eager, default=False))
+        cs.add(_IntegerOrConst('request_post_init', request_post_init, default=256))
+        cs.add(_IntegerOrConst('request_post_incr', request_post_incr, default=256))
+        cs.add(_IntegerOrConst('input_eager_size', input_eager_size, default=4080))
+        cs.add(_IntegerOrConst('output_eager_size', output_eager_size, default=4080))
+        cs.add(_IntegerOrConst('na_max_expected_size', na_max_expected_size, default=0))
+        cs.add(_IntegerOrConst('na_max_unexpected_size', na_max_unexpected_size, default=0))
         return cs
 
 
@@ -593,7 +604,8 @@ class PoolSpec(_Configurable):
         """
         from ConfigSpace import ConfigurationSpace
         cs = ConfigurationSpace()
-        cs.add(_CategoricalOrConst('kind', pool_kinds))
+        default = pool_kinds[0] if isinstance(pool_kinds, list) else pool_kinds
+        cs.add(_CategoricalOrConst('kind', pool_kinds, default=default))
         return cs
 
 
@@ -693,7 +705,8 @@ class SchedulerSpec:
         """
         from ConfigSpace import ConfigurationSpace, Float
         cs = ConfigurationSpace()
-        cs.add(_CategoricalOrConst('type', scheduler_types))
+        default_scheduler_types = scheduler_types[0] if isinstance(scheduler_types, list) else scheduler_types
+        cs.add(_CategoricalOrConst('type', scheduler_types, default=default_scheduler_types))
         for i in range(0, max_num_pools):
             if isinstance(pool_association_weights, list):
                 weight = pool_association_weights[i]
@@ -1299,8 +1312,8 @@ class MargoSpec:
         # Note: rpc_pool and progress_pool are categorical because AI tools should not
         # make the assumption that adding/removing 1 to the value will lead to a smaller
         # change than adding/removing a larger value.
-        hp_rpc_pool = _CategoricalOrConst('rpc_pool', list(range(max_num_pools)))
-        hp_progress_pool = _CategoricalOrConst('progress_pool', list(range(max_num_pools)))
+        hp_rpc_pool = _CategoricalOrConst('rpc_pool', list(range(max_num_pools)), default=1)
+        hp_progress_pool = _CategoricalOrConst('progress_pool', list(range(max_num_pools)), default=1)
         cs.add(hp_rpc_pool)
         cs.add(hp_progress_pool)
         for i in range(min_num_pools, max_num_pools):
@@ -1327,8 +1340,8 @@ class MargoSpec:
             extra['progress_timeout_ub_msec'] = int(config[f'{prefix}progress_timeout_ub_msec'])
         else:
             extra['progress_timeout_ub_msec'] = kwargs[f'progress_timeout_ub_msec']
-        progress_pool = argobots_spec.pools[config[f'{prefix}progress_pool']]
-        rpc_pool = argobots_spec.pools[config[f'{prefix}rpc_pool']]
+        progress_pool = argobots_spec.pools[int(config[f'{prefix}progress_pool'])]
+        rpc_pool = argobots_spec.pools[int(config[f'{prefix}rpc_pool'])]
         return MargoSpec(
             mercury=mercury_spec,
             argobots=argobots_spec,
@@ -1736,21 +1749,26 @@ class ProviderSpec:
     def space(type: str, max_num_pools: int, tags: list[str] = [],
               pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (0.0, 1.0),
               provider_config_space: Optional['ConfigurationSpace'] = None,
-              dependency_config_space: Optional['ConfigurationSpace'] = None):
+              provider_config_resolver: Callable[['Configuration', str], dict]|None = None,
+              dependency_config_space: Optional['ConfigurationSpace'] = None,
+              dependency_resolver: Callable[['Configuration', str], dict]|None = None):
         from ConfigSpace import ConfigurationSpace, Categorical, Constant
         cs = ConfigurationSpace()
-        cs.add(Categorical('type', [type]))
-        cs.add(Constant('num_tags', len(tags)))
-        for i in range(len(tags)):
-            cs.add(Categorical(f'tags[{i}]', [tags[i]]))
+        cs.add(Constant('type', type))
+        # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
+        # switch to storing the tags as a single constant of type list.
+        # cs.add(Constant('tags', tags))
+        cs.add(Constant('tags', ','.join(tags)))
         if provider_config_space is not None:
             cs.add_configuration_space(
                 prefix='config', delimiter='.',
                 configuration_space=provider_config_space)
+        cs.add(Constant('config_resolver', provider_config_resolver))
         if dependency_config_space is not None:
             cs.add_configuration_space(
                 prefix='dependencies', delimiter='.',
                 configuration_space=dependency_config_space)
+        cs.add(Constant('dependency_resolver', dependency_resolver))
         for i in range(0, max_num_pools):
             if isinstance(pool_association_weights, list):
                 weight = pool_association_weights[i]
@@ -1761,28 +1779,29 @@ class ProviderSpec:
 
     @staticmethod
     def from_config(name: str, provider_id: int, pools: list[PoolSpec],
-                    config: 'Configuration',
-                    resolve_provider_config: Callable[['Configuration', str], dict]|None = None,
-                    resolve_provider_dependencies: Callable[['Configuration', str], dict]|None = None,
-                    prefix: str = ''):
+                    config: 'Configuration', prefix: str = ''):
         from ConfigSpace import Configuration
         type = config[f'{prefix}type']
-        num_tags = int(config[f'{prefix}num_tags'])
-        tags = [config[f'{prefix}tags[{i}]'] for i in range(num_tags)]
+        # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
+        # switch to getting the tags from a single constant of type list.
+        # tags = config[f'{prefix}tags']
+        tags = config[f'{prefix}tags'].split(',')
+        provider_config_resolver = config[f'{prefix}config_resolver']
+        dependency_resolver = config[f'{prefix}dependency_resolver']
         pool_weights = [(
             float(config[f'{prefix}pool_association_weight[{i}]']), i
         ) for i in range(len(pools))]
         pool = pools[max(pool_weights)[1]]
-        if resolve_provider_config is None:
+        if provider_config_resolver is None:
             provider_config = {}
         else:
-            provider_config = resolve_provider_config(config, f'{prefix}config.')
-        if resolve_provider_dependencies is None:
+            provider_config = provider_config_resolver(config, f'{prefix}config.')
+        if dependency_resolver is None:
             provider_dependencies = {}
         else:
-            provider_dependencies = resolve_provider_dependencies(config, f'{prefix}dependencies.')
+            provider_dependencies = dependency_resolver(config, f'{prefix}dependencies.')
         return ProviderSpec(
-            name=name, type=type, provider_id=provider_id,
+            name=f'{name}', type=type, provider_id=provider_id,
             pool=pool, config=provider_config, tags=tags,
             dependencies=provider_dependencies)
 
@@ -2118,20 +2137,101 @@ class ProcSpec:
                                  f'module type {p.name}')
 
     @staticmethod
-    def space(**kwargs):
-        from ConfigSpace import ConfigurationSpace
+    def space(provider_space_factories: list[tuple[str, 'ConfigurationSpace', int|tuple[int,int]]] = [],
+              **kwargs):
+        """
+        The provider_space_factories argument is a list of dictionaries with the following format.
+        ```
+        {
+            "family": "<family-name>",
+            "space" : ConfigurationSpace,
+            "count" : int or tuple[int,int]
+        }
+        ```
+        - "family" is a name to use in the configuration space to represent a family of providers
+          using the same ConfigurationSpace;
+        - "space" is a ConfigurationSpace generated by ProviderSpec.space();
+        - "count" is either an int, or a pair (int, int) (if ommitted, will default to 1).
+        """
+        from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction, Constant
         margo_space = MargoSpec.space(**kwargs)
+        families = [f['family'] for f in provider_space_factories]
+        if len(set(families)) != len(provider_space_factories):
+            raise ValueError('Duplicate provider family in provider_space_factories')
         cs = ConfigurationSpace()
         cs.add_configuration_space(
             prefix='margo', delimiter='.',
             configuration_space=margo_space)
+        hp_num_pools = cs['margo.argobots.num_pools']
+        max_num_pools = hp_num_pools.upper
+        min_num_pools = hp_num_pools.lower
+        # FIXME we are serializing the families into a string because of
+        # https://github.com/automl/ConfigSpace/issues/381
+        # When it is fixed, just do:
+        # cs.add(Constant('providers.families', families))
+        cs.add(Constant('providers.families', ','.join(families)))
+        for provider_group in provider_space_factories:
+            family = provider_group['family']
+            provider_cs = provider_group['space']
+            count = provider_group.get('count', 1)
+            config_resolver = provider_group.get('config_resolver', None)
+            dependency_resolver = provider_group.get('dependency_resolver', None)
+            default_count = count if isinstance(count, int) else count[0]
+            hp_num_providers = _IntegerOrConst(f'providers.{family}.count', count, default=default_count)
+            cs.add(hp_num_providers)
+            cs.add(Constant(f'providers.{family}.config_resolver', config_resolver))
+            cs.add(Constant(f'providers.{family}.dependency_resolver', dependency_resolver))
+            conditions_to_add = {}
+            for i in range(0, hp_num_providers.upper):
+                cs.add_configuration_space(
+                    prefix=f'providers.{family}[{i}]', delimiter='.',
+                    configuration_space=provider_cs)
+                for j in range(min_num_pools, max_num_pools):
+                    param_key = f'providers.{family}[{i}].pool_association_weight[{j}]'
+                    if param_key not in conditions_to_add:
+                        conditions_to_add[param_key] = []
+                    conditions_to_add[param_key].append(
+                        GreaterThanCondition(cs[param_key], hp_num_pools, j))
+                if i <= hp_num_providers.lower:
+                    continue
+                for param in provider_cs:
+                    param_key = f'providers.{family}[{i}].{param}'
+                    if param_key not in conditions_to_add:
+                        conditions_to_add[param_key] = []
+                    conditions_to_add[param_key].append(
+                        GreaterThanCondition(cs[param_key], hp_num_providers, i))
+            for param_key, conditions in conditions_to_add.items():
+                if len(conditions) == 1:
+                    cs.add(conditions[0])
+                else:
+                    cs.add(AndConjunction(*conditions))
         return cs
 
     @staticmethod
-    def from_config(config: 'Configuration', prefix: str = '', **kwargs):
+    def from_config(config: 'Configuration',
+                    prefix: str = '', **kwargs):
         margo_spec = MargoSpec.from_config(
             config=config, prefix=f'{prefix}margo.', **kwargs)
-        return ProcSpec(margo=margo_spec)
+        pools = margo_spec.argobots.pools
+        # FIXME we are serializing the families into a string because of
+        # https://github.com/automl/ConfigSpace/issues/381
+        # When it is fixed, just do:
+        # families = config[f'{prefix}providers.families']
+        families = config[f'{prefix}providers.families'].split(',')
+        current_provider_id = 1
+        provider_specs = []
+        for family in families:
+            if len(family) == 0:
+                continue
+            provider_count = int(config[f'{prefix}providers.{family}.count'])
+            for i in range(provider_count):
+                provider_specs.append(
+                    ProviderSpec.from_config(
+                        name=f'{family}_{i}', pools=margo_spec.argobots.pools,
+                        provider_id=current_provider_id,
+                        config=config, prefix=f'{prefix}providers.{family}[{i}].'))
+                current_provider_id += 1
+        return ProcSpec(margo=margo_spec, providers=provider_specs)
 
 
 attr.resolve_types(MercurySpec, globals(), locals())
