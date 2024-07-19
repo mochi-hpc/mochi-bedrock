@@ -510,6 +510,8 @@ class MercurySpec(_Configurable):
               **kwargs):
         """
         Create a ConfigurationSpace object to generate MercurySpecs.
+        Each of the argument can be set to either a single value or a range
+        to make them configurable.
         """
         from ConfigSpace import ConfigurationSpace
         cs = ConfigurationSpace()
@@ -601,6 +603,8 @@ class PoolSpec(_Configurable):
     def space(pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio', 'prio_wait', 'earliest_first']):
         """
         Create a ConfigurationSpace to generate PoolSpec objects.
+        pool_kinds can be specified as a string or a list of strings to force the pool kind
+        to be picked from a set different from the default one.
         """
         from ConfigSpace import ConfigurationSpace
         cs = ConfigurationSpace()
@@ -702,6 +706,13 @@ class SchedulerSpec:
 
         This function requires to be provided with the maximum number of pools that a
         scheduler can be associated with.
+
+        pool_association_weights is a tuple[float,float] or a list of N tuple[float,float]
+        where N = max_num_pools, specifying how to draw the scheduler <-> pool associations.
+        For each pool i, pool_association_weight[i] will be drawn randomly and specify the weight
+        of the connection between this scheduler and pool i. This weight will be used to select
+        which pools are effectively used by this scheduler (pools with a weight > 0) and in which
+        order (in order of weights).
         """
         from ConfigSpace import ConfigurationSpace, Float
         cs = ConfigurationSpace()
@@ -718,6 +729,11 @@ class SchedulerSpec:
     @staticmethod
     def from_config(pools: list[PoolSpec],
                     config: 'Configuration', prefix: str = ''):
+        """
+        Create a SchedulerSpec from a Configuration object containing the scheduler's parameters.
+        pools is the list of pools available to used by the scheduler.
+        prefix is the prefix of the keys in the Configuration object.
+        """
         type = config[f'{prefix}type']
         pool_weights = []
         for i in range(0, len(pools)):
@@ -728,7 +744,7 @@ class SchedulerSpec:
         if pool_weights[-1][0] <= 0:
             pools = [pools[pool_weights[-1][1]]]
         else:
-            pools = [pools[i] for w, i in pool_weights if w > 0]
+            pools = list(reversed([pools[i] for w, i in pool_weights if w > 0]))
         return SchedulerSpec(type=type, pools=pools)
 
 
@@ -841,6 +857,11 @@ class XstreamSpec:
 
     @staticmethod
     def space(*args, **kwargs):
+        """
+        Create a ConfigurationSpace object from which to generate XstreamSpecs.
+        This function essentially forwards its arguments to the underlying
+        SchedulerSpec.space ConfigurationSpace.
+        """
         from ConfigSpace import ConfigurationSpace
         cs = ConfigurationSpace()
         cs.add_configuration_space(
@@ -852,6 +873,10 @@ class XstreamSpec:
     def from_config(name: str, pools: list[PoolSpec],
                     config: 'Configuration',
                     prefix: str = ''):
+        """
+        Create an XstreamSpec from a Configuration object. See SchedulerSpec.from_config
+        for more information.
+        """
         sched_spec = SchedulerSpec.from_config(
             pools=pools, config=config, prefix=f'{prefix}scheduler.')
         return XstreamSpec(name=name, scheduler=sched_spec)
@@ -1057,6 +1082,15 @@ class ArgobotsSpec:
               scheduler_types: str|list[str]|None = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
               pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0),
               **kwargs):
+        """
+        Create the ConfigurationSpace of an ArgobotsSpec.
+
+        - num_pools is the number of pools or a range for the number of pools to generate.
+        - num_xstreams is the number of xstreams or a range for the number of xstreams to generate.
+        - pool_kinds is the list of possible pool kinds to draw from.
+        - scheduler_types is the list of possible scheduler types to draw from.
+        - pool_association_weights : see SchedulerSpec.space.
+        """
         from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction
         import itertools
         cs = ConfigurationSpace()
@@ -1110,6 +1144,11 @@ class ArgobotsSpec:
                     pool_name_prefix: str = 'pool_',
                     xstream_name_prefix: str = 'xstream_',
                     **kwargs):
+        """
+        Create an ArgobotsSpec from a Configuration object.
+        pool_name_prefix and xstream_name_prefix are used to prefix the names
+        of pools and xstreams respectively.
+        """
         # create pool specs
         num_pools = config[f'{prefix}num_pools']
         pool_specs = []
@@ -1289,6 +1328,17 @@ class MargoSpec:
               num_pools : int|tuple[int,int] = 1,
               num_xstreams : int|tuple[int,int] = 1,
               **kwargs):
+        """
+        Create the ConfigurationSpace for a MargoSpec.
+
+        handle_cache_size, progress_timeout_ub_msec, num_pools, and num_xstreams
+        have a default integer value that can be replaced by another value or by
+        a range to become a parameter of the space.
+
+        progress_pool and rpc_pool can be an int to force them to a specific value,
+        a range to make them random within that range, or None for the range to be
+        automatically inferred from the maximum number of pools.
+        """
         from ConfigSpace import (
                 ConfigurationSpace,
                 ForbiddenAndConjunction,
@@ -1327,6 +1377,14 @@ class MargoSpec:
 
     @staticmethod
     def from_config(config: 'Configuration', prefix: str = '', **kwargs):
+        """
+        Create a MargoSpec from a Configuration object.
+
+        Note that this function needs at least the address parameter as
+        a mandatory parameter that will be passed down to Mercury.
+        kwargs arguments will be propagated to the underlying MercurySpec and
+        ArgobotsSpec.
+        """
         mercury_spec = MercurySpec.from_config(
             prefix=f'{prefix}mercury.', config=config, **kwargs)
         argobots_spec = ArgobotsSpec.from_config(
@@ -1752,6 +1810,21 @@ class ProviderSpec:
               provider_config_resolver: Callable[['Configuration', str], dict]|None = None,
               dependency_config_space: Optional['ConfigurationSpace'] = None,
               dependency_resolver: Callable[['Configuration', str], dict]|None = None):
+        """
+        Create a ConfigurationSpace for a ProviderSpec.
+
+        - type: type of provider.
+        - max_num_pools: maximum number of pools in the underlying process.
+        - tags: list of tags the provider will use.
+        - pool_association_weights: range in which to draw the weight of association between
+          the provider and each pool. The provider will use the pool with the largest weight.
+        - provider_config_space: a ConfigurationSpace for the "config" field of the provider.
+        - provider_config_resolver: a function (or callable) taking a Configuration and a prefix
+          and returning the provider's "config" field (dict) from the Configuration.
+        - dependency_config_space: a ConfigurationSpace for the "dependencies" field of the provider.
+        - dependency_resolver: a function (or callable) taking a Configuration and a prefix
+          and returning the provider's "dependencies" field (dict) from the Configuration.
+        """
         from ConfigSpace import ConfigurationSpace, Categorical, Constant
         cs = ConfigurationSpace()
         cs.add(Constant('type', type))
@@ -1780,6 +1853,12 @@ class ProviderSpec:
     @staticmethod
     def from_config(name: str, provider_id: int, pools: list[PoolSpec],
                     config: 'Configuration', prefix: str = ''):
+        """
+        Create a ProviderSpec from a given Configuration object.
+
+        This function must be also given the name and provider Id to give the provider,
+        as well as the list of pools of the underlying ProcSpec.
+        """
         from ConfigSpace import Configuration
         type = config[f'{prefix}type']
         # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
@@ -2210,6 +2289,11 @@ class ProcSpec:
     @staticmethod
     def from_config(config: 'Configuration',
                     prefix: str = '', **kwargs):
+        """
+        Create a ProcSpec from the provided Configuration object.
+        Extra parameters (**kwargs) will be propagated to the underlying
+        MargoSpec.from_config().
+        """
         margo_spec = MargoSpec.from_config(
             config=config, prefix=f'{prefix}margo.', **kwargs)
         pools = margo_spec.argobots.pools
