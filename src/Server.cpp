@@ -73,6 +73,17 @@ Server::Server(const std::string& address, const std::string& configString,
         config = Toml2Json(tomlConfig);
     }
 
+    // Filter __if__ statements in configuration
+    config = filterIfConditionsInJSON(config, jx9Manager);
+
+    // If the config is an array, it should have only one entry remaining after filtering
+    if(config.is_array()) {
+        if(config.size() != 1) {
+            throw Exception{"Configuration did not resolve to a single possibility"};
+        }
+        config = config[0];
+    }
+
     // Extract margo section from the config
     spdlog::trace("Initializing MargoManager");
     auto margoConfig = config["margo"].dump();

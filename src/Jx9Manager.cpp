@@ -18,7 +18,8 @@ using nlohmann::json;
 
 // LCOV_EXCL_START
 
-Jx9Manager::Jx9Manager() : self(std::make_shared<Jx9ManagerImpl>()) {}
+Jx9Manager::Jx9Manager()
+: self(std::make_shared<Jx9ManagerImpl>()) {}
 
 Jx9Manager::Jx9Manager(const Jx9Manager&) = default;
 
@@ -71,15 +72,10 @@ std::string Jx9Manager::executeQuery(
     // installing MPI_COMM_WORLD
     json comm_world = nullptr;
 #ifdef ENABLE_MPI
-    int mpi_rank, mpi_size;
-    int mpi_initialized;
-    MPI_Initialized(&mpi_initialized);
-    if(mpi_initialized) {
-        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    if(self->m_mpi->enabled()) {
         comm_world = json::object();
-        comm_world["rank"] = mpi_rank;
-        comm_world["size"] = mpi_size;
+        comm_world["rank"] = self->m_mpi->rank();
+        comm_world["size"] = self->m_mpi->size();
     }
 #endif
     jx9_value* jx9_comm_world = nullptr;

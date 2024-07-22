@@ -6,10 +6,11 @@
 #ifndef BEDROCK_JSON_UTIL_H
 #define BEDROCK_JSON_UTIL_H
 
+#include <bedrock/DetailedException.hpp>
+#include <bedrock/Jx9Manager.hpp>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json-schema.hpp>
 #include <string>
-#include <bedrock/DetailedException.hpp>
 
 namespace bedrock {
 
@@ -81,6 +82,39 @@ static inline void expandJson(const json& input, json& output) {
 static inline json expandSimplifiedJSON(const json& input) {
     json output = json::object();
     expandJson(input, output);
+    return output;
+}
+
+static inline json filterIfConditionsInJSON(const json& input, Jx9Manager jx9) {
+    json output; // null by default
+    if(input.is_array()) {
+        output = json::array();
+        for(auto& item : input) {
+            auto filteredItem = filterIfConditionsInJSON(item, jx9);
+            if(filteredItem.is_null()) continue;
+            output.push_back(filterIfConditionsInJSON(item, jx9));
+        }
+    } else if(input.is_object()) {
+        bool condition = true;
+        if(input.contains("__if__")) {
+            auto _if = input["__if__"];
+            if(_if.is_boolean()) condition = _if.get<bool>();
+            else if(_if.is_string())
+                condition = jx9.evaluateCondition(
+                    _if.get_ref<const std::string&>(),
+                    std::unordered_map<std::string, std::string>());
+            else
+                throw Exception("__if__ condition should be a string or a boolean");
+        }
+        if(condition) {
+            output = json::object();
+            for(auto& p : input.items()) {
+                output[p.key()] = filterIfConditionsInJSON(p.value(), jx9);
+            }
+        }
+    } else {
+        output = input;
+    }
     return output;
 }
 

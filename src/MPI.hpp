@@ -10,6 +10,7 @@
 #ifdef ENABLE_MPI
 #include <mpi.h>
 #endif
+#include <bedrock/Exception.hpp>
 
 namespace bedrock {
 
@@ -44,6 +45,34 @@ class MPI {
             }
             s_initialized_mpi = false;
         }
+#endif
+    }
+
+    bool enabled() const {
+#ifdef ENABLE_MPI
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    int size() const {
+#ifdef ENABLE_MPI
+        int s;
+        MPI_Comm_size(MPI_COMM_WORLD, &s);
+        return s;
+#else
+        throw Exception("Cannot get size of MPI_COMM_WORLD in a non-MPI deployment");
+#endif
+    }
+
+    int rank() const {
+#ifdef ENABLE_MPI
+        int r;
+        MPI_Comm_rank(MPI_COMM_WORLD, &r);
+        return r;
+#else
+        throw Exception("Cannot get rank of process in a non-MPI deployment");
 #endif
     }
 };

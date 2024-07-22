@@ -208,20 +208,13 @@ ClientManager::addClientFromJSON(const json& description) {
                     ]
                 }
             },
-            "config": {"type": "object"},
-            "__if__": {"type": "string", "minLength":1}
+            "config": {"type": "object"}
         },
         "required": ["name", "type"]
     }
     )"_json;
     static const JsonValidator validator{configSchema};
     validator.validate(description, "ClientManager");
-
-    if(description.contains("__if__")) {
-        bool b = Jx9Manager(self->m_jx9_manager).evaluateCondition(
-                description["__if__"].get_ref<const std::string&>(), {});
-        if(!b) return nullptr;
-    }
 
     auto& name = description["name"].get_ref<const std::string&>();
     auto& type = description["type"].get_ref<const std::string&>();
