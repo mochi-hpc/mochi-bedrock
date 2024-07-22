@@ -34,9 +34,9 @@ Server::Server(const std::string& address, const std::string& configString,
 
     std::string configStr;
 
-    auto mpi = std::make_shared<MPI>();
+    auto mpi = MPIEnv{};
 
-    auto jx9Manager = Jx9Manager{};
+    auto jx9Manager = Jx9Manager{mpi};
 
     if(configType == ConfigType::JX9) {
         spdlog::trace("Interpreting JX9 template configuration");
@@ -94,6 +94,10 @@ Server::Server(const std::string& address, const std::string& configString,
     auto margoMgr = MargoManager(address, margoConfig);
     spdlog::trace("MargoManager initialized");
 
+    // Sync addresses with other MPI members
+    std::string thisAddress = margoMgr.getThalliumEngine().self();
+    mpi.self->exchangeAddresses(thisAddress);
+
     // Extract bedrock section from the config
     spdlog::trace("Reading Bedrock config");
     if (!config.contains("bedrock")) config["bedrock"] = json::object();
@@ -121,7 +125,7 @@ Server::Server(const std::string& address, const std::string& configString,
     // Create self
     self = std::unique_ptr<ServerImpl>(
             new ServerImpl(margoMgr, bedrock_provider_id, bedrock_pool));
-    self->m_mpi = mpi;
+    self->m_mpi = mpi.self;
     self->m_jx9_manager = jx9Manager;
 
     try {
@@ -169,8 +173,8 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");
-        auto dependencyFinder     = DependencyFinder(margoMgr, abtioMgr, ssgMgr, monaMgr,
-                providerManager, clientManager);
+        auto dependencyFinder     = DependencyFinder(
+            mpi, margoMgr, abtioMgr, ssgMgr, monaMgr, providerManager, clientManager);
         self->m_dependency_finder = dependencyFinder;
         self->m_dependency_finder->m_timeout = dependency_timeout;
         spdlog::trace("DependencyFinder initialized");

@@ -546,6 +546,59 @@ class TestProviderManager(unittest.TestCase):
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 
+    def test_dependency_on_ph_with_id_and_rank(self):
+        providers = self.server.providers
+        self.assertEqual(len(providers), 2)
+        clients = self.server.clients
+        self.assertEqual(len(clients), 2)
+
+        # Get the rank of the process to use instead of "local"
+        rank = 0
+
+        # Try creating a client without the required dependency
+        client_params = self.make_client_params([
+            {"name": "dep1", "type": "module_a",
+             "is_required": True, "kind": "provider_handle"}])
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with the wrong provider ID
+        client_params["dependencies"] = {"dep1": "module_a:999@{rank}"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with the wrong module
+        client_params["dependencies"] = {"dep1": "module_b:1@{rank}"}
+        with self.assertRaises(mbs.BedrockException):
+            clients.create(**client_params)
+
+        # Try creating a client with the required dependency
+        client_params["dependencies"] = {"dep1": f"module_a:1@{rank}"}
+        clients.create(**client_params)
+        self.assertEqual(len(clients), 3)
+
+        # Try creating a provider without the required dependency
+        provider_params = self.make_provider_params([
+            {"name": "dep1", "type": "module_a",
+             "is_required": True, "kind": "provider_handle"}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong provider ID
+        provider_params["dependencies"] = {"dep1": "module_a:999@{rank}"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong module
+        provider_params["dependencies"] = {"dep1": "module_b:1@{rank}"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the required dependency
+        provider_params["dependencies"] = {"dep1": f"module_a:1@{rank}"}
+        providers.create(**provider_params)
+        self.assertEqual(len(providers), 3)
+
     def test_dependency_on_ph_with_ssg(self):
         providers = self.server.providers
         self.assertEqual(len(providers), 2)

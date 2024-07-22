@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <bedrock/MPIEnv.hpp>
 
 namespace bedrock {
 
@@ -41,7 +42,7 @@ class Jx9Manager {
     /**
      * @brief Constructor.
      */
-    Jx9Manager();
+    Jx9Manager(MPIEnv mpiEnv);
 
     /**
      * @brief Copy-constructor.

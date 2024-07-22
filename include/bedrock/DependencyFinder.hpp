@@ -11,6 +11,7 @@
 #include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
+#include <bedrock/MPIEnv.hpp>
 #include <string>
 #include <memory>
 
@@ -36,14 +37,15 @@ class DependencyFinder {
   public:
     /**
      * @brief Constructor.
-     *
+     * @param mpi MPI context
      * @param margo Margo context
      * @param abtio ABT-IO context
      * @param ssg SSG context
      * @param pmanager Provider manager
      * @param cmanager Client manager
      */
-    DependencyFinder(const MargoManager& margo, const ABTioManager& abtio,
+    DependencyFinder(const MPIEnv& mpi,
+                     const MargoManager& margo, const ABTioManager& abtio,
                      const SSGManager& ssg, const MonaManager& mona,
                      const ProviderManager& pmanager,
                      const ClientManager& cmanager);

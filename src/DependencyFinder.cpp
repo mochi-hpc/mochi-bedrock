@@ -16,13 +16,15 @@ namespace tl = thallium;
 
 namespace bedrock {
 
-DependencyFinder::DependencyFinder(const MargoManager&    margo,
+DependencyFinder::DependencyFinder(const MPIEnv&          mpi,
+                                   const MargoManager&    margo,
                                    const ABTioManager&    abtio,
                                    const SSGManager&      ssg,
                                    const MonaManager&     mona,
                                    const ProviderManager& pmanager,
                                    const ClientManager&   cmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
+    self->m_mpi              = mpi.self;
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio.self;
     self->m_ssg_context      = ssg.self;
@@ -242,14 +244,26 @@ std::shared_ptr<NamedDependency>
 DependencyFinder::makeProviderHandle(const std::string& client_name,
                                      const std::string& type,
                                      uint16_t           provider_id,
-                                     const std::string& locator,
+                                     const std::string& locatorArg,
                                      std::string* resolved) const {
+    auto locator = locatorArg;
     spdlog::trace("Making provider handle of type {} with id {} and locator {}",
                   type, provider_id, locator);
     auto        mid    = MargoManager(self->m_margo_context).getMargoInstance();
     auto        client = findClient(type, client_name);
     auto        service_factory = ModuleContext::getServiceFactory(type);
     hg_addr_t   addr            = HG_ADDR_NULL;
+    bool locator_is_number = true;
+    int rank = 0;
+    for(auto c : locator) {
+        if(c >= '0' && c <= '9') {
+            rank = rank*10 + (c - '0');
+            continue;
+        }
+        locator_is_number = false;
+        break;
+    }
+    if(locator_is_number) locator = MPIEnv(self->m_mpi).addressOfRank(rank);
 
     if (locator == "local") {
 

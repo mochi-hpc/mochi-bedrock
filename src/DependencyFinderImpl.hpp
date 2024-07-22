@@ -13,9 +13,10 @@
 #include "ProviderManagerImpl.hpp"
 #include "ClientManagerImpl.hpp"
 #include "Formatting.hpp"
+#include "MPIEnvImpl.hpp"
 #include "bedrock/VoidPtr.hpp"
 #include "bedrock/RequestResult.hpp"
-#include "bedrock/Exception.hpp"
+#include <bedrock/Exception.hpp>
 #include <thallium.hpp>
 #include <string>
 #include <unordered_map>
@@ -30,6 +31,7 @@ class DependencyFinderImpl {
 
   public:
     tl::engine                         m_engine;
+    std::shared_ptr<MPIEnvImpl>        m_mpi;
     std::shared_ptr<MargoManagerImpl>  m_margo_context;
     std::weak_ptr<ABTioManagerImpl>    m_abtio_context;
     std::weak_ptr<SSGManagerImpl>      m_ssg_context;

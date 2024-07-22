@@ -13,7 +13,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include "MPI.hpp"
+#include <bedrock/MPIEnv.hpp>
 
 namespace bedrock {
 
@@ -25,10 +25,10 @@ class Jx9ManagerImpl {
     jx9*                                         m_engine = nullptr;
     tl::mutex                                    m_mtx;
     std::unordered_map<std::string, std::string> m_global_variables;
-    std::shared_ptr<MPI>                         m_mpi;
+    MPIEnv                                       m_mpi;
 
-    Jx9ManagerImpl()
-    : m_mpi(std::make_shared<MPI>()) {
+    Jx9ManagerImpl(MPIEnv mpi)
+    : m_mpi(std::move(mpi)) {
         spdlog::trace("Initializing Jx9 engine");
         jx9_init(&m_engine);
     }

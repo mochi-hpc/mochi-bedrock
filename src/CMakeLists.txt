@@ -10,7 +10,7 @@ set (server-src-files
      DependencyFinder.cpp
      MargoLogging.cpp
      Jx9Manager.cpp
-     MPI.cpp)
+     MPIEnv.cpp)
 
 set (client-src-files
      Client.cpp
