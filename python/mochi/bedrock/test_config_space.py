@@ -111,6 +111,28 @@ class TestConfigSpace(unittest.TestCase):
         config = space.sample_configuration()
         spec = ProcSpec.from_config(address='na+sm', config=config)
 
+    def test_service_config_space(self):
+
+        proc_type_a = ProcSpec.space(num_pools=2, num_xstreams=1)
+        proc_type_b = ProcSpec.space(num_pools=1, num_xstreams=2)
+
+        space = ServiceSpec.space(
+            process_space_factories=[
+                {
+                    'family': 'proc_type_a',
+                    'space': proc_type_a,
+                    'count': 2
+                },
+                {
+                    'family': 'proc_type_b',
+                    'space': proc_type_b,
+                    'count': 2
+                }
+            ])
+
+        config = space.sample_configuration()
+
+        spec = ServiceSpec.from_config(address='na+sm', config=config)
 
 if __name__ == '__main__':
     unittest.main()

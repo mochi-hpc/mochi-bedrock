@@ -78,10 +78,19 @@ Server::Server(const std::string& address, const std::string& configString,
 
     // If the config is an array, it should have only one entry remaining after filtering
     if(config.is_array()) {
-        if(config.size() != 1) {
-            throw Exception{"Configuration did not resolve to a single possibility"};
+        if(config.size() == 1) {
+            config = config[0];
+        } else {
+            if(!mpi.isEnabled()) {
+                throw Exception{"Configuration resolved to an array but MPI is not enabled"};
+            }
+            if(config.size() == (size_t)mpi.globalSize()) {
+                config = config[mpi.globalRank()];
+            } else {
+                throw Exception{"Ambiguous configuration did not resolve "
+                                "to a single possibility for the process"};
+            }
         }
-        config = config[0];
     }
 
     // Extract margo section from the config
