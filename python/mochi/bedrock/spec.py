@@ -2219,7 +2219,7 @@ class ProcSpec:
                                  f'module type {p.name}')
 
     @staticmethod
-    def space(provider_space_factories: list[tuple[str, 'ConfigurationSpace', int|tuple[int,int]]] = [],
+    def space(provider_space_factories: list[dict] = [],
               **kwargs):
         """
         The provider_space_factories argument is a list of dictionaries with the following format.
@@ -2355,13 +2355,14 @@ class ServiceSpec:
     def to_json(self, *args, **kwargs) -> str:
         """Convert the ProcSpec into a JSON string.
         """
-        return json.dumps(self.to_dict(), *args, **kwargs)
+        return json.dumps(self.to_dict()['processes'], *args, **kwargs)
 
     @staticmethod
     def from_json(json_string: str) -> 'ServiceSpec':
         """Construct a ServiceSpec from a JSON string.
         """
-        return ServiceSpec.from_dict(json.loads(json_string))
+        cfg = {'processes': json.loads(json_string)}
+        return ServiceSpec.from_dict(cfg)
 
     def validate(self) -> NoReturn:
         """Validate the state of the ServiceSpec.
