@@ -20,13 +20,19 @@ from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable, Map
 
 
 def _CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
-                       default: Any|None = None, weights: Sequence[float]|None = None,
-                       ordered: bool = False, meta: dict|None = None):
+                        default: Any|None = None, weights: Sequence[float]|None = None,
+                        ordered: bool = False, meta: dict|None = None):
     """
     ConfigSpace helper function to create either a Categorical or a Constant hyperparameter.
     """
     from ConfigSpace import Categorical, Constant
     try:
+        dflt = default
+        if dflt is None:
+            if isinstance(items, list):
+                dflt = items[0]
+            else:
+                dflt = items
         return Categorical(name=name, items=items, default=default,
                            weights=weights, ordered=ordered, meta=meta)
     except TypeError:
