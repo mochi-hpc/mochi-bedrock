@@ -86,17 +86,18 @@ class _Configurable:
 
     @classmethod
     def from_config(cls, config: 'Configuration', prefix: str = '', **kwargs):
-        expected = set(attribute.name for attribute in cls.__attrs_attrs__)
+        expected_attr = set(attribute.name for attribute in cls.__attrs_attrs__)
+        expected_kwargs = { k: v for k, v in kwargs.items() if k in expected_attr}
         for param, value in config.items():
             if not param.startswith(prefix):
                 continue
             param = param[len(prefix):]
-            if not param in expected:
+            if not param in expected_attr:
                 continue
-            if param in kwargs:
+            if param in expected_kwargs:
                 continue
-            kwargs[param] = value.item() if hasattr(value, 'item') else value
-        return cls(**kwargs)
+            expected_kwargs[param] = value.item() if hasattr(value, 'item') else value
+        return cls(**expected_kwargs)
 
 
 def _check_validators(instance, attribute, value):
