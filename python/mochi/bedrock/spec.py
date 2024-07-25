@@ -33,7 +33,7 @@ def _CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
                 dflt = items[0]
             else:
                 dflt = items
-        return Categorical(name=name, items=items, default=default,
+        return Categorical(name=name, items=items, default=dflt,
                            weights=weights, ordered=ordered, meta=meta)
     except TypeError:
         return Constant(name=name, value=items, meta=meta)
