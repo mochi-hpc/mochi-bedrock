@@ -76,6 +76,7 @@ def _FloatOrConst(name: str, bounds: float|tuple[float, float], *,
         c = Constant(name=name, value=bounds[0], meta=meta)
         setattr(c, "upper", bounds[0])
         setattr(c, "lower", bounds[0])
+        return c
     else:
         return Float(name=name, bounds=bounds, distribution=distribution,
                      default=default, log=log, meta=meta)
