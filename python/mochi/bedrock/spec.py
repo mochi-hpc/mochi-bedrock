@@ -739,12 +739,15 @@ class SchedulerSpec:
 
     @staticmethod
     def from_config(pools: list[PoolSpec],
-                    config: 'Configuration', prefix: str = ''):
+                    config: 'Configuration',
+                    must_use_primary_pool: bool = False,
+                    prefix: str = ''):
         """
         Create a SchedulerSpec from a Configuration object containing the scheduler's parameters.
         pools is the list of pools available to used by the scheduler.
         prefix is the prefix of the keys in the Configuration object.
         """
+        primary_pool = [p for p in pools if p.name == '__primary__']
         type = config[f'{prefix}type']
         pool_weights = []
         for i in range(0, len(pools)):
@@ -756,6 +759,13 @@ class SchedulerSpec:
             pools = [pools[pool_weights[-1][1]]]
         else:
             pools = list(reversed([pools[i] for w, i in pool_weights if w > 0]))
+        if must_use_primary_pool:
+            uses_primary = False
+            for p in pools:
+                if p.name == '__primary__':
+                    uses_primary = True
+                    break
+            pools.append(primary_pool[0])
         return SchedulerSpec(type=type, pools=pools)
 
 
@@ -889,7 +899,8 @@ class XstreamSpec:
         for more information.
         """
         sched_spec = SchedulerSpec.from_config(
-            pools=pools, config=config, prefix=f'{prefix}scheduler.')
+            pools=pools, must_use_primary_pool=(name == '__primary__'),
+            config=config, prefix=f'{prefix}scheduler.')
         return XstreamSpec(name=name, scheduler=sched_spec)
 
 
@@ -1164,7 +1175,7 @@ class ArgobotsSpec:
         num_pools = config[f'{prefix}num_pools']
         pool_specs = []
         for i in range(0, num_pools):
-            pool_name = f'{pool_name_prefix}{i}'
+            pool_name = '__primary__' if i == 0 else f'{pool_name_prefix}{i}'
             pool_spec = PoolSpec.from_config(
                 name=pool_name, access='mpmc',
                 config=config, prefix=f'{prefix}pools[{i}].')
