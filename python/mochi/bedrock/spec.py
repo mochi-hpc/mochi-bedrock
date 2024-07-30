@@ -759,8 +759,11 @@ class SchedulerSpec:
             pools = [pools[pool_weights[-1][1]]]
         else:
             pools = list(reversed([pools[i] for w, i in pool_weights if w > 0]))
-        if must_use_primary_pool and len([p for p in pools if p.name == '__primary__']) == 0:
-            pools.append(primary_pool[0])
+        if must_use_primary_pool:
+            for i, p in enumerate(pools):
+                if p.name == '__primary__':
+                    del pools[i]
+            pools.insert(0, primary_pool[0])
         return SchedulerSpec(type=type, pools=pools)
 
 
