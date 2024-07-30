@@ -561,7 +561,7 @@ class PoolSpec(_Configurable):
         on_setattr=attr.setters.frozen)
     kind: str = attr.ib(
         default='fifo_wait',
-        validator=in_(['fifo', 'fifo_wait', 'prio', 'prio_wait', 'earliest_first']))
+        validator=in_(['fifo', 'fifo_wait', 'prio_wait', 'earliest_first']))
     access: str = attr.ib(
         default='mpmc',
         validator=in_(['private', 'spsc', 'mpsc', 'spmc', 'mpmc']))
@@ -611,7 +611,7 @@ class PoolSpec(_Configurable):
         attr.validate(self)
 
     @staticmethod
-    def space(pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio', 'prio_wait', 'earliest_first']):
+    def space(pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first']):
         """
         Create a ConfigurationSpace to generate PoolSpec objects.
         pool_kinds can be specified as a string or a list of strings to force the pool kind
@@ -1098,7 +1098,7 @@ class ArgobotsSpec:
     @staticmethod
     def space(num_pools : int|tuple[int,int] = 1,
               num_xstreams : int|tuple[int,int] = 1,
-              pool_kinds : list[str] = ['fifo_wait', 'fifo', 'prio', 'prio_wait', 'earliest_first'],
+              pool_kinds : list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first'],
               scheduler_types: str|list[str]|None = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
               pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0),
               **kwargs):
