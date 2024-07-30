@@ -1420,6 +1420,19 @@ class MargoSpec:
             extra['progress_timeout_ub_msec'] = kwargs[f'progress_timeout_ub_msec']
         progress_pool = argobots_spec.pools[int(config[f'{prefix}progress_pool'])]
         rpc_pool = argobots_spec.pools[int(config[f'{prefix}rpc_pool'])]
+        # Having the progress pool not be the last pool in any ES will potentially
+        # cause starvation, so we need to move the progress pool in all the ESs it appears.
+        # If the progress pool is __primary__ and the __primary__ ES has more than 1 pool,
+        # we cannot move __primary__, so we have to change the choice of progress_pool.
+        if progress_pool.name == '__primary__' and len(argobots_spec.xstreams[0].scheduler.pools) > 1:
+            progress_pool = argobots_spec.xstreams[0].scheduler.pools[-1]
+        for xstream in argobots_spec.xstreams:
+            for i, pool in enumerate(xstream.scheduler.pools):
+                if pool != progress_pool:
+                    continue
+                del xstream.scheduler.pools[i]
+                xstream.scheduler.pools.append(progress_pool)
+                break
         return MargoSpec(
             mercury=mercury_spec,
             argobots=argobots_spec,
