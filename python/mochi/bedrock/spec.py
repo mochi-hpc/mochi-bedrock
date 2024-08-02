@@ -20,9 +20,14 @@ from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable, Map
 
 
 class _Configurable:
+    """
+    For some of the classes bellow, initializing from config simply means extracting
+    the parameters from the input Configuration object that has the same name as an
+    expected attribute of the class. Inheriting from _Configurable allows to do that.
+    """
 
     @classmethod
-    def from_config(cls, config: 'Configuration', prefix: str = '', **kwargs):
+    def from_config(cls, *, config: 'Configuration', prefix: str = '', **kwargs):
         expected_attr = set(attribute.name for attribute in cls.__attrs_attrs__)
         expected_kwargs = { k: v for k, v in kwargs.items() if k in expected_attr}
         for param, value in config.items():
@@ -446,9 +451,10 @@ class MercurySpec(_Configurable):
         return self.address.split(':')[0]
 
     @staticmethod
-    def space(auto_sm: bool|list[bool] = [True, False],
-              na_no_block: bool|list[bool] = [True, False],
-              no_bulk_eager: bool|list[bool] = [True, False],
+    def space(*,
+              auto_sm: bool|list[bool] = False,
+              na_no_block: bool|list[bool] = False,
+              no_bulk_eager: bool|list[bool] = False,
               request_post_init: int|tuple[int,int] = 256,
               request_post_incr: int|tuple[int,int] = 256,
               input_eager_size: int|tuple[int,int] = 4080,
@@ -548,7 +554,9 @@ class PoolSpec(_Configurable):
         attr.validate(self)
 
     @staticmethod
-    def space(pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first']):
+    def space(*,
+              pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first'],
+              **kwargs):
         """
         Create a ConfigurationSpace to generate PoolSpec objects.
         pool_kinds can be specified as a string or a list of strings to force the pool kind
@@ -562,7 +570,7 @@ class PoolSpec(_Configurable):
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class SchedulerSpec:
+class SchedulerSpec(_Configurable):
     """Argobots scheduler specification.
 
     :param type: Type of scheduler
@@ -646,44 +654,37 @@ class SchedulerSpec:
         attr.validate(self)
 
     @staticmethod
-    def space(max_num_pools: int,
+    def space(*,
               scheduler_types: str|list[str] = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
-              pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0)):
+              **kwargs):
         """
         Create a ConfigurationSpace to generate SchedulerSpec objects.
-
-        This function requires to be provided with the maximum number of pools that a
-        scheduler can be associated with.
-
-        pool_association_weights is a tuple[float,float] or a list of N tuple[float,float]
-        where N = max_num_pools, specifying how to draw the scheduler <-> pool associations.
-        For each pool i, pool_association_weight[i] will be drawn randomly and specify the weight
-        of the connection between this scheduler and pool i. This weight will be used to select
-        which pools are effectively used by this scheduler (pools with a weight > 0) and in which
-        order (in order of weights).
         """
         from .config_space import ConfigurationSpace, CategoricalOrConst, FloatOrConst
         cs = ConfigurationSpace()
         default_scheduler_types = scheduler_types[0] if isinstance(scheduler_types, list) else scheduler_types
         cs.add(CategoricalOrConst('type', scheduler_types, default=default_scheduler_types))
+        """
         for i in range(0, max_num_pools):
             if isinstance(pool_association_weights, list):
                 weight = pool_association_weights[i]
             else:
                 weight = pool_association_weights
             cs.add(FloatOrConst(f'pool_association_weight[{i}]', weight, default=-1.0))
+        """
         return cs
 
+    """
     @staticmethod
-    def from_config(pools: list[PoolSpec],
+    def from_config(*,
                     config: 'Configuration',
-                    must_use_primary_pool: bool = False,
+                    pools: list[PoolSpec],
                     prefix: str = ''):
-        """
+        ""
         Create a SchedulerSpec from a Configuration object containing the scheduler's parameters.
         pools is the list of pools available to used by the scheduler.
         prefix is the prefix of the keys in the Configuration object.
-        """
+        ""
         primary_pool = [p for p in pools if p.name == '__primary__']
         type = config[f'{prefix}type']
         pool_weights = []
@@ -702,7 +703,7 @@ class SchedulerSpec:
                     del pools[i]
             pools.insert(0, primary_pool[0])
         return SchedulerSpec(type=type, pools=pools)
-
+    """
 
 
 @attr.s(auto_attribs=True,
@@ -826,16 +827,16 @@ class XstreamSpec:
         return cs
 
     @staticmethod
-    def from_config(name: str, pools: list[PoolSpec],
+    def from_config(*,
+                    name: str,
+                    pools: list[PoolSpec],
                     config: 'Configuration',
                     prefix: str = ''):
         """
-        Create an XstreamSpec from a Configuration object. See SchedulerSpec.from_config
-        for more information.
+        Create an XstreamSpec from a Configuration object.
         """
         sched_spec = SchedulerSpec.from_config(
-            pools=pools, must_use_primary_pool=(name == '__primary__'),
-            config=config, prefix=f'{prefix}scheduler.')
+            pools=pools, config=config, prefix=f'{prefix}scheduler.')
         return XstreamSpec(name=name, scheduler=sched_spec)
 
 
@@ -1033,46 +1034,57 @@ class ArgobotsSpec:
             p.validate()
 
     @staticmethod
-    def space(num_pools : int|tuple[int,int] = 1,
+    def space(*,
+              num_pools : int|tuple[int,int] = 1,
               num_xstreams : int|tuple[int,int] = 1,
+              allow_more_pools_than_xstreams: bool = False,
               pool_kinds : list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first'],
               scheduler_types: str|list[str]|None = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
-              pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (-1.0, 1.0),
+              mapping_weight_range: tuple[float,float] = (-1.0, 1.0),
               **kwargs):
         """
         Create the ConfigurationSpace of an ArgobotsSpec.
 
-        - num_pools is the number of pools or a range for the number of pools to generate.
-        - num_xstreams is the number of xstreams or a range for the number of xstreams to generate.
-        - pool_kinds is the list of possible pool kinds to draw from.
-        - scheduler_types is the list of possible scheduler types to draw from.
-        - pool_association_weights : see SchedulerSpec.space.
+        - num_pools : number of pools or a range for the number of pools to generate.
+        - num_xstreams : number of xstreams or a range for the number of xstreams to generate.
+        - allow_more_pools_than_xstreams : whether to allow more pools than xstreams.
+        - mapping_weight_range : range in which to draw the mapping between pools and xstreams.
         """
-        from .config_space import ConfigurationSpace, IntegerOrConst, GreaterThanCondition, AndConjunction
+        from .config_space import (
+                ConfigurationSpace,
+                IntegerOrConst,
+                GreaterThanCondition,
+                ForbiddenGreaterThanRelation,
+                Float)
         import itertools
         cs = ConfigurationSpace()
         min_num_pools = num_pools if isinstance(num_pools, int) else num_pools[0]
         max_num_pools = num_pools if isinstance(num_pools, int) else num_pools[1]
-        hp_num_pools = IntegerOrConst("num_pools", num_pools)
         min_num_xstreams = num_xstreams if isinstance(num_xstreams, int) else num_xstreams[0]
         max_num_xstreams = num_xstreams if isinstance(num_xstreams, int) else num_xstreams[1]
-        hp_num_xstreams = IntegerOrConst("num_xstreams", num_xstreams)
-        cs = ConfigurationSpace()
+        if (not allow_more_pools_than_xstreams):
+            if max_num_pools > max_num_xstreams:
+                raise ValueError(
+                    'The maximum number of pool cannot exceed the maximum number of xstreams,'
+                    ' unless allow_more_pools_than_xstreams is explicitely set to True.')
+        # number of pools
+        hp_num_pools = IntegerOrConst("num_pools", num_pools)
         cs.add(hp_num_pools)
+        # number of xstreams
+        hp_num_xstreams = IntegerOrConst("num_xstreams", num_xstreams)
         cs.add(hp_num_xstreams)
+        if not allow_more_pools_than_xstreams:
+            cs.add(ForbiddenGreaterThanRelation(hp_num_pools, hp_num_xstreams))
+        # add each xstream's sub-space
         for i in range(0, max_num_xstreams):
-            xstream_cs = XstreamSpec.space(
-                max_num_pools=max_num_pools,
-                scheduler_types=scheduler_types,
-                pool_association_weights=pool_association_weights)
+            xstream_cs = XstreamSpec.space(**kwargs)
             cs.add_configuration_space(
                 prefix=f'xstreams[{i}]', delimiter='.',
                 configuration_space=xstream_cs)
             if i >= min_num_xstreams and not isinstance(num_xstreams, int):
                 for param in xstream_cs:
-                    if 'pool_association_weight' in  param:
-                        continue
                     cs.add(GreaterThanCondition(cs[f'xstreams[{i}].{param}'], hp_num_xstreams, i))
+        # add each pool's sub-space
         for i in range(0, max_num_pools):
             pool_cs = PoolSpec.space(pool_kinds=pool_kinds)
             cs.add_configuration_space(
@@ -1081,61 +1093,95 @@ class ArgobotsSpec:
             if i >= min_num_pools and not isinstance(num_pools, int):
                 for param in pool_cs:
                     cs.add(GreaterThanCondition(cs[f'pools[{i}].{param}'], hp_num_pools, i))
-        for i, j in itertools.product(range(0, max_num_pools),
-                                      range(0, max_num_xstreams)):
-            hp_weight = cs[f'xstreams[{j}].scheduler.pool_association_weight[{i}]']
-            conditions = []
-            if i > min_num_pools-1 and not isinstance(num_pools, int):
-                conditions.append(GreaterThanCondition(hp_weight, hp_num_pools, i))
-            if j > min_num_xstreams-1 and not isinstance(num_xstreams, int):
-                conditions.append(GreaterThanCondition(hp_weight, hp_num_xstreams, j))
-            if len(conditions) == 1:
-                cs.add(conditions[0])
-            elif len(conditions) > 1:
-                cs.add(AndConjunction(*conditions))
+        # add the mapping between pools and xstreams
+        for i, j in itertools.product(range(max_num_pools),
+                                      range(max_num_xstreams)):
+            hp_weight = Float(f'mapping[{i}][{j}]', mapping_weight_range)
+            cs.add(hp_weight)
+            if i >= min_num_pools and not isinstance(num_pools, int):
+                cs.add(GreaterThanCondition(hp_weight, hp_num_pools, i))
+            if j >= min_num_xstreams and not isinstance(num_xstreams, int):
+                cs.add(GreaterThanCondition(hp_weight, hp_num_xstreams, j))
         return cs
 
     @staticmethod
-    def from_config(config: 'Configuration',
+    def from_config(*,
+                    config: 'Configuration',
                     prefix: str = '',
-                    pool_name_prefix: str = 'pool_',
-                    xstream_name_prefix: str = 'xstream_',
+                    pool_name_format: str = '__pool_{}__',
+                    xstream_name_format: str = '__xstream_{}__',
+                    use_progress_thread: bool = False,
                     **kwargs):
         """
         Create an ArgobotsSpec from a Configuration object.
-        pool_name_prefix and xstream_name_prefix are used to prefix the names
+        pool_name_format and xstream_name_format are used to format the names
         of pools and xstreams respectively.
         """
+        import itertools
+        num_xstreams = int(config[f'{prefix}num_xstreams'])
+        num_pools = int(config[f'{prefix}num_pools'])
         # create pool specs
-        num_pools = config[f'{prefix}num_pools']
         pool_specs = []
         for i in range(0, num_pools):
-            pool_name = '__primary__' if i == 0 else f'{pool_name_prefix}{i}'
+            pool_name = '__primary__' if i == 0 else pool_name_format.format(i)
             pool_spec = PoolSpec.from_config(
                 name=pool_name, access='mpmc',
                 config=config, prefix=f'{prefix}pools[{i}].')
             pool_specs.append(pool_spec)
-        # create xstream specs
-        num_xstreams = config[f'{prefix}num_xstreams']
-        xstream_specs = []
-        used_pools = set()
-        for i in range(0, num_xstreams):
-            xstream_name = '__primary__' if i == 0 else f'{xstream_name_prefix}{i}'
-            xstream_spec = XstreamSpec.from_config(
-                name=xstream_name, pools=pool_specs,
-                config=config, prefix=f'{prefix}xstreams[{i}].')
-            xstream_specs.append(xstream_spec)
-            for pool in xstream_spec.scheduler.pools:
-                used_pools.add(pool)
-        # deal with unused pools
-        for i in range(0, num_pools):
-            if pool_specs[i] in used_pools:
+        # if there is only one xstream, that xstream will use all the pools
+        if num_xstreams == 1:
+            xstream_specs = [
+                XstreamSpec.from_config(
+                    name='__primary__', pools=pool_specs,
+                    config=config, prefix=f'{prefix}xstreams[0].')
+            ]
+            return ArgobotsSpec(pools=pool_specs, xstreams=xstream_specs)
+        # here we are sure there are at least 2 xstreams
+        # extract the mapping weights and sort it
+        mapping = [ (float(config[f'{prefix}mapping[{i}][{j}]']), i, j) \
+                    for i, j in itertools.product(range(num_pools), range(num_xstreams)) ]
+        mapping = sorted(mapping, reverse=True)
+        # we will create the list of pools used by each xstream
+        pools_for_xstream = [[] for i in range(num_xstreams)]
+        # without loss of generality, we can make xstream[i] use pool[i]
+        for i in range(min(num_pools, num_xstreams)):
+            pools_for_xstream[i].append(i)
+        progress_pool = 1 if use_progress_thread and num_pools > 1 else 0
+        progress_xstream = 1 if use_progress_thread else 0
+        # if we have more xstreams than pools, use the mapping
+        if num_xstreams > num_pools:
+            for j in range(num_pools, num_xstreams):
+                # we prefer not to use the progress pool
+                candidates = [m for m in mapping if m[2] == j and m[1] != progress_pool]
+                i = candidates[0][1] if len(candidates) != 0 else progress_pool
+                pools_for_xstream[j].append(i)
+        else: # we have more pools than xstreams (or the same number)
+            for i in range(num_xstreams, num_pools):
+                # we know we have more than 1 xstream so at least one is't progress xstream
+                candidates = [m for m in mapping if m[1] == i and m[2] != progress_xstream]
+                j = candidates[0][2]
+                pools_for_xstream[j].append(i)
+        # here all the pools are associated with at least one xstream
+        # and each xstream is associated with at least one pool, we can
+        # now "sprinkle" more connections based on the weights
+        for m in mapping:
+            weight, i, j = m
+            if weight <= 0:
+                break
+            if i == progress_pool or j == progress_xstream or i in pools_for_xstream[j]:
                 continue
-            weights = [
-                (config[f'{prefix}xstreams[{j}].scheduler.pool_association_weight[{i}]'], j) \
-                for j in range(0, num_xstreams)]
-            weights = sorted(weights)
-            xstream_specs[weights[-1][1]].scheduler.pools.append(pool_specs[i])
+            pools_for_xstream[j].append(i)
+        # finally, create the xstream specs
+        xstream_specs = []
+        for j in range(num_xstreams):
+            xstream_name = '__primary__' if j == 0 else xstream_name_format.format(j)
+            if j == 1 and use_progress_thread:
+                xstream_name = '__progress__'
+            pools = [pool_specs[i] for i in pools_for_xstream[j]]
+            xstream_spec = XstreamSpec.from_config(
+                name=xstream_name, pools=pools,
+                config=config, prefix=f'{prefix}xstreams[{j}].')
+            xstream_specs.append(xstream_spec)
         return ArgobotsSpec(pools=pool_specs, xstreams=xstream_specs)
 
 
@@ -1278,12 +1324,11 @@ class MargoSpec:
                 ' in ArgobotsSpec')
 
     @staticmethod
-    def space(handle_cache_size: int|tuple[int,int] = 32,
+    def space(*,
+              handle_cache_size: int|tuple[int,int] = 32,
               progress_timeout_ub_msec: int|tuple[int,int] = 100,
-              progress_pool: int|tuple[int,int]|None = None,
+              use_progress_thread: bool|tuple[bool,bool] = [True, False],
               rpc_pool: int|tuple[int,int]|None = None,
-              num_pools : int|tuple[int,int] = 1,
-              num_xstreams : int|tuple[int,int] = 1,
               **kwargs):
         """
         Create the ConfigurationSpace for a MargoSpec.
@@ -1303,13 +1348,11 @@ class MargoSpec:
                 ForbiddenAndConjunction,
                 ForbiddenInClause,
                 ForbiddenEqualsClause)
-        min_num_pools = num_pools if isinstance(num_pools, int) else num_pools[0]
-        max_num_pools = num_pools if isinstance(num_pools, int) else num_pools[1]
         cs = ConfigurationSpace()
+        cs.add(CategoricalOrConst('use_progress_thread', use_progress_thread))
         cs.add(IntegerOrConst('handle_cache_size', handle_cache_size))
         cs.add(IntegerOrConst('progress_timeout_ub_msec', progress_timeout_ub_msec))
-        argobots_cs = ArgobotsSpec.space(
-            num_pools=num_pools, num_xstreams=num_xstreams, **kwargs)
+        argobots_cs = ArgobotsSpec.space(**kwargs)
         mercury_cs = MercurySpec.space(**kwargs)
         cs.add_configuration_space(
             prefix='argobots', delimiter='.',
@@ -1321,21 +1364,17 @@ class MargoSpec:
         # Note: rpc_pool and progress_pool are categorical because AI tools should not
         # make the assumption that adding/removing 1 to the value will lead to a smaller
         # change than adding/removing a larger value.
-        hp_rpc_pool = CategoricalOrConst('rpc_pool', list(range(max_num_pools)), default=0)
-        hp_progress_pool = CategoricalOrConst('progress_pool', list(range(max_num_pools)), default=0)
+        hp_rpc_pool = CategoricalOrConst('rpc_pool', list(range(hp_num_pools.upper)), default=0)
         cs.add(hp_rpc_pool)
-        cs.add(hp_progress_pool)
-        for i in range(min_num_pools, max_num_pools):
+        # add conditions on the possible values of rpc_pool and progress_pool
+        for i in range(hp_num_pools.lower, hp_num_pools.upper):
             cs.add(ForbiddenAndConjunction(
-                ForbiddenInClause(hp_rpc_pool, list(range(i, max_num_pools))),
-                ForbiddenEqualsClause(hp_num_pools, i)))
-            cs.add(ForbiddenAndConjunction(
-                ForbiddenInClause(hp_progress_pool, list(range(i, max_num_pools))),
+                ForbiddenInClause(hp_rpc_pool, list(range(i, hp_num_pools.upper))),
                 ForbiddenEqualsClause(hp_num_pools, i)))
         return cs
 
     @staticmethod
-    def from_config(config: 'Configuration', prefix: str = '', **kwargs):
+    def from_config(*, config: 'Configuration', prefix: str = '', **kwargs):
         """
         Create a MargoSpec from a Configuration object.
 
@@ -1344,10 +1383,12 @@ class MargoSpec:
         kwargs arguments will be propagated to the underlying MercurySpec and
         ArgobotsSpec.
         """
+        use_progress_thread = bool(config[f'{prefix}use_progress_thread'])
         mercury_spec = MercurySpec.from_config(
             prefix=f'{prefix}mercury.', config=config, **kwargs)
         argobots_spec = ArgobotsSpec.from_config(
-            prefix=f'{prefix}argobots.', config=config, **kwargs)
+            prefix=f'{prefix}argobots.', config=config,
+            use_progress_thread=use_progress_thread, **kwargs)
         extra = {}
         if 'handle_cache_size' not in kwargs:
             extra['handle_cache_size'] = int(config[f'{prefix}handle_cache_size'])
@@ -1357,21 +1398,12 @@ class MargoSpec:
             extra['progress_timeout_ub_msec'] = int(config[f'{prefix}progress_timeout_ub_msec'])
         else:
             extra['progress_timeout_ub_msec'] = kwargs[f'progress_timeout_ub_msec']
-        progress_pool = argobots_spec.pools[int(config[f'{prefix}progress_pool'])]
+        use_progress_thread = bool(config[f'{prefix}use_progress_thread'])
+        if len(argobots_spec.pools) == 1 or not use_progress_thread:
+            progress_pool = argobots_spec.pools[0]
+        else:
+            progress_pool = argobots_spec.pools[1]
         rpc_pool = argobots_spec.pools[int(config[f'{prefix}rpc_pool'])]
-        # Having the progress pool not be the last pool in any ES will potentially
-        # cause starvation, so we need to move the progress pool in all the ESs it appears.
-        # If the progress pool is __primary__ and the __primary__ ES has more than 1 pool,
-        # we cannot move __primary__, so we have to change the choice of progress_pool.
-        if progress_pool.name == '__primary__' and len(argobots_spec.xstreams[0].scheduler.pools) > 1:
-            progress_pool = argobots_spec.xstreams[0].scheduler.pools[-1]
-        for xstream in argobots_spec.xstreams:
-            for i, pool in enumerate(xstream.scheduler.pools):
-                if pool != progress_pool:
-                    continue
-                del xstream.scheduler.pools[i]
-                xstream.scheduler.pools.append(progress_pool)
-                break
         return MargoSpec(
             mercury=mercury_spec,
             argobots=argobots_spec,
@@ -1776,8 +1808,7 @@ class ProviderSpec:
         return ProviderSpec.from_dict(json.loads(json_string), abt_spec)
 
     @staticmethod
-    def space(type: str, max_num_pools: int, tags: list[str] = [],
-              pool_association_weights: tuple[float,float]|list[float|tuple[float,float]] = (0.0, 1.0),
+    def space(*, type: str, max_num_pools: int, tags: list[str] = [],
               provider_config_space: Optional['ConfigurationSpace'] = None,
               provider_config_resolver: Callable[['Configuration', str], dict]|None = None,
               dependency_config_space: Optional['ConfigurationSpace'] = None,
@@ -1800,10 +1831,7 @@ class ProviderSpec:
         from .config_space import ConfigurationSpace, FloatOrConst, Categorical, Constant
         cs = ConfigurationSpace()
         cs.add(Constant('type', type))
-        # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
-        # switch to storing the tags as a single constant of type list.
-        # cs.add(Constant('tags', tags))
-        cs.add(Constant('tags', ','.join(tags)))
+        cs.add(Constant('tags', tags))
         if provider_config_space is not None:
             cs.add_configuration_space(
                 prefix='config', delimiter='.',
@@ -1814,16 +1842,11 @@ class ProviderSpec:
                 prefix='dependencies', delimiter='.',
                 configuration_space=dependency_config_space)
         cs.add(Constant('dependency_resolver', dependency_resolver))
-        for i in range(0, max_num_pools):
-            if isinstance(pool_association_weights, list):
-                weight = pool_association_weights[i]
-            else:
-                weight = pool_association_weights
-            cs.add(FloatOrConst(f'pool_association_weight[{i}]', weight))
+        cs.add(Categorical('pool', list(range(max_num_pools))))
         return cs
 
     @staticmethod
-    def from_config(name: str, provider_id: int, pools: list[PoolSpec],
+    def from_config(*, name: str, provider_id: int, pools: list[PoolSpec],
                     config: 'Configuration', prefix: str = ''):
         """
         Create a ProviderSpec from a given Configuration object.
@@ -1833,16 +1856,10 @@ class ProviderSpec:
         """
         from .config_space import Configuration
         type = config[f'{prefix}type']
-        # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
-        # switch to getting the tags from a single constant of type list.
-        # tags = config[f'{prefix}tags']
-        tags = config[f'{prefix}tags'].split(',')
+        tags = config[f'{prefix}tags']
         provider_config_resolver = config[f'{prefix}config_resolver']
         dependency_resolver = config[f'{prefix}dependency_resolver']
-        pool_weights = [(
-            float(config[f'{prefix}pool_association_weight[{i}]']), i
-        ) for i in range(len(pools))]
-        pool = pools[max(pool_weights)[1]]
+        pool = pools[int(config[f'{prefix}pool'])]
         if provider_config_resolver is None:
             provider_config = {}
         else:
@@ -1852,7 +1869,7 @@ class ProviderSpec:
         else:
             provider_dependencies = dependency_resolver(config, f'{prefix}dependencies.')
         return ProviderSpec(
-            name=f'{name}', type=type, provider_id=provider_id,
+            name=name, type=type, provider_id=provider_id,
             pool=pool, config=provider_config, tags=tags,
             dependencies=provider_dependencies)
 
@@ -2188,7 +2205,7 @@ class ProcSpec:
                                  f'module type {p.name}')
 
     @staticmethod
-    def space(provider_space_factories: list[dict] = [],
+    def space(*, provider_space_factories: list[dict] = [],
               **kwargs):
         """
         The provider_space_factories argument is a list of dictionaries with the following format.
@@ -2207,7 +2224,9 @@ class ProcSpec:
         from .config_space import (
                 ConfigurationSpace,
                 GreaterThanCondition,
-                AndConjunction,
+                ForbiddenInClause,
+                ForbiddenAndConjunction,
+                ForbiddenEqualsClause,
                 Constant,
                 IntegerOrConst)
         margo_space = MargoSpec.space(**kwargs)
@@ -2221,47 +2240,43 @@ class ProcSpec:
         hp_num_pools = cs['margo.argobots.num_pools']
         max_num_pools = hp_num_pools.upper
         min_num_pools = hp_num_pools.lower
-        # FIXME we are serializing the families into a string because of
-        # https://github.com/automl/ConfigSpace/issues/381
-        # When it is fixed, just do:
-        # cs.add(Constant('providers.families', families))
-        cs.add(Constant('providers.families', ','.join(families)))
+        cs.add(Constant('providers.families', families))
+        # for each family of providers...
         for provider_group in provider_space_factories:
             family = provider_group['family']
             provider_cs = provider_group['space']
             count = provider_group.get('count', 1)
             default_count = count if isinstance(count, int) else count[0]
-            hp_num_providers = IntegerOrConst(f'providers.{family}.count', count, default=default_count)
+            # number of providers
+            hp_num_providers = IntegerOrConst(f'providers.{family}.num_providers',
+                                              count, default=default_count)
             cs.add(hp_num_providers)
-            conditions_to_add = {}
+            # add each provider's sub-space
             for i in range(0, hp_num_providers.upper):
+                space_prefix = f'providers.{family}[{i}]'
                 cs.add_configuration_space(
-                    prefix=f'providers.{family}[{i}]', delimiter='.',
+                    prefix=space_prefix, delimiter='.',
                     configuration_space=provider_cs)
+                # get the hyperparameter for the pool used by this provider
+                hp_pool = cs[f'{space_prefix}.pool']
+                # add a constraint on it (cannot have pool > num_pools)
+                # Note: pool is a categorical hyperparameter so we need a
+                # ForbiddenInClause for each subset of values it can take
                 for j in range(min_num_pools, max_num_pools):
-                    param_key = f'providers.{family}[{i}].pool_association_weight[{j}]'
-                    if param_key not in conditions_to_add:
-                        conditions_to_add[param_key] = []
-                    conditions_to_add[param_key].append(
-                        GreaterThanCondition(cs[param_key], hp_num_pools, j))
+                    cs.add(ForbiddenAndConjunction(
+                        ForbiddenEqualsClause(hp_num_pools, j),
+                        ForbiddenInClause(hp_pool, list(range(j, max_num_pools)))))
+                # add conditions on all the hyperparameters of the sub-space,
+                # they exist only if i < num_providers.
                 if i <= hp_num_providers.lower:
                     continue
                 for param in provider_cs:
-                    param_key = f'providers.{family}[{i}].{param}'
-                    if param_key not in conditions_to_add:
-                        conditions_to_add[param_key] = []
-                    conditions_to_add[param_key].append(
-                        GreaterThanCondition(cs[param_key], hp_num_providers, i))
-            for param_key, conditions in conditions_to_add.items():
-                if len(conditions) == 1:
-                    cs.add(conditions[0])
-                else:
-                    cs.add(AndConjunction(*conditions))
+                    param_key = f'{space_prefix}.{param}'
+                    cs.add(GreaterThanCondition(cs[param_key], hp_num_providers, i))
         return cs
 
     @staticmethod
-    def from_config(config: 'Configuration',
-                    prefix: str = '', **kwargs):
+    def from_config(*, config: 'Configuration', prefix: str = '', **kwargs):
         """
         Create a ProcSpec from the provided Configuration object.
         Extra parameters (**kwargs) will be propagated to the underlying
@@ -2270,18 +2285,12 @@ class ProcSpec:
         margo_spec = MargoSpec.from_config(
             config=config, prefix=f'{prefix}margo.', **kwargs)
         pools = margo_spec.argobots.pools
-        # FIXME we are serializing the families into a string because of
-        # https://github.com/automl/ConfigSpace/issues/381
-        # When it is fixed, just do:
-        # families = config[f'{prefix}providers.families']
-        families = config[f'{prefix}providers.families'].split(',')
+        families = config[f'{prefix}providers.families']
         current_provider_id = 1
         provider_specs = []
         for family in families:
-            if len(family) == 0:
-                continue
-            provider_count = int(config[f'{prefix}providers.{family}.count'])
-            for i in range(provider_count):
+            num_providers = int(config[f'{prefix}providers.{family}.num_providers'])
+            for i in range(num_providers):
                 provider_specs.append(
                     ProviderSpec.from_config(
                         name=f'{family}_{i}', pools=margo_spec.argobots.pools,
@@ -2359,7 +2368,7 @@ class ServiceSpec:
                             check_provider_dependency(dep)
 
     @staticmethod
-    def space(process_space_factories: list[tuple[str, 'ConfigurationSpace', int|tuple[int,int]]] = [],
+    def space(*, process_space_factories: list[dict] = [],
               **kwargs):
         """
         The process_space_factories argument is a list of dictionaries with the following format.
@@ -2376,45 +2385,33 @@ class ServiceSpec:
         - "count" is either an int, or a pair (int, int) (if ommitted, will default to 1).
         """
         from .config_space import (
-                ConfigurationSpace, IntegerOrConst,
-                GreaterThanCondition, AndConjunction, Constant)
+                ConfigurationSpace,
+                IntegerOrConst,
+                GreaterThanCondition,
+                AndConjunction,
+                Constant)
         families = [f['family'] for f in process_space_factories]
         if len(set(families)) != len(process_space_factories):
             raise ValueError('Duplicate provider family in provider_space_factories')
         cs = ConfigurationSpace()
-        # FIXME we are serializing the families into a string because of
-        # https://github.com/automl/ConfigSpace/issues/381
-        # When it is fixed, just do:
-        # cs.add(Constant('processes.families', families))
-        cs.add(Constant('processes.families', ','.join(families)))
+        cs.add(Constant('processes.families', families))
         for process_group in process_space_factories:
             family = process_group['family']
             process_cs = process_group['space']
             count = process_group.get('count', 1)
             default_count = count if isinstance(count, int) else count[0]
-            hp_num_processes = IntegerOrConst(f'processes.{family}.count', count, default=default_count)
+            hp_num_processes = IntegerOrConst(f'processes.{family}.num_processes',
+                                              count, default=default_count)
             cs.add(hp_num_processes)
-            conditions_to_add = {}
             for i in range(0, hp_num_processes.upper):
                 cs.add_configuration_space(
                     prefix=f'processes.{family}[{i}]', delimiter='.',
                     configuration_space=process_cs)
                 if i <= hp_num_processes.lower:
                     continue
-                # FIXME: the code bellow will not work because some of the parameters
-                # already have a condition attached to them and can't have more added
-                # see https://github.com/automl/ConfigSpace/issues/380
                 for param in provider_cs:
                     param_key = f'processes.{family}[{i}].{param}'
-                    if param_key not in conditions_to_add:
-                        conditions_to_add[param_key] = []
-                    conditions_to_add[param_key].append(
-                        GreaterThanCondition(cs[param_key], hp_num_providers, i))
-            for param_key, conditions in conditions_to_add.items():
-                if len(conditions) == 1:
-                    cs.add(conditions[0])
-                else:
-                    cs.add(AndConjunction(*conditions))
+                    cs.add(GreaterThanCondition(cs[param_key], hp_num_providers, i))
         return cs
 
     @staticmethod
@@ -2425,19 +2422,18 @@ class ServiceSpec:
         Extra parameters (**kwargs) will be propagated to the underlying
         ProcSpec.from_config().
         """
-        # FIXME we are serializing the families into a string because of
-        # https://github.com/automl/ConfigSpace/issues/381
-        # When it is fixed, just do:
-        # families = config[f'{prefix}processes.families']
-        families = config[f'{prefix}processes.families'].split(',')
+        families = config[f'{prefix}processes.families']
         proc_specs = []
         for family in families:
             if len(family) == 0:
                 continue
-            proc_count = int(config[f'{prefix}processes.{family}.count'])
+            proc_count = int(config[f'{prefix}processes.{family}.num_processes'])
             for i in range(proc_count):
                 proc_specs.append(
-                    ProcSpec.from_config(config, prefix=f'{prefix}processes.{family}[{i}].', **kwargs))
+                    ProcSpec.from_config(
+                        config=config,
+                        prefix=f'{prefix}processes.{family}[{i}].',
+                        **kwargs))
         return ServiceSpec(processes=proc_specs)
 
 
