@@ -674,37 +674,6 @@ class SchedulerSpec(_Configurable):
         """
         return cs
 
-    """
-    @staticmethod
-    def from_config(*,
-                    config: 'Configuration',
-                    pools: list[PoolSpec],
-                    prefix: str = ''):
-        ""
-        Create a SchedulerSpec from a Configuration object containing the scheduler's parameters.
-        pools is the list of pools available to used by the scheduler.
-        prefix is the prefix of the keys in the Configuration object.
-        ""
-        primary_pool = [p for p in pools if p.name == '__primary__']
-        type = config[f'{prefix}type']
-        pool_weights = []
-        for i in range(0, len(pools)):
-            weight_name = f'{prefix}pool_association_weight[{i}]'
-            weight = config[weight_name]
-            pool_weights.append((weight, i))
-        pool_weights = sorted(pool_weights)
-        if pool_weights[-1][0] <= 0:
-            pools = [pools[pool_weights[-1][1]]]
-        else:
-            pools = list(reversed([pools[i] for w, i in pool_weights if w > 0]))
-        if must_use_primary_pool:
-            for i, p in enumerate(pools):
-                if p.name == '__primary__':
-                    del pools[i]
-            pools.insert(0, primary_pool[0])
-        return SchedulerSpec(type=type, pools=pools)
-    """
-
 
 @attr.s(auto_attribs=True,
         on_setattr=_check_validators,
