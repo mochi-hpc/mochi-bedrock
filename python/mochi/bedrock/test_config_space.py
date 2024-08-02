@@ -5,50 +5,50 @@ from mochi.bedrock.spec import *
 class TestConfigSpace(unittest.TestCase):
 
     def test_mercury_config_space(self):
-        space = MercurySpec.space()
+        space = MercurySpec.space().freeze()
         config = space.sample_configuration()
         spec = MercurySpec.from_config(address='na+sm', config=config)
 
     def test_pool_config_space(self):
-        space = PoolSpec.space()
+        space = PoolSpec.space().freeze()
         config = space.sample_configuration()
         spec = PoolSpec.from_config(name='my_pool', config=config)
 
     def test_sched_config_space(self):
         pool1 = PoolSpec(name='my_pool_1')
         pool2 = PoolSpec(name='my_pool_2')
-        space = SchedulerSpec.space(max_num_pools=2)
+        space = SchedulerSpec.space(max_num_pools=2).freeze()
         config = space.sample_configuration()
         spec = SchedulerSpec.from_config(config=config, pools=[pool1, pool2])
 
     def test_xstream_config_space(self):
         pool1 = PoolSpec(name='my_pool_1')
         pool2 = PoolSpec(name='my_pool_2')
-        space = XstreamSpec.space(max_num_pools=2)
+        space = XstreamSpec.space(max_num_pools=2).freeze()
         config = space.sample_configuration()
         spec = XstreamSpec.from_config(name="my_xstream",
                                        config=config, pools=[pool1, pool2])
 
     def test_argobots_config_space(self):
-        space = ArgobotsSpec.space(num_pools=2, num_xstreams=3)
-        space = ArgobotsSpec.space(num_pools=(2,3), num_xstreams=3)
-        space = ArgobotsSpec.space(num_pools=2, num_xstreams=(2,3))
-        space = ArgobotsSpec.space(num_pools=(2,3), num_xstreams=(2,3))
+        space = ArgobotsSpec.space(num_pools=2, num_xstreams=3).freeze()
+        space = ArgobotsSpec.space(num_pools=(2,3), num_xstreams=3).freeze()
+        space = ArgobotsSpec.space(num_pools=2, num_xstreams=(2,3)).freeze()
+        space = ArgobotsSpec.space(num_pools=(2,3), num_xstreams=(2,3)).freeze()
         config = space.sample_configuration()
         spec = ArgobotsSpec.from_config(config)
 
     def test_margo_config_space(self):
-        space = MargoSpec.space(num_pools=(2,5), num_xstreams=(2,3))
+        space = MargoSpec.space(num_pools=(2,5), num_xstreams=(2,3)).freeze()
         config = space.sample_configuration()
         spec = MargoSpec.from_config(config=config, address='na+sm')
 
     def test_proc_config_space(self):
-        space = ProcSpec.space(num_pools=(2,5), num_xstreams=(2,3))
+        space = ProcSpec.space(num_pools=(2,5), num_xstreams=(2,3)).freeze()
         config = space.sample_configuration()
         spec = ProcSpec.from_config(config=config, address='na+sm')
 
     def test_provider_config_space(self):
-        from ConfigSpace import ConfigurationSpace, Integer
+        from .config_space import ConfigurationSpace, Integer
         pools = [PoolSpec(name=f'pool_{i}') for i in range(3)]
 
         config_cs = ConfigurationSpace()
@@ -68,7 +68,7 @@ class TestConfigSpace(unittest.TestCase):
             tags=['tag1', 'tag2'],
             provider_config_space=config_cs,
             provider_config_resolver=resolve_provider_config,
-            dependency_resolver=resolve_provider_dependencies)
+            dependency_resolver=resolve_provider_dependencies).freeze()
 
         config = space.sample_configuration()
 
@@ -77,7 +77,7 @@ class TestConfigSpace(unittest.TestCase):
             pools=pools, config=config)
 
     def test_proc_with_providers(self):
-        from ConfigSpace import ConfigurationSpace, Integer
+        from .config_space import ConfigurationSpace, Integer
 
         max_num_pools = 5
 
@@ -107,7 +107,7 @@ class TestConfigSpace(unittest.TestCase):
         ]
 
         space = ProcSpec.space(num_pools=(2, max_num_pools), num_xstreams=(2, 3),
-                               provider_space_factories=provider_space_factories)
+                               provider_space_factories=provider_space_factories).freeze()
         config = space.sample_configuration()
         spec = ProcSpec.from_config(address='na+sm', config=config)
 
@@ -128,7 +128,7 @@ class TestConfigSpace(unittest.TestCase):
                     'space': proc_type_b,
                     'count': 2
                 }
-            ])
+            ]).freeze()
 
         config = space.sample_configuration()
 

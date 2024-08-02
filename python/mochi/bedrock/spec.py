@@ -19,69 +19,6 @@ from attr.validators import instance_of, in_
 from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable, Mapping
 
 
-def _CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
-                        default: Any|None = None, weights: Sequence[float]|None = None,
-                        ordered: bool = False, meta: dict|None = None):
-    """
-    ConfigSpace helper function to create either a Categorical or a Constant hyperparameter.
-    """
-    from ConfigSpace import Categorical, Constant
-    try:
-        dflt = default
-        if dflt is None:
-            if isinstance(items, list):
-                dflt = items[0]
-            else:
-                dflt = items
-        return Categorical(name=name, items=items, default=dflt,
-                           weights=weights, ordered=ordered, meta=meta)
-    except TypeError:
-        return Constant(name=name, value=items, meta=meta)
-
-
-def _IntegerOrConst(name: str, bounds: int|tuple[int, int], *,
-                    distribution: Any = None, default: int|None = None,
-                    log: bool = False, meta: dict|None = None):
-    """
-    ConfigSpace helper function to create either an Integer or a Constant hyperparameter.
-    """
-    from ConfigSpace import Integer, Constant
-    if isinstance(bounds, int):
-        c = Constant(name=name, value=bounds, meta=meta)
-        setattr(c, "upper", bounds)
-        setattr(c, "lower", bounds)
-        return c
-    elif bounds[0] == bounds[1]:
-        c = Constant(name=name, value=bounds[0], meta=meta)
-        setattr(c, "upper", bounds[0])
-        setattr(c, "lower", bounds[0])
-        return c
-    else:
-        return Integer(name=name, bounds=bounds, distribution=distribution,
-                       default=default, log=log, meta=meta)
-
-def _FloatOrConst(name: str, bounds: float|tuple[float, float], *,
-                  distribution: Any = None, default: float|None = None,
-                  log: bool = False, meta: dict|None = None):
-    """
-    ConfigSpace helper function to create either a Float or a Constant hyperparameter.
-    """
-    from ConfigSpace import Float, Constant
-    if isinstance(bounds, float):
-        c = Constant(name=name, value=bounds, meta=meta)
-        setattr(c, "upper", bounds)
-        setattr(c, "lower", bounds)
-        return c
-    elif bounds[0] == bounds[1]:
-        c = Constant(name=name, value=bounds[0], meta=meta)
-        setattr(c, "upper", bounds[0])
-        setattr(c, "lower", bounds[0])
-        return c
-    else:
-        return Float(name=name, bounds=bounds, distribution=distribution,
-                     default=default, log=log, meta=meta)
-
-
 class _Configurable:
 
     @classmethod
@@ -524,17 +461,17 @@ class MercurySpec(_Configurable):
         Each of the argument can be set to either a single value or a range
         to make them configurable.
         """
-        from ConfigSpace import ConfigurationSpace
+        from .config_space import ConfigurationSpace, CategoricalOrConst, IntegerOrConst
         cs = ConfigurationSpace()
-        cs.add(_CategoricalOrConst('auto_sm', auto_sm, default=True))
-        cs.add(_CategoricalOrConst('na_no_block', na_no_block, default=False))
-        cs.add(_CategoricalOrConst('no_bulk_eager', no_bulk_eager, default=False))
-        cs.add(_IntegerOrConst('request_post_init', request_post_init, default=256))
-        cs.add(_IntegerOrConst('request_post_incr', request_post_incr, default=256))
-        cs.add(_IntegerOrConst('input_eager_size', input_eager_size, default=4080))
-        cs.add(_IntegerOrConst('output_eager_size', output_eager_size, default=4080))
-        cs.add(_IntegerOrConst('na_max_expected_size', na_max_expected_size, default=0))
-        cs.add(_IntegerOrConst('na_max_unexpected_size', na_max_unexpected_size, default=0))
+        cs.add(CategoricalOrConst('auto_sm', auto_sm, default=True))
+        cs.add(CategoricalOrConst('na_no_block', na_no_block, default=False))
+        cs.add(CategoricalOrConst('no_bulk_eager', no_bulk_eager, default=False))
+        cs.add(IntegerOrConst('request_post_init', request_post_init, default=256))
+        cs.add(IntegerOrConst('request_post_incr', request_post_incr, default=256))
+        cs.add(IntegerOrConst('input_eager_size', input_eager_size, default=4080))
+        cs.add(IntegerOrConst('output_eager_size', output_eager_size, default=4080))
+        cs.add(IntegerOrConst('na_max_expected_size', na_max_expected_size, default=0))
+        cs.add(IntegerOrConst('na_max_unexpected_size', na_max_unexpected_size, default=0))
         return cs
 
 
@@ -617,10 +554,10 @@ class PoolSpec(_Configurable):
         pool_kinds can be specified as a string or a list of strings to force the pool kind
         to be picked from a set different from the default one.
         """
-        from ConfigSpace import ConfigurationSpace
+        from .config_space import ConfigurationSpace, CategoricalOrConst
         cs = ConfigurationSpace()
         default = pool_kinds[0] if isinstance(pool_kinds, list) else pool_kinds
-        cs.add(_CategoricalOrConst('kind', pool_kinds, default=default))
+        cs.add(CategoricalOrConst('kind', pool_kinds, default=default))
         return cs
 
 
@@ -725,16 +662,16 @@ class SchedulerSpec:
         which pools are effectively used by this scheduler (pools with a weight > 0) and in which
         order (in order of weights).
         """
-        from ConfigSpace import ConfigurationSpace, Float
+        from .config_space import ConfigurationSpace, CategoricalOrConst, FloatOrConst
         cs = ConfigurationSpace()
         default_scheduler_types = scheduler_types[0] if isinstance(scheduler_types, list) else scheduler_types
-        cs.add(_CategoricalOrConst('type', scheduler_types, default=default_scheduler_types))
+        cs.add(CategoricalOrConst('type', scheduler_types, default=default_scheduler_types))
         for i in range(0, max_num_pools):
             if isinstance(pool_association_weights, list):
                 weight = pool_association_weights[i]
             else:
                 weight = pool_association_weights
-            cs.add(_FloatOrConst(f'pool_association_weight[{i}]', weight, default=-1.0))
+            cs.add(FloatOrConst(f'pool_association_weight[{i}]', weight, default=-1.0))
         return cs
 
     @staticmethod
@@ -881,7 +818,7 @@ class XstreamSpec:
         This function essentially forwards its arguments to the underlying
         SchedulerSpec.space ConfigurationSpace.
         """
-        from ConfigSpace import ConfigurationSpace
+        from .config_space import ConfigurationSpace
         cs = ConfigurationSpace()
         cs.add_configuration_space(
             prefix='scheduler', delimiter='.',
@@ -1111,15 +1048,15 @@ class ArgobotsSpec:
         - scheduler_types is the list of possible scheduler types to draw from.
         - pool_association_weights : see SchedulerSpec.space.
         """
-        from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction
+        from .config_space import ConfigurationSpace, IntegerOrConst, GreaterThanCondition, AndConjunction
         import itertools
         cs = ConfigurationSpace()
         min_num_pools = num_pools if isinstance(num_pools, int) else num_pools[0]
         max_num_pools = num_pools if isinstance(num_pools, int) else num_pools[1]
-        hp_num_pools = _IntegerOrConst("num_pools", num_pools)
+        hp_num_pools = IntegerOrConst("num_pools", num_pools)
         min_num_xstreams = num_xstreams if isinstance(num_xstreams, int) else num_xstreams[0]
         max_num_xstreams = num_xstreams if isinstance(num_xstreams, int) else num_xstreams[1]
-        hp_num_xstreams = _IntegerOrConst("num_xstreams", num_xstreams)
+        hp_num_xstreams = IntegerOrConst("num_xstreams", num_xstreams)
         cs = ConfigurationSpace()
         cs.add(hp_num_pools)
         cs.add(hp_num_xstreams)
@@ -1359,16 +1296,18 @@ class MargoSpec:
         a range to make them random within that range, or None for the range to be
         automatically inferred from the maximum number of pools.
         """
-        from ConfigSpace import (
+        from .config_space import (
                 ConfigurationSpace,
+                CategoricalOrConst,
+                IntegerOrConst,
                 ForbiddenAndConjunction,
                 ForbiddenInClause,
                 ForbiddenEqualsClause)
         min_num_pools = num_pools if isinstance(num_pools, int) else num_pools[0]
         max_num_pools = num_pools if isinstance(num_pools, int) else num_pools[1]
         cs = ConfigurationSpace()
-        cs.add(_IntegerOrConst('handle_cache_size', handle_cache_size))
-        cs.add(_IntegerOrConst('progress_timeout_ub_msec', progress_timeout_ub_msec))
+        cs.add(IntegerOrConst('handle_cache_size', handle_cache_size))
+        cs.add(IntegerOrConst('progress_timeout_ub_msec', progress_timeout_ub_msec))
         argobots_cs = ArgobotsSpec.space(
             num_pools=num_pools, num_xstreams=num_xstreams, **kwargs)
         mercury_cs = MercurySpec.space(**kwargs)
@@ -1382,8 +1321,8 @@ class MargoSpec:
         # Note: rpc_pool and progress_pool are categorical because AI tools should not
         # make the assumption that adding/removing 1 to the value will lead to a smaller
         # change than adding/removing a larger value.
-        hp_rpc_pool = _CategoricalOrConst('rpc_pool', list(range(max_num_pools)), default=0)
-        hp_progress_pool = _CategoricalOrConst('progress_pool', list(range(max_num_pools)), default=0)
+        hp_rpc_pool = CategoricalOrConst('rpc_pool', list(range(max_num_pools)), default=0)
+        hp_progress_pool = CategoricalOrConst('progress_pool', list(range(max_num_pools)), default=0)
         cs.add(hp_rpc_pool)
         cs.add(hp_progress_pool)
         for i in range(min_num_pools, max_num_pools):
@@ -1858,7 +1797,7 @@ class ProviderSpec:
         - dependency_resolver: a function (or callable) taking a Configuration and a prefix
           and returning the provider's "dependencies" field (dict) from the Configuration.
         """
-        from ConfigSpace import ConfigurationSpace, Categorical, Constant
+        from .config_space import ConfigurationSpace, FloatOrConst, Categorical, Constant
         cs = ConfigurationSpace()
         cs.add(Constant('type', type))
         # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
@@ -1880,7 +1819,7 @@ class ProviderSpec:
                 weight = pool_association_weights[i]
             else:
                 weight = pool_association_weights
-            cs.add(_FloatOrConst(f'pool_association_weight[{i}]', weight))
+            cs.add(FloatOrConst(f'pool_association_weight[{i}]', weight))
         return cs
 
     @staticmethod
@@ -1892,7 +1831,7 @@ class ProviderSpec:
         This function must be also given the name and provider Id to give the provider,
         as well as the list of pools of the underlying ProcSpec.
         """
-        from ConfigSpace import Configuration
+        from .config_space import Configuration
         type = config[f'{prefix}type']
         # TODO: once https://github.com/automl/ConfigSpace/issues/381 is fixed,
         # switch to getting the tags from a single constant of type list.
@@ -2265,7 +2204,12 @@ class ProcSpec:
         - "space" is a ConfigurationSpace generated by ProviderSpec.space();
         - "count" is either an int, or a pair (int, int) (if ommitted, will default to 1).
         """
-        from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction, Constant
+        from .config_space import (
+                ConfigurationSpace,
+                GreaterThanCondition,
+                AndConjunction,
+                Constant,
+                IntegerOrConst)
         margo_space = MargoSpec.space(**kwargs)
         families = [f['family'] for f in provider_space_factories]
         if len(set(families)) != len(provider_space_factories):
@@ -2287,7 +2231,7 @@ class ProcSpec:
             provider_cs = provider_group['space']
             count = provider_group.get('count', 1)
             default_count = count if isinstance(count, int) else count[0]
-            hp_num_providers = _IntegerOrConst(f'providers.{family}.count', count, default=default_count)
+            hp_num_providers = IntegerOrConst(f'providers.{family}.count', count, default=default_count)
             cs.add(hp_num_providers)
             conditions_to_add = {}
             for i in range(0, hp_num_providers.upper):
@@ -2431,7 +2375,9 @@ class ServiceSpec:
         - "space" is a ConfigurationSpace generated by ProcSpec.space();
         - "count" is either an int, or a pair (int, int) (if ommitted, will default to 1).
         """
-        from ConfigSpace import ConfigurationSpace, GreaterThanCondition, AndConjunction, Constant
+        from .config_space import (
+                ConfigurationSpace, IntegerOrConst,
+                GreaterThanCondition, AndConjunction, Constant)
         families = [f['family'] for f in process_space_factories]
         if len(set(families)) != len(process_space_factories):
             raise ValueError('Duplicate provider family in provider_space_factories')
@@ -2446,7 +2392,7 @@ class ServiceSpec:
             process_cs = process_group['space']
             count = process_group.get('count', 1)
             default_count = count if isinstance(count, int) else count[0]
-            hp_num_processes = _IntegerOrConst(f'processes.{family}.count', count, default=default_count)
+            hp_num_processes = IntegerOrConst(f'processes.{family}.count', count, default=default_count)
             cs.add(hp_num_processes)
             conditions_to_add = {}
             for i in range(0, hp_num_processes.upper):
