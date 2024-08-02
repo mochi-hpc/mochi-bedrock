@@ -53,7 +53,7 @@ spack:
     nlohmann-json-schema-validator:
       require: "@:2.3.0"
     py-configspace:
-      require: "@1.1.1:"
+      require: "@1.1.4:"
   mirrors:
     mochi-buildcache:
       url: oci://ghcr.io/mochi-hpc/mochi-spack-buildcache
