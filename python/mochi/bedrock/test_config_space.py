@@ -135,7 +135,7 @@ class TestConfigSpace(unittest.TestCase):
             }
         ]
 
-        space = ProcSpec.space(num_pools=(2, max_num_pools), num_xstreams=(2, 5),
+        space = ProcSpec.space(num_pools=(1, max_num_pools), num_xstreams=(2, 5),
                                provider_space_factories=provider_space_factories).freeze()
         #print(space)
         config = space.sample_configuration()
