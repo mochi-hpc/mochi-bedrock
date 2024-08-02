@@ -88,9 +88,17 @@ class ConfigurationSpace:
                                 parent_hyperparameter: dict|None = None):
         if self._frozen:
             raise PermissionError("ConfigurationSpace is already frozen")
+        parent_equals_conditions = {}
+        if parent_hyperparameter is not None:
+            parent_name = parent_hyperparameter['parent'].name
+            parent_value = parent_hyperparameter['value']
+            for child_name in configuration_space:
+                parent_equals_conditions[child_name] = (EqualsCondition, parent_name, parent_value)
+
         self._inner.add_configuration_space(
             prefix=prefix, configuration_space=configuration_space._inner,
-            delimiter=delimiter, parent_hyperparameter=parent_hyperparameter)
+            delimiter=delimiter)
+
         for child_name, cond_list in configuration_space._conditions.items():
             child_name = prefix + delimiter + child_name
             for cond_tuple in cond_list:
@@ -100,6 +108,12 @@ class ConfigurationSpace:
                     self._conditions[child_name] = []
                 self._conditions[child_name].append(
                     (cond_type, parent_name, value))
+
+        for child_name, cond in parent_equals_conditions.items():
+            child_name = prefix + delimiter + child_name
+            if child_name not in self._conditions:
+                self._conditions[child_name] = []
+            self._conditions[child_name].append(cond)
 
     def __getitem__(self, name):
         return self._inner[name]
