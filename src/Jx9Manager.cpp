@@ -76,6 +76,11 @@ std::string Jx9Manager::executeQuery(
         comm_world = json::object();
         comm_world["rank"] = self->m_mpi.globalRank();
         comm_world["size"] = self->m_mpi.globalSize();
+        comm_world["addresses"] = json::array();
+        for(int i = 0; i < self->m_mpi.globalSize(); ++i) {
+            comm_world["addresses"].push_back(
+                self->m_mpi.addressOfRank(i));
+        }
     }
 #endif
     jx9_value* jx9_comm_world = nullptr;

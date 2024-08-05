@@ -50,6 +50,8 @@ const std::string& MPIEnv::addressOfRank(int rank) const {
     if(rank < 0 || rank >= globalSize()) {
         throw Exception{"Requesting address of an invalid rank ({})", rank};
     }
+    static const std::string uninitialized = "<uninitialized>";
+    if(self->m_addresses.empty()) return uninitialized;
     return self->m_addresses[rank];
 }
 
