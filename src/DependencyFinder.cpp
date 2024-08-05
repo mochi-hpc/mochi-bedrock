@@ -156,7 +156,7 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         auto client_name     = match.str(1); // client to use for provider handles
         auto identifier      = match.str(2); // name or type
         auto provider_id_str = match.str(3); // provider id
-        auto locator         = match.str(4); // address or "local"
+        auto locator         = match.str(4); // address or "local" or MPI rank
         if(locator.empty()) locator = "local";
 
         if (provider_id_str.empty()) {
@@ -360,8 +360,9 @@ std::shared_ptr<NamedDependency>
 DependencyFinder::makeProviderHandle(const std::string& client_name,
                                      const std::string& type,
                                      const std::string& name,
-                                     const std::string& locator,
+                                     const std::string& locatorArg,
                                      std::string* resolved) const {
+    auto locator = locatorArg;
     auto        mid    = self->m_margo_context->m_mid;
     auto        client = findClient(type, client_name);
     auto        service_factory = ModuleContext::getServiceFactory(type);
@@ -370,6 +371,18 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
     uint16_t provider_id;
     spdlog::trace("Making provider handle to provider {} of type {} at {}",
                   name, type, locator);
+
+    bool locator_is_number = true;
+    int rank = 0;
+    for(auto c : locator) {
+        if(c >= '0' && c <= '9') {
+            rank = rank*10 + (c - '0');
+            continue;
+        }
+        locator_is_number = false;
+        break;
+    }
+    if(locator_is_number) locator = MPIEnv(self->m_mpi).addressOfRank(rank);
 
     if (locator == "local") {
 
