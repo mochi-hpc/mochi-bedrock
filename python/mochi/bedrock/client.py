@@ -16,7 +16,7 @@ import pybedrock_client
 import pymargo.core
 import pymargo
 import json
-from .spec import ProcSpec, XstreamSpec, PoolSpec, AbtIOSpec, SSGSpec, ProviderSpec, ClientSpec
+from .spec import ProcSpec, XstreamSpec, PoolSpec, ProviderSpec
 
 
 ClientException = pybedrock_client.Exception
@@ -75,18 +75,6 @@ class ServiceHandle:
 
     def remove_xstream(self, name: str):
         self._internal.remove_xstream(name)
-
-    def add_ssg_group(self, description: str|dict|SSGSpec):
-        description = self._ensure_config_str(description)
-        self._internal.add_ssg_group(description)
-
-    def add_abtio_instance(self, description: str|dict|AbtIOSpec):
-        description = self._ensure_config_str(description)
-        self._internal.add_abtio_instance(description)
-
-    def add_client(self, description: str|dict|ClientSpec):
-        description = self._ensure_config_str(description)
-        self._internal.add_client(description)
 
     def add_provider(self, description: str|dict|ProviderSpec):
         description = self._ensure_config_str(description)
@@ -173,16 +161,6 @@ class Client:
         return ServiceGroupHandle(
             self._internal.make_service_group_handle(addresses, provider_id),
             self)
-
-    def make_service_group_handle_from_ssg(self, group: str|int, provider_id: int = 0):
-        if isinstance(group, int):
-            return ServiceGroupHandle(
-                self._internal.make_service_group_handle_from_ssg_group(group, provider_id),
-                self)
-        else:
-            return ServiceGroupHandle(
-                self._internal.make_service_group_handle_from_ssg_file(group, provider_id),
-                self)
 
     def make_service_group_handle_from_flock(self, groupfile: str, provider_id: int = 0):
         return ServiceGroupHandle(

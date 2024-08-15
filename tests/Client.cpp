@@ -106,39 +106,6 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
             REQUIRE_THROWS_AS(req.wait(), bedrock::Exception);
         }
 
-        SECTION("Add and remove ABT-IO instances remotely") {
-            // add ABT-IO instance synchronously
-            constexpr const char* my_abt_io1 = R"(
-            { "name": "my_abt_io1", "pool": "__primary__" }
-            )";
-            serviceHandle.addABTioInstance(my_abt_io1);
-            auto output_config = json::parse(server.getCurrentConfig());
-            auto abt_io = output_config["abt_io"];
-            REQUIRE(std::find_if(abt_io.begin(), abt_io.end(),
-                    [](auto& x) { return x["name"] == "my_abt_io1"; })
-                    != abt_io.end());
-            // add ABT-IO instance asynchronously
-            bedrock::AsyncRequest req;
-            constexpr const char* my_abt_io2 = R"(
-            { "name": "my_abt_io2", "pool": "__primary__", "config": {} }
-            )";
-            serviceHandle.addABTioInstance(my_abt_io2, &req);
-            req.wait();
-            output_config = json::parse(server.getCurrentConfig());
-            abt_io = output_config["abt_io"];
-            REQUIRE(std::find_if(abt_io.begin(), abt_io.end(),
-                    [](auto& x) { return x["name"] == "my_abt_io2"; })
-                    != abt_io.end());
-            // add ABT-IO instance with invalid configuration
-            constexpr const char* my_abt_io3 = R"(
-            { "name": "my_abt_io2", "pool": "1234" }
-            )";
-            REQUIRE_THROWS_AS(
-                serviceHandle.addABTioInstance(my_abt_io3),
-                bedrock::Exception);
-            // TODO: add removal when we have the functionality for it
-        }
-
         SECTION("Load a library") {
             // load libModuleA.so synchronously
             serviceHandle.loadModule("module_a", "./libModuleA.so");

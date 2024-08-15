@@ -5,13 +5,9 @@
  */
 #include <bedrock/Server.hpp>
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/ABTioManager.hpp>
-#include <bedrock/MonaManager.hpp>
 #include <bedrock/ModuleContext.hpp>
 #include <bedrock/ProviderManager.hpp>
-#include <bedrock/ClientManager.hpp>
 #include <bedrock/DependencyFinder.hpp>
-#include <bedrock/SSGManager.hpp>
 #include <bedrock/Jx9Manager.hpp>
 #include <bedrock/Exception.hpp>
 #include "MargoLogging.hpp"
@@ -139,40 +135,12 @@ Server::Server(const std::string& address, const std::string& configString,
 
     try {
 
-        // Initializing SSG context
-        spdlog::trace("Initializing SSGManager");
-        auto& ssgConfig     = config["ssg"];
-        auto ssgMgr         = SSGManager(margoMgr, jx9Manager, ssgConfig);
-        self->m_ssg_manager = ssgMgr;
-        spdlog::trace("SSGManager initialized");
-
-        // Initialize abt-io context
-        spdlog::trace("Initializing ABTioManager");
-        auto& abtioConfig     = config["abt_io"];
-        auto abtioMgr         = ABTioManager(margoMgr, jx9Manager, abtioConfig);
-        self->m_abtio_manager = abtioMgr;
-        spdlog::trace("ABTioManager initialized");
-
-        // Initialize mona manager
-        spdlog::trace("Initializing MonaManager");
-        auto& monaConfig     = config["mona"];
-        auto monaMgr         = MonaManager(margoMgr, jx9Manager, monaConfig, address);
-        self->m_mona_manager = monaMgr;
-        spdlog::trace("MonaManager initialized");
-
         // Initializing the provider manager
         spdlog::trace("Initializing ProviderManager");
         auto providerManager
             = ProviderManager(margoMgr, jx9Manager, bedrock_provider_id, bedrock_pool);
         self->m_provider_manager = providerManager;
         spdlog::trace("ProviderManager initialized");
-
-        // Initializing the client manager
-        spdlog::trace("Initializing ClientManager");
-        auto clientManager
-            = ClientManager(margoMgr, jx9Manager, bedrock_provider_id, bedrock_pool);
-        self->m_client_manager = clientManager;
-        spdlog::trace("ClientManager initialized");
 
         // Initialize the module context
         spdlog::trace("Initialize ModuleContext");
@@ -182,17 +150,10 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");
-        auto dependencyFinder     = DependencyFinder(
-            mpi, margoMgr, abtioMgr, ssgMgr, monaMgr, providerManager, clientManager);
+        auto dependencyFinder     = DependencyFinder(mpi, margoMgr, providerManager);
         self->m_dependency_finder = dependencyFinder;
         self->m_dependency_finder->m_timeout = dependency_timeout;
         spdlog::trace("DependencyFinder initialized");
-
-        // Creating clients
-        spdlog::trace("Initializing clients");
-        clientManager.setDependencyFinder(dependencyFinder);
-        auto& clientManagerConfig = config["clients"];
-        clientManager.addClientListFromJSON(clientManagerConfig);
 
         // Starting up providers
         spdlog::trace("Initializing providers");
@@ -216,23 +177,14 @@ Server::~Server() {
 
 MargoManager Server::getMargoManager() const { return self->m_margo_manager; }
 
-ABTioManager Server::getABTioManager() const { return self->m_abtio_manager; }
-
 ProviderManager Server::getProviderManager() const {
     return self->m_provider_manager;
 }
 
-ClientManager Server::getClientManager() const {
-    return self->m_client_manager;
-}
-
-SSGManager Server::getSSGManager() const { return self->m_ssg_manager; }
-
 void Server::onPreFinalize(void* uargs) {
     spdlog::trace("Calling Server's pre-finalize callback");
     auto server = reinterpret_cast<Server*>(uargs);
-    if(server->self && server->self->m_ssg_manager)
-        server->self->m_ssg_manager->clear();
+    (void)server;
 }
 
 void Server::onFinalize(void* uargs) {

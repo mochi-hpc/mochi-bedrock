@@ -17,11 +17,6 @@ namespace bedrock {
 class Server;
 class ServerImpl;
 class Jx9ManagerImpl;
-class ABTioManager;
-class SSGManager;
-class SSGManagerImpl;
-class MonaManager;
-class ClientManager;
 class ProviderManager;
 
 /**
@@ -31,11 +26,6 @@ class Jx9Manager {
 
     friend class Server;
     friend class ServerImpl;
-    friend class ABTioManager;
-    friend class SSGManager;
-    friend class SSGManagerImpl;
-    friend class MonaManager;
-    friend class ClientManager;
     friend class ProviderManager;
 
   public:

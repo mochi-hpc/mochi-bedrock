@@ -7,12 +7,8 @@
 #define __BEDROCK_SERVER_IMPL_H
 
 #include "MargoManagerImpl.hpp"
-#include "ABTioManagerImpl.hpp"
-#include "MonaManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
-#include "ClientManagerImpl.hpp"
 #include "DependencyFinderImpl.hpp"
-#include "SSGManagerImpl.hpp"
 #include "Jx9ManagerImpl.hpp"
 #include "MPIEnvImpl.hpp"
 #include "bedrock/Jx9Manager.hpp"
@@ -34,10 +30,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
     std::shared_ptr<MPIEnvImpl>           m_mpi;
     std::shared_ptr<Jx9ManagerImpl>       m_jx9_manager;
     std::shared_ptr<MargoManagerImpl>     m_margo_manager;
-    std::shared_ptr<ABTioManagerImpl>     m_abtio_manager;
-    std::shared_ptr<MonaManagerImpl>      m_mona_manager;
-    std::shared_ptr<SSGManagerImpl>       m_ssg_manager;
-    std::shared_ptr<ClientManagerImpl>    m_client_manager;
     std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
     std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
     std::shared_ptr<NamedDependency>      m_pool;
@@ -63,10 +55,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
           define("bedrock_get_config", &ServerImpl::getConfigRPC, m_tl_pool)),
       m_query_config_rpc(
           define("bedrock_query_config", &ServerImpl::queryConfigRPC, m_tl_pool)),
-      m_add_abtio_rpc(
-          define("bedrock_add_abtio", &ServerImpl::addABTioRPC, m_tl_pool)),
-      m_add_ssg_group_rpc(
-          define("bedrock_add_ssg_group", &ServerImpl::addSSGgroupRPC, m_tl_pool)),
       m_add_pool_rpc(
           define("bedrock_add_pool", &ServerImpl::addPoolRPC, m_tl_pool)),
       m_add_xstream_rpc(
@@ -80,8 +68,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
     ~ServerImpl() {
         m_get_config_rpc.deregister();
         m_query_config_rpc.deregister();
-        m_add_abtio_rpc.deregister();
-        m_add_ssg_group_rpc.deregister();
         m_add_pool_rpc.deregister();
         m_add_xstream_rpc.deregister();
         m_remove_pool_rpc.deregister();
@@ -91,11 +77,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
     json makeConfig() const {
         auto config         = json::object();
         config["margo"]     = m_margo_manager->makeConfig();
-        config["abt_io"]    = m_abtio_manager->makeConfig();
-        config["clients"]   = m_client_manager->makeConfig();
         config["providers"] = m_provider_manager->makeConfig();
-        config["ssg"]       = m_ssg_manager->makeConfig();
-        config["mona"]      = m_mona_manager->makeConfig();
         config["libraries"] = json::parse(ModuleContext::getCurrentConfig());
         config["bedrock"]   = json::object();
         config["bedrock"]["pool"] = m_pool->getName();
@@ -118,30 +100,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
                 = Jx9Manager(m_jx9_manager).executeQuery(script, args);
             result.success() = true;
         } catch (const Exception& ex) {
-            result.error()   = ex.what();
-            result.success() = false;
-        }
-        req.respond(result);
-    }
-
-    void addABTioRPC(const tl::request& req, const std::string& description) {
-        RequestResult<bool> result;
-        result.success() = true;
-        try {
-            ABTioManager(m_abtio_manager).addABTioInstanceFromJSON(json::parse(description));
-        } catch (const std::exception& ex) {
-            result.error()   = ex.what();
-            result.success() = false;
-        }
-        req.respond(result);
-    }
-
-    void addSSGgroupRPC(const tl::request& req, const std::string& description) {
-        RequestResult<bool> result;
-        result.success() = true;
-        try {
-            SSGManager(m_ssg_manager).addGroupFromJSON(json::parse(description));
-        } catch (const std::exception& ex) {
             result.error()   = ex.what();
             result.success() = false;
         }

@@ -18,19 +18,11 @@ namespace bedrock {
 
 DependencyFinder::DependencyFinder(const MPIEnv&          mpi,
                                    const MargoManager&    margo,
-                                   const ABTioManager&    abtio,
-                                   const SSGManager&      ssg,
-                                   const MonaManager&     mona,
-                                   const ProviderManager& pmanager,
-                                   const ClientManager&   cmanager)
+                                   const ProviderManager& pmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_mpi              = mpi.self;
     self->m_margo_context    = margo;
-    self->m_abtio_context    = abtio.self;
-    self->m_ssg_context      = ssg.self;
-    self->m_mona_context     = mona.self;
     self->m_provider_manager = pmanager.self;
-    self->m_client_manager   = cmanager.self;
 }
 
 // LCOV_EXCL_START
@@ -73,50 +65,7 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         if (resolved) { *resolved = spec; }
         return xstream;
 
-    } else if (type == "abt_io") { // ABTIO instance
-
-        auto abtio_manager_impl = self->m_abtio_context.lock();
-        if (!abtio_manager_impl) {
-            throw Exception("Could not resolve ABT-IO dependency: no ABTioManager found");
-        }
-        auto abt_io = ABTioManager(abtio_manager_impl).getABTioInstance(spec);
-        if (resolved) { *resolved = spec; }
-        return abt_io;
-
-    } else if (type == "mona") { // MoNA instance
-
-        auto mona_manager_impl = self->m_mona_context.lock();
-        if (!mona_manager_impl) {
-            throw Exception("Could not resolve MoNA dependency: no MonaManager found");
-        }
-        auto mona_id = MonaManager(mona_manager_impl).getMonaInstance(spec);
-        if (!mona_id) {
-            throw Exception("Could not find MoNA instance with name \"{}\"",
-                            spec);
-        }
-        if (resolved) { *resolved = spec; }
-        return mona_id;
-
-    } else if (type == "ssg") { // SSG group
-
-        auto ssg_manager_impl = self->m_ssg_context.lock();
-        if (!ssg_manager_impl) {
-            throw Exception("Could not resolve SSG dependency: no SSGManager found");
-        }
-        auto group = SSGManager(ssg_manager_impl).getGroup(spec);
-        if (!group) {
-            throw Exception("Could not find SSG group with name \"{}\"", spec);
-        }
-        if (resolved) { *resolved = spec; }
-        return group;
-
-    } else if (kind == BEDROCK_KIND_CLIENT) {
-
-        auto client = findClient(type, spec);
-        if (client && resolved) { *resolved = client->getName(); }
-        return client;
-
-    } else if (kind == BEDROCK_KIND_PROVIDER) {
+    } else if (kind == BEDROCK_KIND_PROVIDER) { // Provider
 
         // the spec can be in the form "name" or "type:id"
         std::regex re(
@@ -144,7 +93,6 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
     } else { // Provider handle
 
         std::regex re(
-            "(?:([a-zA-Z_][a-zA-Z0-9_]*)\\->)?" // client name (name->)
             "([a-zA-Z_][a-zA-Z0-9_]*)"          // identifier (name or type)
             "(?::([0-9]+))?"                    // optional provider id
             "(?:@(.+))?");                      // optional locator (@address)
@@ -153,16 +101,14 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
             throw Exception("Ill-formated dependency specification \"{}\"", spec);
         }
 
-        auto client_name     = match.str(1); // client to use for provider handles
-        auto identifier      = match.str(2); // name or type
-        auto provider_id_str = match.str(3); // provider id
-        auto locator         = match.str(4); // address or "local" or MPI rank
+        auto identifier      = match.str(1); // name or type
+        auto provider_id_str = match.str(2); // provider id
+        auto locator         = match.str(3); // address or "local" or MPI rank
         if(locator.empty()) locator = "local";
 
         if (provider_id_str.empty()) {
             // dependency specified as client->name@location
-            return makeProviderHandle(
-                client_name, type, identifier, locator, resolved);
+            return makeProviderHandle(type, identifier, locator, resolved);
 
         } else {
             // dependency specified as client->type:id@location
@@ -172,8 +118,7 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
                         "Invalid provider type in \"{}\" (expected {})",
                         spec, type);
             }
-            return makeProviderHandle(
-                    client_name, type, provider_id, locator, resolved);
+            return makeProviderHandle(type, provider_id, locator, resolved);
         }
     }
     return nullptr;
@@ -216,43 +161,15 @@ DependencyFinder::findProvider(const std::string& type,
 }
 
 std::shared_ptr<NamedDependency>
-DependencyFinder::findClient(
-        const std::string& type,
-        const std::string& name) const {
-    auto client_manager_impl = self->m_client_manager.lock();
-    if (!client_manager_impl) {
-        throw Exception("Could not resolve client dependency: no ClientManager found");
-    }
-    if (!name.empty()) {
-        auto client = ClientManager(client_manager_impl).getClient(name);
-        if (!client) {
-            throw Exception("Could not find client named \"{}\"", name);
-        } else if (type != client->getType()) {
-            throw Exception(
-                "Invalid type {} for dependency \"{}\" (expected {})",
-                client->getType(), name, type);
-        }
-        return client;
-    } else {
-        auto client = ClientManager(client_manager_impl)
-            .getOrCreateAnonymous(type);
-        return client;
-    }
-}
-
-std::shared_ptr<NamedDependency>
-DependencyFinder::makeProviderHandle(const std::string& client_name,
-                                     const std::string& type,
+DependencyFinder::makeProviderHandle(const std::string& type,
                                      uint16_t           provider_id,
                                      const std::string& locatorArg,
                                      std::string* resolved) const {
     auto locator = locatorArg;
     spdlog::trace("Making provider handle of type {} with id {} and locator {}",
                   type, provider_id, locator);
-    auto        mid    = MargoManager(self->m_margo_context).getMargoInstance();
-    auto        client = findClient(type, client_name);
-    auto        service_factory = ModuleContext::getServiceFactory(type);
-    hg_addr_t   addr            = HG_ADDR_NULL;
+    auto engine = MargoManager(self->m_margo_context).getThalliumEngine();
+    thallium::endpoint endpoint;
     bool locator_is_number = true;
     int rank = 0;
     for(auto c : locator) {
@@ -284,88 +201,54 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 "Invalid type {} for provider handle to provider of type {}",
                 type, provider->getType());
         }
-        hg_return_t hret = margo_addr_self(mid, &addr);
-        if (hret != HG_SUCCESS) {
+        try {
+            endpoint = engine.self();
+        } catch(const std::exception& ex) {
             throw Exception(
-                "Failed to get self address (margo_addr_self returned {})",
-                std::to_string(hret));
+                "Failed to get self address (engine.self() exception: {})",
+                ex.what());
         }
 
     } else {
 
-        if (locator.rfind("ssg://", 0) == 0) {
-            auto ssg_manager_impl = self->m_ssg_context.lock();
-            if (!ssg_manager_impl) {
-                throw Exception(
-                    "Could not resolve SSG address: no SSGManager found");
-            }
-            hg_addr_t ssg_addr
-                = SSGManager(ssg_manager_impl).resolveAddress(locator);
-            hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
-                    "Failed to duplicate address returned by "
-                    "SSGManager (margo_addr_dup returned {})",
-                    std::to_string(hret));
-            }
-
-        } else {
-
-            hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
+        try {
+            endpoint = engine.lookup(locator);
+        } catch(const std::exception& ex) {
+            throw Exception(
                     "Failed to lookup address {} "
-                    "(margo_addr_lookup returned {})",
-                    locator, std::to_string(hret));
-            }
+                    "(engine.lookup() exception: {})",
+                    locator, ex.what());
         }
 
         ProviderDescriptor descriptor;
-        try {
-            auto spec = type + ":" + std::to_string(provider_id);
-            auto provider_manager_impl = self->m_provider_manager.lock();
-            if (!provider_manager_impl) {
-                throw Exception("Could not lookup provider: no ProviderManager found");
-            }
-            auto pid  = provider_manager_impl->get_provider_id();
-            self->lookupRemoteProvider(addr, pid, spec, &descriptor);
-        } catch (...) {
-            margo_addr_free(mid, addr);
-            throw;
+        auto spec = type + ":" + std::to_string(provider_id);
+        auto provider_manager_impl = self->m_provider_manager.lock();
+        if (!provider_manager_impl) {
+            throw Exception("Could not lookup provider: no ProviderManager found");
         }
+        auto pid  = provider_manager_impl->get_provider_id();
+        self->lookupRemoteProvider(endpoint.get_addr(), pid, spec, &descriptor);
     }
 
-    std::string name;
-    char        addr_str[256];
-    hg_size_t   addr_str_size = 256;
-    margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
-    name = client->getName() + "->" + type + ":"
-         + std::to_string(provider_id) + "@" + addr_str;
+    auto name = type + ":" + std::to_string(provider_id) + "@" + static_cast<std::string>(endpoint);
 
     if (resolved) *resolved = name;
 
-    void* ph = service_factory->createProviderHandle(
-        client->getHandle<void*>(), addr, provider_id);
+    void* ph = new ProviderHandle{endpoint, provider_id};
 
-    margo_addr_free(mid, addr);
-    return std::make_shared<NamedDependency>(
-        std::to_string(provider_id) + "@" + addr_str,
-        client->getType(), ph,
-        [service_factory](void* ph) {
-        service_factory->destroyProviderHandle(ph);
-    });
+    return std::make_shared<NamedDependency>(name, type, ph,
+        [](void* ph) { delete static_cast<ProviderHandle*>(ph); }
+    );
 }
 
 std::shared_ptr<NamedDependency>
-DependencyFinder::makeProviderHandle(const std::string& client_name,
-                                     const std::string& type,
+DependencyFinder::makeProviderHandle(const std::string& type,
                                      const std::string& name,
                                      const std::string& locatorArg,
                                      std::string* resolved) const {
     auto locator = locatorArg;
-    auto        mid    = self->m_margo_context->m_mid;
-    auto        client = findClient(type, client_name);
-    auto        service_factory = ModuleContext::getServiceFactory(type);
+    auto engine = MargoManager(self->m_margo_context).getThalliumEngine();
+    thallium::endpoint endpoint;
     hg_addr_t   addr            = HG_ADDR_NULL;
     ProviderDescriptor descriptor;
     uint16_t provider_id;
@@ -399,11 +282,12 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
                 "Invalid type {} for provider handle to provider of type {}",
                 type, provider->getType());
         }
-        hg_return_t hret = margo_addr_self(mid, &addr);
-        if (hret != HG_SUCCESS) {
+        try {
+            endpoint = engine.self();
+        } catch(const std::exception& ex) {
             throw Exception(
-                "Failed to get self address (margo_addr_self returned {})",
-                std::to_string(hret));
+                "Failed to get self address (engine.self() exception: {})",
+                ex.what());
         }
         descriptor = ProviderDescriptor{
             provider->getName(),
@@ -414,65 +298,33 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
 
     } else {
 
-        if (locator.rfind("ssg://", 0) == 0) {
-            auto ssg_manager_impl = self->m_ssg_context.lock();
-            if (!ssg_manager_impl) {
-                throw Exception("Could not resolve SSG address: no SSGManager found");
-            }
-            hg_addr_t ssg_addr
-                = SSGManager(ssg_manager_impl).resolveAddress(locator);
-            hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
-                    "Failed to duplicate address returned by "
-                    "SSGManager (margo_addr_dup returned {})",
-                    std::to_string(hret));
-            }
-
-        } else {
-
-            hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
-                    "Failed to lookup address {} "
-                    "(margo_addr_lookup returned {})",
-                    locator, std::to_string(hret));
-            }
-        }
-
         try {
-            auto provider_manager_impl = self->m_provider_manager.lock();
-            if (!provider_manager_impl) {
-                throw Exception("Could not get provider id: no ProviderManager found");
-            }
-            auto pid = provider_manager_impl->get_provider_id();
-            self->lookupRemoteProvider(addr, pid, name, &descriptor);
-        } catch (...) {
-            margo_addr_free(mid, addr);
-            throw;
+            endpoint = engine.lookup(locator);
+        } catch(const std::exception& ex) {
+            throw Exception(
+                    "Failed to lookup address {} "
+                    "(engine.lookup() exception: {})",
+                    locator, ex.what());
         }
+
+        auto provider_manager_impl = self->m_provider_manager.lock();
+        if (!provider_manager_impl) {
+            throw Exception("Could not get provider id: no ProviderManager found");
+        }
+        auto pid = provider_manager_impl->get_provider_id();
+        self->lookupRemoteProvider(addr, pid, name, &descriptor);
         provider_id = descriptor.provider_id;
     }
 
-    std::string ph_name;
-    char        addr_str[256];
-    hg_size_t   addr_str_size = 256;
-    margo_addr_to_string(mid, addr_str, &addr_str_size, addr);
-    ph_name = client->getName() + "->" + type + ":"
-            + std::to_string(provider_id) + "@" + addr_str;
+    auto ph_name = type + ":" + std::to_string(provider_id) + "@" + static_cast<std::string>(endpoint);
 
     if (resolved) *resolved = ph_name;
 
-    void* ph = service_factory->createProviderHandle(
-        client->getHandle<void*>(), addr, descriptor.provider_id);
+    void* ph = new ProviderHandle{endpoint, provider_id};
 
-    margo_addr_free(mid, addr);
-    return std::make_shared<NamedDependency>(
-        std::to_string(provider_id) + "@" + addr_str,
-        client->getType(), ph,
-        [service_factory](void* ph) {
-        service_factory->destroyProviderHandle(ph);
-    });
+    return std::make_shared<NamedDependency>(ph_name, type, ph,
+        [](void* ph) { delete static_cast<ProviderHandle*>(ph); }
+    );
 }
 
 } // namespace bedrock

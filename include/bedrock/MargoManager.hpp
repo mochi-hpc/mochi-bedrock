@@ -16,15 +16,8 @@ namespace tl = thallium;
 
 class Server;
 class ProviderManager;
-class ClientManager;
 class DependencyFinder;
 class MargoManagerImpl;
-class SSGManager;
-class SSGData;
-class ABTioManager;
-class ABTioEntry;
-class MonaManager;
-class MonaEntry;
 class ProviderEntry;
 class ServerImpl;
 
@@ -35,14 +28,7 @@ class MargoManager {
 
     friend class Server;
     friend class ProviderManager;
-    friend class ClientManager;
     friend class DependencyFinder;
-    friend class SSGManager;
-    friend class SSGEntry;
-    friend class MonaEntry;
-    friend class MonaManager;
-    friend class ABTioEntry;
-    friend class ABTioManager;
     friend class ProviderEntry;
     friend class ServerImpl;
 

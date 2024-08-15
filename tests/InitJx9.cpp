@@ -9,13 +9,6 @@ using json = nlohmann::json;
 static void cleanupOutputConfig(json& config) {
     config["margo"].erase("mercury");
     config["margo"].erase("version");
-    for(auto& instance : config["abt_io"]) {
-        instance["config"].erase("version");
-    }
-    for(auto& instance : config["mona"]) {
-        if(instance.contains("address"))
-            instance["address"] = "<replaced>";
-    }
 }
 
 static std::string jsonToJx9(const json& config) {

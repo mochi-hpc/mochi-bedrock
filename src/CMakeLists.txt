@@ -1,12 +1,8 @@
 # set source files
 set (server-src-files
      Server.cpp
-     ABTioManager.cpp
      MargoManager.cpp
-     MonaManager.cpp
-     SSGManager.cpp
      ProviderManager.cpp
-     ClientManager.cpp
      DependencyFinder.cpp
      MargoLogging.cpp
      Jx9Manager.cpp
