@@ -55,7 +55,7 @@ Server::Server(const std::string& address, const std::string& configString,
             try {
                 config = json::parse(configStr);
             } catch(const std::exception& ex) {
-                throw Exception(ex.what());
+                throw Exception("{}", ex.what());
             }
         } else {
             config = json::object();
@@ -68,7 +68,7 @@ Server::Server(const std::string& address, const std::string& configString,
         try {
             tomlConfig = toml::parse_str(configStr);
         } catch(const std::exception& ex) {
-            throw Exception{ex.what()};
+            throw Exception{"{}", ex.what()};
         }
         config = Toml2Json(tomlConfig);
     }
