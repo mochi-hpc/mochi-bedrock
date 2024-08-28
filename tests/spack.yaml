@@ -41,9 +41,9 @@ spack:
     mpi:
       require: [ mpich ]
     mochi-margo:
-      require: "@0.15.0:"
+      require: "@0.18.1:"
     mochi-thallium:
-      require: "@0.12.0:"
+      require: "@0.14.3:"
     mochi-flock:
       require: "@0.3.0:"
     toml11:
