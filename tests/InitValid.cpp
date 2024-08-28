@@ -39,14 +39,17 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
             auto input_config = jf[i]["input"].dump();
             auto expected_config = jf[i]["output"];
             try {
-                bedrock::Server server("na+sm", input_config);
-                auto engine = server.getMargoManager().getThalliumEngine();
                 SECTION("Get configuration directly from Server object") {
+                    bedrock::Server server("na+sm", input_config);
+                    auto engine = server.getMargoManager().getThalliumEngine();
                     auto output_config = json::parse(server.getCurrentConfig());
                     cleanupOutputConfig(output_config);
                     REQUIRE(output_config == expected_config);
+                    server.finalize();
                 }
                 SECTION("Get configuration synchronously using a Client") {
+                    bedrock::Server server("na+sm", input_config);
+                    auto engine = server.getMargoManager().getThalliumEngine();
                     bedrock::Client client(engine);
                     auto service_handle = client.makeServiceHandle(engine.self(), 0);
                     std::string output_config_str;
@@ -54,8 +57,11 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
                     auto output_config = json::parse(output_config_str);
                     cleanupOutputConfig(output_config);
                     REQUIRE(output_config == expected_config);
+                    server.finalize();
                 }
                 SECTION("Get configuration asynchronously using a Client") {
+                    bedrock::Server server("na+sm", input_config);
+                    auto engine = server.getMargoManager().getThalliumEngine();
                     bedrock::Client client(engine);
                     auto service_handle = client.makeServiceHandle(engine.self(), 0);
                     std::string output_config_str;
@@ -65,6 +71,7 @@ TEST_CASE("Tests Server initialization", "[init-json]") {
                     auto output_config = json::parse(output_config_str);
                     cleanupOutputConfig(output_config);
                     REQUIRE(output_config == expected_config);
+                    server.finalize();
                 }
             } catch(bedrock::Exception& ex) {
                 INFO("Details: " << ex.details());

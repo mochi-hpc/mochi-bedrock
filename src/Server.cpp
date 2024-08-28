@@ -210,9 +210,7 @@ Server::Server(const std::string& address, const std::string& configString,
                  static_cast<std::string>(margoMgr.getThalliumEngine().self()));
 }
 
-Server::~Server() {
-    if(self) finalize();
-}
+Server::~Server() {}
 
 MargoManager Server::getMargoManager() const { return self->m_margo_manager; }
 
@@ -237,8 +235,6 @@ void Server::onPreFinalize(void* uargs) {
 
 void Server::onFinalize(void* uargs) {
     spdlog::trace("Calling Server's finalize callback");
-    auto server = reinterpret_cast<Server*>(uargs);
-    server->self.reset();
 }
 
 std::string Server::getCurrentConfig() const {

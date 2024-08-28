@@ -50,6 +50,7 @@ TEST_CASE("Tests Server initialization with JX9", "[init-jx9]") {
                 auto output_config = json::parse(server.getCurrentConfig());
                 cleanupOutputConfig(output_config);
                 REQUIRE(output_config == expected_config);
+                server.finalize();
             } catch(bedrock::Exception& ex) {
                 INFO("Details: " << ex.details());
                 throw;
@@ -63,5 +64,6 @@ TEST_CASE("Tests Server initialization with JX9", "[init-jx9]") {
               bedrock::Server("na+sm", input_jx9, bedrock::ConfigType::JX9),
               bedrock::Exception,
               Catch::Matchers::Message("Jx9 script failed to compile: 1 Error: '&': Missing operand"));
+
     }
 }
