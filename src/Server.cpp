@@ -229,8 +229,12 @@ SSGManager Server::getSSGManager() const { return self->m_ssg_manager; }
 void Server::onPreFinalize(void* uargs) {
     spdlog::trace("Calling Server's pre-finalize callback");
     auto server = reinterpret_cast<Server*>(uargs);
-    if(server->self && server->self->m_ssg_manager)
-        server->self->m_ssg_manager->clear();
+    if(server->self) {
+        if(server->self->m_ssg_manager)
+            server->self->m_ssg_manager->clear();
+        if(server->self->m_provider_manager)
+            server->self->m_provider_manager.reset();
+    }
 }
 
 void Server::onFinalize(void* uargs) {
