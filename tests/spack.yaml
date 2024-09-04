@@ -12,7 +12,6 @@ spack:
   - mochi-thallium
   - mochi-bedrock-module-api
   - mochi-abt-io
-  - mochi-mona
   - mochi-flock
   - nlohmann-json
   - nlohmann-json-schema-validator

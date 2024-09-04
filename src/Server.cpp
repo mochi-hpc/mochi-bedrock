@@ -6,7 +6,6 @@
 #include <bedrock/Server.hpp>
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/ABTioManager.hpp>
-#include <bedrock/MonaManager.hpp>
 #include <bedrock/ModuleContext.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
@@ -145,13 +144,6 @@ Server::Server(const std::string& address, const std::string& configString,
         self->m_abtio_manager = abtioMgr;
         spdlog::trace("ABTioManager initialized");
 
-        // Initialize mona manager
-        spdlog::trace("Initializing MonaManager");
-        auto& monaConfig     = config["mona"];
-        auto monaMgr         = MonaManager(margoMgr, jx9Manager, monaConfig, address);
-        self->m_mona_manager = monaMgr;
-        spdlog::trace("MonaManager initialized");
-
         // Initializing the provider manager
         spdlog::trace("Initializing ProviderManager");
         auto providerManager
@@ -175,7 +167,7 @@ Server::Server(const std::string& address, const std::string& configString,
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");
         auto dependencyFinder     = DependencyFinder(
-            mpi, margoMgr, abtioMgr, monaMgr, providerManager, clientManager);
+            mpi, margoMgr, abtioMgr, providerManager, clientManager);
         self->m_dependency_finder = dependencyFinder;
         self->m_dependency_finder->m_timeout = dependency_timeout;
         spdlog::trace("DependencyFinder initialized");

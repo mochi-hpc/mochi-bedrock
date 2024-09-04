@@ -20,7 +20,6 @@ class Jx9ManagerImpl;
 class ABTioManager;
 class SSGManager;
 class SSGManagerImpl;
-class MonaManager;
 class ClientManager;
 class ProviderManager;
 
@@ -34,7 +33,6 @@ class Jx9Manager {
     friend class ABTioManager;
     friend class SSGManager;
     friend class SSGManagerImpl;
-    friend class MonaManager;
     friend class ClientManager;
     friend class ProviderManager;
 

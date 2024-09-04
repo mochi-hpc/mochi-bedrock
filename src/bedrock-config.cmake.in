@@ -22,9 +22,6 @@ endif()
 if(@ENABLE_ABT_IO@)
   pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
 endif()
-if(@ENABLE_MONA@)
-  pkg_check_modules (MONA REQUIRED IMPORTED_TARGET mona)
-endif()
 
 check_required_components(bedrock)
 

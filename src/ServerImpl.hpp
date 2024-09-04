@@ -8,7 +8,6 @@
 
 #include "MargoManagerImpl.hpp"
 #include "ABTioManagerImpl.hpp"
-#include "MonaManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
 #include "ClientManagerImpl.hpp"
 #include "DependencyFinderImpl.hpp"
@@ -34,7 +33,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
     std::shared_ptr<Jx9ManagerImpl>       m_jx9_manager;
     std::shared_ptr<MargoManagerImpl>     m_margo_manager;
     std::shared_ptr<ABTioManagerImpl>     m_abtio_manager;
-    std::shared_ptr<MonaManagerImpl>      m_mona_manager;
     std::shared_ptr<ClientManagerImpl>    m_client_manager;
     std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
     std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
@@ -88,7 +86,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
         config["abt_io"]    = m_abtio_manager->makeConfig();
         config["clients"]   = m_client_manager->makeConfig();
         config["providers"] = m_provider_manager->makeConfig();
-        config["mona"]      = m_mona_manager->makeConfig();
         config["libraries"] = json::parse(ModuleContext::getCurrentConfig());
         config["bedrock"]   = json::object();
         config["bedrock"]["pool"] = m_pool->getName();

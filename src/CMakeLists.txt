@@ -3,7 +3,6 @@ set (server-src-files
      Server.cpp
      ABTioManager.cpp
      MargoManager.cpp
-     MonaManager.cpp
      ProviderManager.cpp
      ClientManager.cpp
      DependencyFinder.cpp
@@ -46,7 +45,6 @@ target_link_libraries (bedrock-server
     spdlog::spdlog
     fmt::fmt
     ${OPTIONAL_ABT_IO}
-    ${OPTIONAL_MONA}
     ${OPTIONAL_MPI})
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC

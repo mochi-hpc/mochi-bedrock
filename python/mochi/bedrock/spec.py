@@ -1448,75 +1448,6 @@ class AbtIOSpec:
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class MonaSpec:
-    """MoNA instance specification.
-
-    :param name: Name of the MoNA instance
-    :type name: str
-
-    :param pool: Pool associated with the instance
-    :type pool: PoolSpec
-
-    :param config: Configuration
-    :type config: dict
-    """
-
-    name: str = attr.ib(
-        validator=[instance_of(str), _validate_object_name],
-        on_setattr=attr.setters.frozen)
-    pool: PoolSpec = attr.ib(validator=instance_of(PoolSpec))
-    config: dict = attr.ib(validator=instance_of(dict),
-                           factory=dict)
-
-    def to_dict(self) -> dict:
-        """Convert the MonaSpec into a dictionary.
-        """
-        return {'name': self.name,
-                'pool': self.pool.name,
-                'config': self.config}
-
-    @staticmethod
-    def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'MonaSpec':
-        """Construct a MonaSpec from a dictionary. Since the dictionary
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
-
-        :param data: Dictionary
-        :type data: dict
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
-        """
-        name = data['name']
-        if 'config' in data:
-            config = data['config']
-        else:
-            config = {}
-        pool = abt_spec.pools[data['pool']]
-        mona = MonaSpec(name=name, pool=pool, config=config)
-        return mona
-
-    def to_json(self, *args, **kwargs) -> str:
-        """Convert the MonaSpec into a JSON string.
-        """
-        return json.dumps(self.to_dict(), *args, **kwargs)
-
-    @staticmethod
-    def from_json(json_string: str,  abt_spec: ArgobotsSpec) -> 'MonaSpec':
-        """Construct an MonaSpec from a JSON string. Since the JSON string
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
-
-        :param json_string: JSON string
-        :type json_string: str
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
-        """
-        return MonaSpec.from_dict(json.loads(json_string), abt_spec)
-
-
-@attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
 class ProviderSpec:
     """Provider specification.
 
@@ -1831,9 +1762,6 @@ class ProcSpec:
     :param abt_io: List of AbtIOSpec
     :type abt_io: list
 
-    :param mona: List of MonaSpec
-    :type mona: list
-
     :param libraries: Dictionary of libraries
     :type libraries: dict
 
@@ -1848,9 +1776,6 @@ class ProcSpec:
         validator=instance_of(MargoSpec),
         converter=_margo_from_args)
     _abt_io: List[AbtIOSpec] = attr.ib(
-        factory=list,
-        validator=instance_of(list))
-    _mona: List[MonaSpec] = attr.ib(
         factory=list,
         validator=instance_of(list))
     libraries: dict = attr.ib(
@@ -1875,13 +1800,6 @@ class ProcSpec:
         return SpecListDecorator(list=self._abt_io, type=AbtIOSpec)
 
     @property
-    def mona(self) -> SpecListDecorator:
-        """Return a decorator to access the internal list of MonaSpec
-        and validate changes to this list.
-        """
-        return SpecListDecorator(list=self._mona, type=MonaSpec)
-
-    @property
     def providers(self) -> SpecListDecorator:
         """Return a decorator to access the internal list of ProviderSpec
         and validate changes to this list.
@@ -1900,7 +1818,6 @@ class ProcSpec:
         """
         data = {'margo': self.margo.to_dict(),
                 'abt_io': [a.to_dict() for a in self._abt_io],
-                'mona': [m.to_dict() for m in self._mona],
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
                 'clients': [c.to_dict() for c in self._clients],
@@ -1913,7 +1830,6 @@ class ProcSpec:
         """
         margo = MargoSpec.from_dict(data['margo'])
         abt_io = []
-        mona = []
         libraries = dict()
         providers = []
         bedrock = {}
@@ -1923,9 +1839,6 @@ class ProcSpec:
         if 'abt_io' in data:
             for a in data['abt_io']:
                 abt_io.append(AbtIOSpec.from_dict(a, margo.argobots))
-        if 'mona' in data:
-            for m in data['mona']:
-                mona.append(MonaSpec.from_dict(m, margo.argobots))
         if 'providers' in data:
             for p in data['providers']:
                 providers.append(ProviderSpec.from_dict(p,  margo.argobots))
@@ -1936,7 +1849,6 @@ class ProcSpec:
             bedrock = BedrockSpec.from_dict(data['bedrock'], margo.argobots)
         return ProcSpec(margo=margo,
                         abt_io=abt_io,
-                        mona=mona,
                         libraries=libraries,
                         providers=providers,
                         clients=clients,
@@ -1961,11 +1873,6 @@ class ProcSpec:
             p = a.pool
             if p not in self.margo.argobots.pools:
                 raise ValueError(f'Pool "{p.name}" used by ABT-IO instance' +
-                                 ' not found in margo.argobots.pools')
-        for m in self._mona:
-            p = m.pool
-            if p not in self.margo.argobots.pools:
-                raise ValueError(f'Pool "{p.name}" used by MoNA instance' +
                                  ' not found in margo.argobots.pools')
         for k, v in self.libraries.items():
             if not isinstance(k, str):

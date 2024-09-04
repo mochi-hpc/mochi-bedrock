@@ -24,9 +24,6 @@ app.add_typer(client_app, name="client", help="Access and modify clients")
 from .abt_io import app as abt_io_app
 app.add_typer(abt_io_app, name="abtio", help="Access and modify ABT-IO instances")
 
-from .mona import app as mona_app
-app.add_typer(mona_app, name="mona", help="Access and modify MoNA instances")
-
 
 @app.command()
 def status():

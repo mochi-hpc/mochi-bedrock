@@ -45,7 +45,6 @@ class DependencyFinder {
     DependencyFinder(const MPIEnv& mpi,
                      const MargoManager& margo,
                      const ABTioManager& abtio,
-                     const MonaManager& mona,
                      const ProviderManager& pmanager,
                      const ClientManager& cmanager);
 

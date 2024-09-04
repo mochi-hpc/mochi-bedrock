@@ -19,14 +19,12 @@ namespace bedrock {
 DependencyFinder::DependencyFinder(const MPIEnv&          mpi,
                                    const MargoManager&    margo,
                                    const ABTioManager&    abtio,
-                                   const MonaManager&     mona,
                                    const ProviderManager& pmanager,
                                    const ClientManager&   cmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_mpi              = mpi.self;
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio.self;
-    self->m_mona_context     = mona.self;
     self->m_provider_manager = pmanager.self;
     self->m_client_manager   = cmanager.self;
 }
@@ -80,20 +78,6 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         auto abt_io = ABTioManager(abtio_manager_impl).getABTioInstance(spec);
         if (resolved) { *resolved = spec; }
         return abt_io;
-
-    } else if (type == "mona") { // MoNA instance
-
-        auto mona_manager_impl = self->m_mona_context.lock();
-        if (!mona_manager_impl) {
-            throw Exception("Could not resolve MoNA dependency: no MonaManager found");
-        }
-        auto mona_id = MonaManager(mona_manager_impl).getMonaInstance(spec);
-        if (!mona_id) {
-            throw Exception("Could not find MoNA instance with name \"{}\"",
-                            spec);
-        }
-        if (resolved) { *resolved = spec; }
-        return mona_id;
 
     } else if (kind == BEDROCK_KIND_CLIENT) {
 

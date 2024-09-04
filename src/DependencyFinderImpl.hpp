@@ -8,7 +8,6 @@
 
 #include "MargoManagerImpl.hpp"
 #include "ABTioManagerImpl.hpp"
-#include "MonaManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
 #include "ClientManagerImpl.hpp"
 #include "Formatting.hpp"
@@ -33,7 +32,6 @@ class DependencyFinderImpl {
     std::shared_ptr<MPIEnvImpl>        m_mpi;
     std::shared_ptr<MargoManagerImpl>  m_margo_context;
     std::weak_ptr<ABTioManagerImpl>    m_abtio_context;
-    std::weak_ptr<MonaManagerImpl>     m_mona_context;
     std::weak_ptr<ProviderManagerImpl> m_provider_manager;
     std::weak_ptr<ClientManagerImpl>   m_client_manager;
     double                             m_timeout = 30.0;
