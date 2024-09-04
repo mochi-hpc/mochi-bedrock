@@ -12,7 +12,6 @@ spack:
   - mochi-thallium
   - mochi-bedrock-module-api
   - mochi-abt-io
-  - mochi-ssg+mpi
   - mochi-mona
   - mochi-flock
   - nlohmann-json
@@ -28,7 +27,6 @@ spack:
   - py-coverage
   - py-typer
   - py-rich
-  - py-mochi-ssg
   - py-configspace
   concretizer:
     unify: true
