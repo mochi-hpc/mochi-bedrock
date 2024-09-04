@@ -11,7 +11,6 @@
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
 #include <bedrock/DependencyFinder.hpp>
-#include <bedrock/SSGManager.hpp>
 #include <bedrock/Jx9Manager.hpp>
 #include <bedrock/Exception.hpp>
 #include "MargoLogging.hpp"
@@ -139,13 +138,6 @@ Server::Server(const std::string& address, const std::string& configString,
 
     try {
 
-        // Initializing SSG context
-        spdlog::trace("Initializing SSGManager");
-        auto& ssgConfig     = config["ssg"];
-        auto ssgMgr         = SSGManager(margoMgr, jx9Manager, ssgConfig);
-        self->m_ssg_manager = ssgMgr;
-        spdlog::trace("SSGManager initialized");
-
         // Initialize abt-io context
         spdlog::trace("Initializing ABTioManager");
         auto& abtioConfig     = config["abt_io"];
@@ -183,7 +175,7 @@ Server::Server(const std::string& address, const std::string& configString,
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");
         auto dependencyFinder     = DependencyFinder(
-            mpi, margoMgr, abtioMgr, ssgMgr, monaMgr, providerManager, clientManager);
+            mpi, margoMgr, abtioMgr, monaMgr, providerManager, clientManager);
         self->m_dependency_finder = dependencyFinder;
         self->m_dependency_finder->m_timeout = dependency_timeout;
         spdlog::trace("DependencyFinder initialized");
@@ -224,14 +216,10 @@ ClientManager Server::getClientManager() const {
     return self->m_client_manager;
 }
 
-SSGManager Server::getSSGManager() const { return self->m_ssg_manager; }
-
 void Server::onPreFinalize(void* uargs) {
     spdlog::trace("Calling Server's pre-finalize callback");
     auto server = reinterpret_cast<Server*>(uargs);
     if(server->self) {
-        if(server->self->m_ssg_manager)
-            server->self->m_ssg_manager->clear();
         if(server->self->m_provider_manager)
             server->self->m_provider_manager.reset();
     }

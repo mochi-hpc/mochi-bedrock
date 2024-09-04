@@ -52,7 +52,7 @@ class TestServiceHandle(unittest.TestCase):
     def test_config(self):
         config = self.sh.config
         self.assertIsInstance(config, dict)
-        for k in ["margo", "providers", "clients", "ssg", "abt_io", "bedrock"]:
+        for k in ["margo", "providers", "clients", "abt_io", "bedrock"]:
             self.assertIn(k, config)
 
     def test_spec(self):
@@ -179,43 +179,6 @@ class TestServiceHandle(unittest.TestCase):
         self.assertEqual(len(self.server.margo.xstreams), initial_num_xstreams - 1)
         with self.assertRaises(mbc.ClientException):
             self.server.margo.xstreams["my_xstream"]
-
-    def test_add_ssg_group_from_dict(self):
-        group_config = {
-            "name": "my_group",
-            "pool": "__primary__",
-            "bootstrap": "init",
-            "swim": {
-                "disabled": True
-            }
-        }
-        self.sh.add_ssg_group(group_config)
-        group = self.server.ssg["my_group"]
-        self.assertIsInstance(group, mbs.SSGGroup)
-
-    def test_add_ssg_group_from_str(self):
-        group_config = {
-            "name": "my_group",
-            "pool": "__primary__",
-            "bootstrap": "init",
-            "swim": {
-                "disabled": True
-            }
-        }
-        self.sh.add_ssg_group(json.dumps(group_config))
-        group = self.server.ssg["my_group"]
-        self.assertIsInstance(group, mbs.SSGGroup)
-
-    def test_add_ssg_group_from_spec(self):
-        group_config = spec.SSGSpec(
-            name="my_group",
-            pool=spec.PoolSpec(name="__primary__", kind="fifo_wait", access="mpmc"),
-            bootstrap="init",
-            swim=spec.SwimSpec(disabled=True)
-        )
-        self.sh.add_ssg_group(group_config)
-        group = self.server.ssg["my_group"]
-        self.assertIsInstance(group, mbs.SSGGroup)
 
     def test_add_abtio_instance_from_dict(self):
         abtio_config = {

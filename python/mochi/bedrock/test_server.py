@@ -36,7 +36,7 @@ class TestServer(unittest.TestCase):
         server = mbs.Server(address="na+sm")
         config = server.config
         self.assertIsInstance(config, dict)
-        for expected_key in ["margo", "abt_io", "ssg", "bedrock", "providers", "clients", "libraries", "mona"]:
+        for expected_key in ["margo", "abt_io", "bedrock", "providers", "clients", "libraries", "mona"]:
             self.assertIn(expected_key, config)
         server.finalize()
 

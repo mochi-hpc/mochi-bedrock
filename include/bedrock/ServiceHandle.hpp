@@ -181,17 +181,6 @@ class ServiceHandle {
                           AsyncRequest*      req = nullptr) const;
 
     /**
-     * @brief Adds an SSG group to the target service daemon.
-     * The group is created from the provided JSON configuration.
-     *
-     * @param description JSON description.
-     * @param req Asynchronous request to wait on, if provided.
-     */
-    void addSSGgroup(const std::string& config,
-                     AsyncRequest*      req = nullptr) const;
-
-
-    /**
      * @brief Adds an Argobots pool to the Margo instance of
      * the target service.
      *

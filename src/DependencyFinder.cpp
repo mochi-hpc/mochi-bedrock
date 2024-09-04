@@ -19,7 +19,6 @@ namespace bedrock {
 DependencyFinder::DependencyFinder(const MPIEnv&          mpi,
                                    const MargoManager&    margo,
                                    const ABTioManager&    abtio,
-                                   const SSGManager&      ssg,
                                    const MonaManager&     mona,
                                    const ProviderManager& pmanager,
                                    const ClientManager&   cmanager)
@@ -27,7 +26,6 @@ DependencyFinder::DependencyFinder(const MPIEnv&          mpi,
     self->m_mpi              = mpi.self;
     self->m_margo_context    = margo;
     self->m_abtio_context    = abtio.self;
-    self->m_ssg_context      = ssg.self;
     self->m_mona_context     = mona.self;
     self->m_provider_manager = pmanager.self;
     self->m_client_manager   = cmanager.self;
@@ -96,19 +94,6 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         }
         if (resolved) { *resolved = spec; }
         return mona_id;
-
-    } else if (type == "ssg") { // SSG group
-
-        auto ssg_manager_impl = self->m_ssg_context.lock();
-        if (!ssg_manager_impl) {
-            throw Exception("Could not resolve SSG dependency: no SSGManager found");
-        }
-        auto group = SSGManager(ssg_manager_impl).getGroup(spec);
-        if (!group) {
-            throw Exception("Could not find SSG group with name \"{}\"", spec);
-        }
-        if (resolved) { *resolved = spec; }
-        return group;
 
     } else if (kind == BEDROCK_KIND_CLIENT) {
 
@@ -293,31 +278,12 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
 
     } else {
 
-        if (locator.rfind("ssg://", 0) == 0) {
-            auto ssg_manager_impl = self->m_ssg_context.lock();
-            if (!ssg_manager_impl) {
-                throw Exception(
-                    "Could not resolve SSG address: no SSGManager found");
-            }
-            hg_addr_t ssg_addr
-                = SSGManager(ssg_manager_impl).resolveAddress(locator);
-            hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
-                    "Failed to duplicate address returned by "
-                    "SSGManager (margo_addr_dup returned {})",
-                    std::to_string(hret));
-            }
-
-        } else {
-
-            hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
+        hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
+        if (hret != HG_SUCCESS) {
+            throw Exception(
                     "Failed to lookup address {} "
                     "(margo_addr_lookup returned {})",
                     locator, std::to_string(hret));
-            }
         }
 
         ProviderDescriptor descriptor;
@@ -414,30 +380,12 @@ DependencyFinder::makeProviderHandle(const std::string& client_name,
 
     } else {
 
-        if (locator.rfind("ssg://", 0) == 0) {
-            auto ssg_manager_impl = self->m_ssg_context.lock();
-            if (!ssg_manager_impl) {
-                throw Exception("Could not resolve SSG address: no SSGManager found");
-            }
-            hg_addr_t ssg_addr
-                = SSGManager(ssg_manager_impl).resolveAddress(locator);
-            hg_return_t hret = margo_addr_dup(mid, ssg_addr, &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
-                    "Failed to duplicate address returned by "
-                    "SSGManager (margo_addr_dup returned {})",
-                    std::to_string(hret));
-            }
-
-        } else {
-
-            hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
-            if (hret != HG_SUCCESS) {
-                throw Exception(
+        hg_return_t hret = margo_addr_lookup(mid, locator.c_str(), &addr);
+        if (hret != HG_SUCCESS) {
+            throw Exception(
                     "Failed to lookup address {} "
                     "(margo_addr_lookup returned {})",
                     locator, std::to_string(hret));
-            }
         }
 
         try {

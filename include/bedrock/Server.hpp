@@ -8,7 +8,6 @@
 
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/ABTioManager.hpp>
-#include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
 #include <thallium.hpp>
@@ -99,11 +98,6 @@ class Server {
      * @brief Get the underlying ClientManager.
      */
     ClientManager getClientManager() const;
-
-    /**
-     * @brief Get the underlying SSG context.
-     */
-    SSGManager getSSGManager() const;
 
     /**
      * @brief Blocks until the underlying margo instance is finalized.

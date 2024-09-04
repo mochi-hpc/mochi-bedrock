@@ -8,7 +8,6 @@
 
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/ABTioManager.hpp>
-#include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
 #include <bedrock/MPIEnv.hpp>
@@ -40,13 +39,13 @@ class DependencyFinder {
      * @param mpi MPI context
      * @param margo Margo context
      * @param abtio ABT-IO context
-     * @param ssg SSG context
      * @param pmanager Provider manager
      * @param cmanager Client manager
      */
     DependencyFinder(const MPIEnv& mpi,
-                     const MargoManager& margo, const ABTioManager& abtio,
-                     const SSGManager& ssg, const MonaManager& mona,
+                     const MargoManager& margo,
+                     const ABTioManager& abtio,
+                     const MonaManager& mona,
                      const ProviderManager& pmanager,
                      const ClientManager& cmanager);
 
@@ -93,7 +92,6 @@ class DependencyFinder {
      * SPECIFIER  := NAME
      *            |  TYPE ':' ID
      * LOCATION   := ADDRESS
-     *            |  'ssg://' NAME '/' RANK
      * ADDRESS    := <mercury address>
      * NAME       := <qualified identifier>
      * ID         := <provider id>
@@ -170,7 +168,7 @@ class DependencyFinder {
      * right type)
      * @param type Type of service.
      * @param provider_id Provider id
-     * @param locator Location (e.g. "local" or mercury or ssg addresses)
+     * @param locator Location (e.g. "local" or mercury address)
      * @param resolved Output resolved specification
      *
      * @return An abstract pointer to the dependency.
@@ -193,7 +191,7 @@ class DependencyFinder {
      * right type)
      * @param type Type of service.
      * @param name Name of the provider
-     * @param locator Location (e.g. "local" or mercury or ssg addresses)
+     * @param locator Location (e.g. "local" or mercury addresses)
      * @param resolved Output resolved specification
      *
      * @return An abstract pointer to the dependency.

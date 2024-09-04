@@ -10,12 +10,22 @@ class TestServiceGroupHandleInit(unittest.TestCase):
 
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
-        self.groupfile = os.path.join(self.tempdir.name, "group.ssg")
+        self.groupfile = os.path.join(self.tempdir.name, "group.flock")
         config = {
-            "ssg": [{
+            "libraries": {
+                "flock": "libflock-bedrock-module.so"
+            },
+            "providers": [{
                 "name": "my_group",
-                "bootstrap": "init",
-                "group_file": self.groupfile
+                "type": "flock",
+                "provider_id" : 1,
+                "config": {
+                  "bootstrap": "self",
+                  "file": self.groupfile,
+                  "group": {
+                      "type": "static"
+                  }
+              }
             }]
         }
         self.server = mbs.Server(address="na+sm", config=config)
@@ -27,25 +37,13 @@ class TestServiceGroupHandleInit(unittest.TestCase):
         self.server.finalize()
         del self.server
 
-    def test_make_service_group_handle_from_file(self):
-        """
-        Note: because the server and client are on the same process,
-        trying to open the group file will lead to an SSG error
-        about the group ID already existing.
-        """
-        # sgh = self.client.make_service_group_handle(self.groupfile)
-        # self.assertIsInstance(sgh, mbc.ServiceGroupHandle)
-
-    def test_make_service_group_handle_from_gid(self):
-        ssg_group = self.server.ssg["my_group"]
-        gid = ssg_group.handle
-        sgh = self.client.make_service_group_handle_from_ssg(gid)
-        self.assertIsInstance(sgh, mbc.ServiceGroupHandle)
-        sgh.refresh() # just to get code coverage
-
     def test_make_service_group_handle_from_address(self):
         address = str(self.server.margo.engine.address)
         sgh = self.client.make_service_group_handle([address])
+        self.assertIsInstance(sgh, mbc.ServiceGroupHandle)
+
+    def test_make_service_group_handle_from_file(self):
+        sgh = self.client.make_service_group_handle_from_flock(self.groupfile)
         self.assertIsInstance(sgh, mbc.ServiceGroupHandle)
 
 
@@ -53,18 +51,27 @@ class TestServiceGroupHandle(unittest.TestCase):
 
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
-        self.groupfile = os.path.join(self.tempdir.name, "group.ssg")
+        self.groupfile = os.path.join(self.tempdir.name, "group.flock")
         config = {
-            "ssg": [{
+            "libraries": {
+                "flock": "libflock-bedrock-module.so"
+            },
+            "providers": [{
                 "name": "my_group",
-                "bootstrap": "init",
-                "group_file": self.groupfile
+                "type": "flock",
+                "provider_id" : 1,
+                "config": {
+                  "bootstrap": "self",
+                  "file": self.groupfile,
+                  "group": {
+                      "type": "static"
+                  }
+              }
             }]
         }
         self.server = mbs.Server(address="na+sm", config=config)
         self.client = mbc.Client(self.server.margo.engine)
-        self.sgh = self.client.make_service_group_handle_from_ssg(
-            self.server.ssg["my_group"].handle)
+        self.sgh = self.client.make_service_group_handle_from_flock(self.groupfile)
 
     def tearDown(self):
         del self.sgh
@@ -88,7 +95,7 @@ class TestServiceGroupHandle(unittest.TestCase):
         self.assertEqual(len(config.keys()), 1)
         self_address = str(self.server.margo.engine.address)
         self.assertIn(self_address, config)
-        for k in ["margo", "providers", "clients", "ssg", "abt_io", "bedrock"]:
+        for k in ["margo", "providers", "bedrock"]:
             self.assertIn(k, config[self_address])
 
     def test_spec(self):

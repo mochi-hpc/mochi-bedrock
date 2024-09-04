@@ -27,9 +27,6 @@ app.add_typer(abt_io_app, name="abtio", help="Access and modify ABT-IO instances
 from .mona import app as mona_app
 app.add_typer(mona_app, name="mona", help="Access and modify MoNA instances")
 
-from .ssg import app as ssg_app
-app.add_typer(ssg_app, name="ssg", help="Access and modify SSG groups")
-
 
 @app.command()
 def status():

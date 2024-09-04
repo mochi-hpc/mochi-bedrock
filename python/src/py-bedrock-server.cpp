@@ -8,9 +8,6 @@
 #include "pybind11_json/pybind11_json.hpp"
 #include <bedrock/Server.hpp>
 #include <bedrock/Exception.hpp>
-#ifdef ENABLE_SSG
-  #include <ssg.h>
-#endif
 
 namespace py11 = pybind11;
 using namespace pybind11::literals;
@@ -93,10 +90,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
              [](std::shared_ptr<Server> server) {
                 return server->getClientManager();
              })
-        .def_property_readonly("ssg_manager",
-             [](std::shared_ptr<Server> server) {
-                return server->getSSGManager();
-             })
     ;
 
     py11::class_<MargoManager> (m, "MargoManager")
@@ -135,49 +128,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
                 return m.removeXstream(index);
         }, "index"_a)
         .def_property_readonly("num_xstreams", &MargoManager::getNumXstreams)
-    ;
-
-    py11::class_<SSGManager> (m, "SSGManager")
-        .def_property_readonly("config", [](const SSGManager& manager) {
-            return manager.getCurrentConfig().dump();
-        })
-        .def_property_readonly("num_groups", &SSGManager::getNumGroups)
-        .def("get_group", [](const SSGManager& ssg, const std::string& name) {
-                return ssg.getGroup(name);
-             }, "name_a")
-        .def("get_group", [](const SSGManager& ssg, size_t index) {
-                return ssg.getGroup(index);
-             }, "index_a")
-        .def("add_group",
-             [](SSGManager& ssg,
-                const std::string& name,
-                const py11::dict& config,
-                const std::shared_ptr<NamedDependency>& pool,
-                const std::string& bootstrap_method,
-                const std::string& group_file,
-                int64_t credential) {
-#ifdef ENABLE_SSG
-                ssg_group_config_t cfg = SSG_GROUP_CONFIG_INITIALIZER;
-                cfg.ssg_credential = credential;
-#define GET_SSG_FIELD(__field__) do { \
-                if(config.contains(#__field__)) \
-                    cfg.swim_##__field__ = config[#__field__].cast<decltype(cfg.swim_##__field__)>(); \
-                } while(0)
-                GET_SSG_FIELD(period_length_ms);
-                GET_SSG_FIELD(suspect_timeout_periods);
-                GET_SSG_FIELD(subgroup_member_count);
-                GET_SSG_FIELD(disabled);
-#undef GET_SSG_FIELD
-                return ssg.addGroup(name, cfg, pool, bootstrap_method, group_file);
-#else
-                throw Exception{"Bedrock was not compiled with SSG support"};
-#endif
-             }, "name"_a, "swim"_a=py11::dict{},
-                "pool"_a=nullptr, "bootstrap"_a="init",
-                "group_file"_a="", "credential"_a=-1)
-        .def("resolve_address", [](const SSGManager& ssg, const std::string& address) {
-                return ADDR2CAPSULE(ssg.resolveAddress(address));
-            }, "address"_a)
     ;
 
     py11::class_<ABTioManager> (m, "ABTioManager")

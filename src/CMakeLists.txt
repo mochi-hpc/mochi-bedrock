@@ -4,7 +4,6 @@ set (server-src-files
      ABTioManager.cpp
      MargoManager.cpp
      MonaManager.cpp
-     SSGManager.cpp
      ProviderManager.cpp
      ClientManager.cpp
      DependencyFinder.cpp
@@ -48,7 +47,6 @@ target_link_libraries (bedrock-server
     fmt::fmt
     ${OPTIONAL_ABT_IO}
     ${OPTIONAL_MONA}
-    ${OPTIONAL_SSG}
     ${OPTIONAL_MPI})
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC
@@ -65,7 +63,6 @@ add_library (bedrock::client ALIAS bedrock-client)
 target_compile_options (bedrock-client PUBLIC -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-client
     PRIVATE coverage_config
-    ${OPTIONAL_SSG}
     ${OPTIONAL_FLOCK}
     PUBLIC
     thallium

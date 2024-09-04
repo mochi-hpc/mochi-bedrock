@@ -16,7 +16,7 @@ import pybedrock_server
 import pymargo.core
 import pymargo
 from typing import Mapping, List
-from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, SSGSpec, AbtIOSpec, ProviderSpec, ClientSpec
+from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, AbtIOSpec, ProviderSpec, ClientSpec
 import json
 
 
@@ -48,7 +48,6 @@ class NamedDependency:
 
 Pool = NamedDependency
 Xstream = NamedDependency
-SSGGroup = NamedDependency
 AbtIOInstance = NamedDependency
 Client = NamedDependency
 
@@ -162,52 +161,6 @@ class MargoManager:
     @property
     def default_handler_pool(self):
         return Pool(self._internal.default_handler_pool)
-
-
-class SSGManager:
-
-    def __init__(self, internal: pybedrock_server.SSGManager, server: 'Server'):
-        self._internal = internal
-        self._server = server
-
-    @property
-    def config(self):
-        return json.loads(self._internal.config)
-
-    @property
-    def spec(self) -> list[SSGSpec]:
-        abt_spec = self._server.margo.spec.argobots
-        return [SSGSpec.from_dict(group, abt_spec) for group in self.config]
-
-    def resolve(self, location: str) -> pymargo.core.Address:
-        mid = self._server.margo.mid
-        return pymargo.core.Address(
-                mid=mid, hg_addr=self._internal.resolve_address(location),
-                need_del=False).copy()
-
-    def __len__(self) -> int:
-        return self._internal.num_groups
-
-    def __getitem__(self, key: int|str) -> SSGGroup:
-        return SSGGroup(self._internal.get_group(key))
-
-    def __contains__(self, key: str) -> bool:
-        try:
-            self.__getitem__(key)
-            return True
-        except BedrockException:
-            return False
-
-    def create(self, name: str, pool: str|int|Pool = "__primary__",
-               config: str|dict|SSGSpec = "{}",
-               bootstrap: str = "init", group_file: str = "",
-               credential: int = -1) -> SSGGroup:
-        if not isinstance(pool, Pool):
-            pool = self._server.margo.pools[pool]
-        pool = pool._internal
-        if isinstance(config, str):
-            config = json.loads(config)
-        return SSGGroup(self._internal.add_group(name, config, pool, bootstrap, group_file, credential))
 
 
 class AbtIOManager:
@@ -408,10 +361,6 @@ class Server:
     @property
     def margo(self) -> MargoManager:
         return MargoManager(self._internal.margo_manager, self)
-
-    @property
-    def ssg(self) -> SSGManager:
-        return SSGManager(self._internal.ssg_manager, self)
 
     @property
     def abtio(self) -> AbtIOManager:

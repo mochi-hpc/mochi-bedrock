@@ -1517,172 +1517,6 @@ class MonaSpec:
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class SwimSpec:
-    """Swim specification for SSG.
-
-    :param period_length_ms: Period length in milliseconds
-    :type period_length_ms: int
-
-    :param suspect_timeout_periods: Number of suspect timeout periods
-    :type suspect_timeout_periods: int
-
-    :param subgroup_member_count: Subgroup member count
-    :type subgroup_member_count: int
-
-    :param disabled: Disable Swim
-    :type disabled: bool
-    """
-
-    period_length_ms: int = attr.ib(
-        validator=instance_of(int),
-        default=0)
-    suspect_timeout_periods: int = attr.ib(
-        validator=instance_of(int),
-        default=-1)
-    subgroup_member_count: int = attr.ib(
-        validator=instance_of(int),
-        default=-1)
-    disabled: bool = attr.ib(
-        validator=instance_of(bool),
-        default=False)
-
-    def to_dict(self) -> dict:
-        """Convert the SwimSpec into a dictionary.
-        """
-        return attr.asdict(self)
-
-    @staticmethod
-    def from_dict(data: dict) -> 'SwimSpec':
-        """Construct a SwimSpec from a dictionary.
-        """
-        return SwimSpec(**data)
-
-    def to_json(self, *args, **kwargs) -> str:
-        """Convert the SwimSpec into a JSON string.
-        """
-        return json.dumps(self.to_dict(), *args, **kwargs)
-
-    @staticmethod
-    def from_json(json_string: str) -> 'SwimSpec':
-        """Construct a SwimSpec from a JSON string.
-        """
-        data = json.loads(json_string)
-        return SwimSpec.from_dict(data)
-
-    def validate(self) -> NoReturn:
-        """Validate the state of the MercurySpec, raising an exception
-        if the MercurySpec is not valid.
-        """
-        attr.validate(self)
-
-
-def _swim_from_args(arg) -> SwimSpec:
-    """Construct a SwimSpec from a single argument. If the argument
-    if a dict, its content if forwarded to the SwimSpec constructor.
-    """
-    if isinstance(arg, SwimSpec):
-        return arg
-    elif isinstance(arg, dict):
-        return MargoSpec(**arg)
-    elif arg is None:
-        return SwimSpec(disabled=True)
-    else:
-        raise TypeError(f'cannot convert type {type(arg)} into a SwimSpec')
-
-
-@attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class SSGSpec:
-    """SSG group specification.
-
-    :param name: Name of the SSG group
-    :type name: str
-
-    :param pool: Pool associated with the group
-    :type pool: PoolSpec
-
-    :param credential: Credentials
-    :type credential: long
-
-    :param bootstrap: Bootstrap method
-    :type bootstrap: str
-
-    :param group_file: Group file
-    :type group_file: str
-
-    :param swim: Swim parameters
-    :type swim: SwimSpec
-    """
-
-    name: str = attr.ib(
-        validator=[instance_of(str), _validate_object_name],
-        on_setattr=attr.setters.frozen)
-    pool: PoolSpec = attr.ib(
-        validator=instance_of(PoolSpec))
-    credential: int = attr.ib(
-        validator=instance_of(int),
-        default=-1)
-    bootstrap: str = attr.ib(
-        validator=in_(['init', 'join', 'mpi', 'pmix', 'init|join', 'mpi|join', 'pmix|join']))
-    group_file: str = attr.ib(
-        validator=instance_of(str),
-        default='')
-    swim: Optional[SwimSpec] = attr.ib(
-        validator=instance_of(SwimSpec),
-        converter=_swim_from_args,
-        default=None)
-
-    def to_dict(self) -> dict:
-        """Convert the SSGSpec into a dictionary.
-        """
-        result = {'name': self.name,
-                  'pool': self.pool.name,
-                  'credential': self.credential,
-                  'bootstrap': self.bootstrap,
-                  'group_file': self.group_file}
-        if self.swim is not None:
-            result['swim'] = self.swim.to_dict()
-        return result
-
-    @staticmethod
-    def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'SSGSpec':
-        """Construct an SSGSpec from a dictionary. Since the dictionary
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
-
-        :param data: Dictionary
-        :type data: dict
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
-        """
-        args = data.copy()
-        args['pool'] = abt_spec.pools[data['pool']]
-        if 'swim' in args:
-            args['swim'] = SwimSpec.from_dict(args['swim'])
-        ssg = SSGSpec(**args)
-        return ssg
-
-    def to_json(self, *args, **kwargs) -> str:
-        """Convert the SSGSpec into a JSON string.
-        """
-        return json.dumps(self.to_dict(), *args, **kwargs)
-
-    @staticmethod
-    def from_json(json_string: str,  abt_spec: ArgobotsSpec) -> 'SSGSpec':
-        """Construct an SSGSpec from a JSON string. Since the JSON string
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
-
-        :param json_string: JSON string
-        :type json_string: str
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
-        """
-        return SSGSpec.from_dict(json.loads(json_string), abt_spec)
-
-
-@attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
 class ProviderSpec:
     """Provider specification.
 
@@ -2000,9 +1834,6 @@ class ProcSpec:
     :param mona: List of MonaSpec
     :type mona: list
 
-    :param ssg: List of SSGSpec
-    :type ssg: list
-
     :param libraries: Dictionary of libraries
     :type libraries: dict
 
@@ -2020,9 +1851,6 @@ class ProcSpec:
         factory=list,
         validator=instance_of(list))
     _mona: List[MonaSpec] = attr.ib(
-        factory=list,
-        validator=instance_of(list))
-    _ssg: List[SSGSpec] = attr.ib(
         factory=list,
         validator=instance_of(list))
     libraries: dict = attr.ib(
@@ -2054,13 +1882,6 @@ class ProcSpec:
         return SpecListDecorator(list=self._mona, type=MonaSpec)
 
     @property
-    def ssg(self) -> SpecListDecorator:
-        """Return a decorator to access the internal list of SSGSpec
-        and validate changes to this list.
-        """
-        return SpecListDecorator(list=self._ssg, type=SSGSpec)
-
-    @property
     def providers(self) -> SpecListDecorator:
         """Return a decorator to access the internal list of ProviderSpec
         and validate changes to this list.
@@ -2079,7 +1900,6 @@ class ProcSpec:
         """
         data = {'margo': self.margo.to_dict(),
                 'abt_io': [a.to_dict() for a in self._abt_io],
-                'ssg': [g.to_dict() for g in self._ssg],
                 'mona': [m.to_dict() for m in self._mona],
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
@@ -2094,7 +1914,6 @@ class ProcSpec:
         margo = MargoSpec.from_dict(data['margo'])
         abt_io = []
         mona = []
-        ssg = []
         libraries = dict()
         providers = []
         bedrock = {}
@@ -2104,9 +1923,6 @@ class ProcSpec:
         if 'abt_io' in data:
             for a in data['abt_io']:
                 abt_io.append(AbtIOSpec.from_dict(a, margo.argobots))
-        if 'ssg' in data:
-            for g in data['ssg']:
-                ssg.append(SSGSpec.from_dict(g, margo.argobots))
         if 'mona' in data:
             for m in data['mona']:
                 mona.append(MonaSpec.from_dict(m, margo.argobots))
@@ -2120,7 +1936,6 @@ class ProcSpec:
             bedrock = BedrockSpec.from_dict(data['bedrock'], margo.argobots)
         return ProcSpec(margo=margo,
                         abt_io=abt_io,
-                        ssg=ssg,
                         mona=mona,
                         libraries=libraries,
                         providers=providers,
@@ -2152,11 +1967,6 @@ class ProcSpec:
             if p not in self.margo.argobots.pools:
                 raise ValueError(f'Pool "{p.name}" used by MoNA instance' +
                                  ' not found in margo.argobots.pools')
-        for g in self._ssg:
-            p = g.pool
-            if p not in self.margo.argobots.pools:
-                raise ValueError(f'Pool "{p.name}" used by SSG group' +
-                                 ' not found in margo.argobots.pool')
         for k, v in self.libraries.items():
             if not isinstance(k, str):
                 raise TypeError('Invalid key type found in libraries' +
@@ -2415,8 +2225,6 @@ attr.resolve_types(MargoSpec, globals(), locals())
 attr.resolve_types(ProviderSpec, globals(), locals())
 attr.resolve_types(ClientSpec, globals(), locals())
 attr.resolve_types(AbtIOSpec, globals(), locals())
-attr.resolve_types(SwimSpec, globals(), locals())
-attr.resolve_types(SSGSpec, globals(), locals())
 attr.resolve_types(BedrockSpec, globals(), locals())
 attr.resolve_types(ProcSpec, globals(), locals())
 attr.resolve_types(ServiceSpec, globals(), locals())

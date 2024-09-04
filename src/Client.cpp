@@ -14,9 +14,6 @@
 #include "ServiceGroupHandleImpl.hpp"
 
 #include <thallium/serialization/stl/string.hpp>
-#ifdef ENABLE_SSG
-#include <ssg.h>
-#endif
 
 namespace tl = thallium;
 
@@ -57,24 +54,6 @@ ServiceHandle Client::makeServiceHandle(const std::string& address,
     auto service_impl
         = std::make_shared<ServiceHandleImpl>(self, std::move(ph));
     return ServiceHandle(service_impl);
-}
-
-ServiceGroupHandle Client::makeServiceGroupHandleFromSSGFile(
-        const std::string& groupfile,
-        uint16_t provider_id) const {
-    auto impl = ServiceGroupHandleImpl::FromSSGfile(self, groupfile, provider_id);
-    auto result = ServiceGroupHandle{std::move(impl)};
-    result.refresh();
-    return result;
-}
-
-ServiceGroupHandle Client::makeServiceGroupHandleFromSSGGroup(
-        uint64_t gid,
-        uint16_t provider_id) const {
-    auto impl = ServiceGroupHandleImpl::FromSSGid(self, gid, provider_id);
-    auto result = ServiceGroupHandle{std::move(impl)};
-    result.refresh();
-    return result;
 }
 
 ServiceGroupHandle Client::makeServiceGroupHandleFromFlockFile(
