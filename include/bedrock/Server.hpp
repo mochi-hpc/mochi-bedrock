@@ -7,7 +7,6 @@
 #define __BEDROCK_SERVER_HPP
 
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/ABTioManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
 #include <thallium.hpp>
@@ -83,11 +82,6 @@ class Server {
      * @brief Get the underlying MargoManager.
      */
     MargoManager getMargoManager() const;
-
-    /**
-     * @brief Get the underlying ABTioManager.
-     */
-    ABTioManager getABTioManager() const;
 
     /**
      * @brief Get the underlying ProviderManager.

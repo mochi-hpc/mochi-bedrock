@@ -11,9 +11,6 @@ using json = nlohmann::json;
 static void cleanupOutputConfig(json& config) {
     config["margo"].erase("mercury");
     config["margo"].erase("version");
-    for(auto& instance : config["abt_io"]) {
-        instance["config"].erase("version");
-    }
 }
 
 TEST_CASE("Tests Server initialization", "[init-json]") {

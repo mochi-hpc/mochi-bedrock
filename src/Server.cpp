@@ -5,7 +5,6 @@
  */
 #include <bedrock/Server.hpp>
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/ABTioManager.hpp>
 #include <bedrock/ModuleContext.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
@@ -137,13 +136,6 @@ Server::Server(const std::string& address, const std::string& configString,
 
     try {
 
-        // Initialize abt-io context
-        spdlog::trace("Initializing ABTioManager");
-        auto& abtioConfig     = config["abt_io"];
-        auto abtioMgr         = ABTioManager(margoMgr, jx9Manager, abtioConfig);
-        self->m_abtio_manager = abtioMgr;
-        spdlog::trace("ABTioManager initialized");
-
         // Initializing the provider manager
         spdlog::trace("Initializing ProviderManager");
         auto providerManager
@@ -166,8 +158,7 @@ Server::Server(const std::string& address, const std::string& configString,
 
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");
-        auto dependencyFinder     = DependencyFinder(
-            mpi, margoMgr, abtioMgr, providerManager, clientManager);
+        auto dependencyFinder     = DependencyFinder(mpi, margoMgr, providerManager, clientManager);
         self->m_dependency_finder = dependencyFinder;
         self->m_dependency_finder->m_timeout = dependency_timeout;
         spdlog::trace("DependencyFinder initialized");
@@ -197,8 +188,6 @@ Server::Server(const std::string& address, const std::string& configString,
 Server::~Server() {}
 
 MargoManager Server::getMargoManager() const { return self->m_margo_manager; }
-
-ABTioManager Server::getABTioManager() const { return self->m_abtio_manager; }
 
 ProviderManager Server::getProviderManager() const {
     return self->m_provider_manager;

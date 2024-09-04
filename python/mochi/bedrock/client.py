@@ -16,7 +16,7 @@ import pybedrock_client
 import pymargo.core
 import pymargo
 import json
-from .spec import ProcSpec, XstreamSpec, PoolSpec, AbtIOSpec, ProviderSpec, ClientSpec
+from .spec import ProcSpec, XstreamSpec, PoolSpec, ProviderSpec, ClientSpec
 
 
 ClientException = pybedrock_client.Exception
@@ -75,10 +75,6 @@ class ServiceHandle:
 
     def remove_xstream(self, name: str):
         self._internal.remove_xstream(name)
-
-    def add_abtio_instance(self, description: str|dict|AbtIOSpec):
-        description = self._ensure_config_str(description)
-        self._internal.add_abtio_instance(description)
 
     def add_client(self, description: str|dict|ClientSpec):
         description = self._ensure_config_str(description)

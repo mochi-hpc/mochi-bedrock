@@ -162,14 +162,6 @@ void ServiceHandle::addClient(const std::string& description,
     SEND_RPC_WITH_BOOL_RESULT(description);
 }
 
-void ServiceHandle::addABTioInstance(const std::string& description,
-                                     AsyncRequest*      req) const {
-    if (not self) throw BEDROCK_DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
-    auto& rpc = self->m_client->m_add_abtio;
-    auto& ph  = self->m_ph;
-    SEND_RPC_WITH_BOOL_RESULT(description);
-}
-
 void ServiceHandle::addPool(const std::string& config,
                             AsyncRequest*      req) const {
     if (not self) throw BEDROCK_DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");

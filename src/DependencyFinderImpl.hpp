@@ -7,7 +7,6 @@
 #define __BEDROCK_DEPENDENCY_FINDER_IMPL_H
 
 #include "MargoManagerImpl.hpp"
-#include "ABTioManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
 #include "ClientManagerImpl.hpp"
 #include "Formatting.hpp"
@@ -31,7 +30,6 @@ class DependencyFinderImpl {
     tl::engine                         m_engine;
     std::shared_ptr<MPIEnvImpl>        m_mpi;
     std::shared_ptr<MargoManagerImpl>  m_margo_context;
-    std::weak_ptr<ABTioManagerImpl>    m_abtio_context;
     std::weak_ptr<ProviderManagerImpl> m_provider_manager;
     std::weak_ptr<ClientManagerImpl>   m_client_manager;
     double                             m_timeout = 30.0;

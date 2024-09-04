@@ -19,10 +19,6 @@ class ProviderManager;
 class ClientManager;
 class DependencyFinder;
 class MargoManagerImpl;
-class SSGManager;
-class SSGData;
-class ABTioManager;
-class ABTioEntry;
 class ProviderEntry;
 class ServerImpl;
 
@@ -35,10 +31,6 @@ class MargoManager {
     friend class ProviderManager;
     friend class ClientManager;
     friend class DependencyFinder;
-    friend class SSGManager;
-    friend class SSGEntry;
-    friend class ABTioEntry;
-    friend class ABTioManager;
     friend class ProviderEntry;
     friend class ServerImpl;
 

@@ -1382,72 +1382,6 @@ class MargoSpec:
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class AbtIOSpec:
-    """ABT-IO instance specification.
-
-    :param name: Name of the ABT-IO instance
-    :type name: str
-
-    :param pool: Pool associated with the instance
-    :type pool: PoolSpec
-
-    :param config: Configuration
-    :type config: dict
-    """
-
-    name: str = attr.ib(
-        validator=[instance_of(str), _validate_object_name],
-        on_setattr=attr.setters.frozen)
-    pool: PoolSpec = attr.ib(validator=instance_of(PoolSpec))
-    config: dict = attr.ib(validator=instance_of(dict),
-                           factory=dict)
-
-    def to_dict(self) -> dict:
-        """Convert the AbtIOSpec into a dictionary.
-        """
-        return {'name': self.name,
-                'pool': self.pool.name,
-                'config': self.config}
-
-    @staticmethod
-    def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'AbtIOSpec':
-        """Construct an AbtIOSpec from a dictionary. Since the dictionary
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
-
-        :param data: Dictionary
-        :type data: dict
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
-        """
-        name = data['name']
-        config = data['config']
-        pool = abt_spec.pools[data['pool']]
-        abtio = AbtIOSpec(name=name, pool=pool, config=config)
-        return abtio
-
-    def to_json(self, *args, **kwargs) -> str:
-        """Convert the AbtIOSpec into a JSON string.
-        """
-        return json.dumps(self.to_dict(), *args, **kwargs)
-
-    @staticmethod
-    def from_json(json_string: str,  abt_spec: ArgobotsSpec) -> 'AbtIOSpec':
-        """Construct an AbtIOSpec from a JSON string. Since the JSON string
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
-
-        :param json_string: JSON string
-        :type json_string: str
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
-        """
-        return AbtIOSpec.from_dict(json.loads(json_string), abt_spec)
-
-
-@attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
 class ProviderSpec:
     """Provider specification.
 
@@ -1759,9 +1693,6 @@ class ProcSpec:
     :param margo: Margo specification
     :type margo: MargoSpec
 
-    :param abt_io: List of AbtIOSpec
-    :type abt_io: list
-
     :param libraries: Dictionary of libraries
     :type libraries: dict
 
@@ -1775,9 +1706,6 @@ class ProcSpec:
     margo: MargoSpec = attr.ib(
         validator=instance_of(MargoSpec),
         converter=_margo_from_args)
-    _abt_io: List[AbtIOSpec] = attr.ib(
-        factory=list,
-        validator=instance_of(list))
     libraries: dict = attr.ib(
         factory=dict,
         validator=instance_of(dict))
@@ -1791,13 +1719,6 @@ class ProcSpec:
         default=Factory(lambda self: BedrockSpec(pool=self.margo.rpc_pool),
                         takes_self=True),
         validator=instance_of(BedrockSpec))
-
-    @property
-    def abt_io(self) -> SpecListDecorator:
-        """Return a decorator to access the internal list of AbtIOSpec
-        and validate changes to this list.
-        """
-        return SpecListDecorator(list=self._abt_io, type=AbtIOSpec)
 
     @property
     def providers(self) -> SpecListDecorator:
@@ -1817,7 +1738,6 @@ class ProcSpec:
         """Convert the ProcSpec into a dictionary.
         """
         data = {'margo': self.margo.to_dict(),
-                'abt_io': [a.to_dict() for a in self._abt_io],
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
                 'clients': [c.to_dict() for c in self._clients],
@@ -1829,16 +1749,12 @@ class ProcSpec:
         """Construct a ProcSpec from a dictionary.
         """
         margo = MargoSpec.from_dict(data['margo'])
-        abt_io = []
         libraries = dict()
         providers = []
         bedrock = {}
         clients = []
         if 'libraries' in data:
             libraries = data['libraries']
-        if 'abt_io' in data:
-            for a in data['abt_io']:
-                abt_io.append(AbtIOSpec.from_dict(a, margo.argobots))
         if 'providers' in data:
             for p in data['providers']:
                 providers.append(ProviderSpec.from_dict(p,  margo.argobots))
@@ -1848,7 +1764,6 @@ class ProcSpec:
         if 'bedrock' in data:
             bedrock = BedrockSpec.from_dict(data['bedrock'], margo.argobots)
         return ProcSpec(margo=margo,
-                        abt_io=abt_io,
                         libraries=libraries,
                         providers=providers,
                         clients=clients,
@@ -1869,11 +1784,6 @@ class ProcSpec:
         """Validate the state of the ProcSpec.
         """
         attr.validate(self)
-        for a in self._abt_io:
-            p = a.pool
-            if p not in self.margo.argobots.pools:
-                raise ValueError(f'Pool "{p.name}" used by ABT-IO instance' +
-                                 ' not found in margo.argobots.pools')
         for k, v in self.libraries.items():
             if not isinstance(k, str):
                 raise TypeError('Invalid key type found in libraries' +
@@ -2131,7 +2041,6 @@ attr.resolve_types(ArgobotsSpec, globals(), locals())
 attr.resolve_types(MargoSpec, globals(), locals())
 attr.resolve_types(ProviderSpec, globals(), locals())
 attr.resolve_types(ClientSpec, globals(), locals())
-attr.resolve_types(AbtIOSpec, globals(), locals())
 attr.resolve_types(BedrockSpec, globals(), locals())
 attr.resolve_types(ProcSpec, globals(), locals())
 attr.resolve_types(ServiceSpec, globals(), locals())

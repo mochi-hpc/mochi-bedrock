@@ -12,15 +12,14 @@ include (CMakeFindDependencyMacro)
 find_dependency (nlohmann_json)
 find_dependency (thallium)
 find_dependency (spdlog)
-find_dependency (PkgConfig)
 find_dependency (fmt)
-pkg_check_modules (MARGO REQUIRED IMPORTED_TARGET margo)
 
 if(@ENABLE_MPI@)
   find_dependency (MPI)
 endif()
-if(@ENABLE_ABT_IO@)
-  pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
+
+if(@ENABLE_FLOCK@)
+    find_dependency (flock)
 endif()
 
 check_required_components(bedrock)

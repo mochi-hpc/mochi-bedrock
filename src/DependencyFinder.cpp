@@ -18,13 +18,11 @@ namespace bedrock {
 
 DependencyFinder::DependencyFinder(const MPIEnv&          mpi,
                                    const MargoManager&    margo,
-                                   const ABTioManager&    abtio,
                                    const ProviderManager& pmanager,
                                    const ClientManager&   cmanager)
 : self(std::make_shared<DependencyFinderImpl>(margo.getMargoInstance())) {
     self->m_mpi              = mpi.self;
     self->m_margo_context    = margo;
-    self->m_abtio_context    = abtio.self;
     self->m_provider_manager = pmanager.self;
     self->m_client_manager   = cmanager.self;
 }
@@ -68,16 +66,6 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         }
         if (resolved) { *resolved = spec; }
         return xstream;
-
-    } else if (type == "abt_io") { // ABTIO instance
-
-        auto abtio_manager_impl = self->m_abtio_context.lock();
-        if (!abtio_manager_impl) {
-            throw Exception("Could not resolve ABT-IO dependency: no ABTioManager found");
-        }
-        auto abt_io = ABTioManager(abtio_manager_impl).getABTioInstance(spec);
-        if (resolved) { *resolved = spec; }
-        return abt_io;
 
     } else if (kind == BEDROCK_KIND_CLIENT) {
 

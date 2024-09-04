@@ -7,7 +7,6 @@
 #define __BEDROCK_DEPENDENCY_RESOLVER_HPP
 
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/ABTioManager.hpp>
 #include <bedrock/ProviderManager.hpp>
 #include <bedrock/ClientManager.hpp>
 #include <bedrock/MPIEnv.hpp>
@@ -38,13 +37,11 @@ class DependencyFinder {
      * @brief Constructor.
      * @param mpi MPI context
      * @param margo Margo context
-     * @param abtio ABT-IO context
      * @param pmanager Provider manager
      * @param cmanager Client manager
      */
     DependencyFinder(const MPIEnv& mpi,
                      const MargoManager& margo,
-                     const ABTioManager& abtio,
                      const ProviderManager& pmanager,
                      const ClientManager& cmanager);
 

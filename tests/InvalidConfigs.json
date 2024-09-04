@@ -1,45 +1,5 @@
 [
     {
-        "test": "invalid ABT-IO section",
-        "input": {"abt_io":123}
-    },
-
-    {
-        "test": "invalid type of ABT-IO instance configuration",
-        "input": {"abt_io":[123]}
-    },
-
-    {
-        "test": "invalid ABT-IO instance name",
-        "input": {"abt_io":[{"name":123}]}
-    },
-
-    {
-        "test": "invalid ABT-IO instance pool name",
-        "input": {"abt_io":[{"pool":"abc"}]}
-    },
-
-    {
-        "test": "invalid ABT-IO instance pool index",
-        "input": {"abt_io":[{"pool":42}]}
-    },
-
-    {
-        "test": "invalid ABT-IO instance pool field type",
-        "input": {"abt_io":[{"pool":true}]}
-    },
-
-    {
-        "test": "invalid ABT-IO instance config field type",
-        "input": {"abt_io":[{"pool":"__primary__","config":true}]}
-    },
-
-    {
-        "test": "two ABT-IO instances with the same name",
-        "input": {"abt_io":[{"name":"my_abt_io","pool":"__primary__"},{"name":"my_abt_io","pool":"__primary__"}]}
-    },
-
-    {
         "test": "invalid type for libraries field",
         "input": {"libraries":123}
     },

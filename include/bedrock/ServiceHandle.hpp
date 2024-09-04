@@ -172,15 +172,6 @@ class ServiceHandle {
                    AsyncRequest*      req = nullptr) const;
 
     /**
-     * @brief Creates a new ABT-IO instance on the target service daemon.
-     *
-     * @param description JSON description.
-     * @param req Asynchronous request to wait on, if provided.
-     */
-    void addABTioInstance(const std::string& description,
-                          AsyncRequest*      req = nullptr) const;
-
-    /**
      * @brief Adds an Argobots pool to the Margo instance of
      * the target service.
      *

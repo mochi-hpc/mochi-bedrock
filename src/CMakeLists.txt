@@ -1,7 +1,6 @@
 # set source files
 set (server-src-files
      Server.cpp
-     ABTioManager.cpp
      MargoManager.cpp
      ProviderManager.cpp
      ClientManager.cpp
@@ -44,7 +43,6 @@ target_link_libraries (bedrock-server
     nlohmann_json::nlohmann_json
     spdlog::spdlog
     fmt::fmt
-    ${OPTIONAL_ABT_IO}
     ${OPTIONAL_MPI})
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC

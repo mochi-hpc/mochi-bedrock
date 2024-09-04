@@ -5,7 +5,6 @@ spack:
   - mochi-margo
   - mochi-thallium
   - mochi-bedrock-module-api
-  - mochi-abt-io
   - mochi-flock
   - nlohmann-json
   - nlohmann-json-schema-validator

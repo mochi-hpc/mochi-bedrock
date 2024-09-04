@@ -49,12 +49,6 @@ class TestProviderManager(unittest.TestCase):
                     "name": "my_client_b",
                     "type": "module_b"
                 }
-            ],
-            "abt_io": [
-                {
-                    "name": "my_abt_io",
-                    "pool": "__primary__"
-                }
             ]
         }
         self.server = mbs.Server(address="na+sm", config=config)
@@ -239,44 +233,6 @@ class TestProviderManager(unittest.TestCase):
 
         # Try creating a provider with the required dependency
         provider_params["dependencies"] = {"dep1": "my_xstream"}
-        providers.create(**provider_params)
-        self.assertEqual(len(providers), 3)
-
-    def test_dependency_on_abt_io(self):
-        providers = self.server.providers
-        self.assertEqual(len(providers), 2)
-        clients = self.server.clients
-        self.assertEqual(len(clients), 2)
-
-        # Try creating a client without the required dependency
-        client_params = self.make_client_params([
-            {"name": "dep1", "type": "abt_io", "is_required": True}])
-        with self.assertRaises(mbs.BedrockException):
-            clients.create(**client_params)
-
-        # Try creating a client witht the wrong dependency
-        client_params["dependencies"] = {"dep1": "my_abt_io_bad"}
-        with self.assertRaises(mbs.BedrockException):
-            clients.create(**client_params)
-
-        # Try creating a client with the required dependency
-        client_params["dependencies"] = {"dep1": "my_abt_io"}
-        clients.create(**client_params)
-        self.assertEqual(len(clients), 3)
-
-        # Try creating a provider without the required dependency
-        provider_params = self.make_provider_params([
-            {"name": "dep1", "type": "abt_io", "is_required": True}])
-        with self.assertRaises(mbs.BedrockException):
-            providers.create(**provider_params)
-
-        # Try creating a provider with the wrong dependency
-        provider_params["dependencies"] = {"dep1": "my_abt_io_bad"}
-        with self.assertRaises(mbs.BedrockException):
-            providers.create(**provider_params)
-
-        # Try creating a provider with the required dependency
-        provider_params["dependencies"] = {"dep1": "my_abt_io"}
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 

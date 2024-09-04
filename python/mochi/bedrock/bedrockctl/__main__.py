@@ -21,9 +21,6 @@ app.add_typer(provider_app, name="provider", help="Access and modify providers")
 from .client import app as client_app
 app.add_typer(client_app, name="client", help="Access and modify clients")
 
-from .abt_io import app as abt_io_app
-app.add_typer(abt_io_app, name="abtio", help="Access and modify ABT-IO instances")
-
 
 @app.command()
 def status():

@@ -12,7 +12,6 @@ option (ENABLE_TESTS    "Build tests" OFF)
 option (ENABLE_EXAMPLES "Build examples" OFF)
 option (ENABLE_MPI      "Enable MPI support" OFF)
 option (ENABLE_FLOCK    "Enable Flock support" OFF)
-option (ENABLE_ABT_IO   "Enable ABT-IO support" OFF)
 option (ENABLE_PYTHON   "Enable Python support" OFF)
 
 # library version set here (e.g. for shared libs).
@@ -57,8 +56,6 @@ endif ()
 
 # search for bedrock-module-api
 find_package (bedrock-module-api REQUIRED)
-# search for pkg-config
-find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)
 # search for nlohmann/json and schema validator
@@ -73,12 +70,6 @@ find_package (fmt REQUIRED)
 # search for toml11
 find_package (toml11 REQUIRED)
 # search for abt-io
-if (ENABLE_ABT_IO)
-    pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
-    add_definitions (-DENABLE_ABT_IO)
-    set (OPTIONAL_ABT_IO PkgConfig::ABTIO)
-    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} abt-io")
-endif ()
 if (ENABLE_FLOCK)
     find_package (flock REQUIRED)
     add_definitions (-DENABLE_FLOCK)

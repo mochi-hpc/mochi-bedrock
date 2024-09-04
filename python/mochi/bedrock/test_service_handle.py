@@ -52,7 +52,7 @@ class TestServiceHandle(unittest.TestCase):
     def test_config(self):
         config = self.sh.config
         self.assertIsInstance(config, dict)
-        for k in ["margo", "providers", "clients", "abt_io", "bedrock"]:
+        for k in ["margo", "providers", "clients", "bedrock"]:
             self.assertIn(k, config)
 
     def test_spec(self):
@@ -179,36 +179,6 @@ class TestServiceHandle(unittest.TestCase):
         self.assertEqual(len(self.server.margo.xstreams), initial_num_xstreams - 1)
         with self.assertRaises(mbc.ClientException):
             self.server.margo.xstreams["my_xstream"]
-
-    def test_add_abtio_instance_from_dict(self):
-        abtio_config = {
-            "name": "my_abtio",
-            "pool": "__primary__",
-            "config": {}
-        }
-        self.sh.add_abtio_instance(abtio_config)
-        abtio = self.server.abtio["my_abtio"]
-        self.assertIsInstance(abtio, mbs.AbtIOInstance)
-
-    def test_add_abtio_instance_from_src(self):
-        abtio_config = {
-            "name": "my_abtio",
-            "pool": "__primary__",
-            "config": {}
-        }
-        self.sh.add_abtio_instance(json.dumps(abtio_config))
-        abtio = self.server.abtio["my_abtio"]
-        self.assertIsInstance(abtio, mbs.AbtIOInstance)
-
-    def test_add_abtio_instance_from_spec(self):
-        abtio_config = spec.AbtIOSpec(
-            name="my_abtio",
-            pool=spec.PoolSpec(name="__primary__", kind="fifo_wait", access="mpmc"),
-            config={}
-        )
-        self.sh.add_abtio_instance(abtio_config)
-        abtio = self.server.abtio["my_abtio"]
-        self.assertIsInstance(abtio, mbs.AbtIOInstance)
 
     def test_add_client_from_dict(self):
         self.test_load_module()

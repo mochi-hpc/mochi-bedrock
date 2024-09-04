@@ -78,10 +78,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
              [](std::shared_ptr<Server> server) {
                 return server->getMargoManager();
              })
-        .def_property_readonly("abtio_manager",
-             [](std::shared_ptr<Server> server) {
-                return server->getABTioManager();
-             })
         .def_property_readonly("provider_manager",
              [](std::shared_ptr<Server> server) {
                 return server->getProviderManager();
@@ -128,20 +124,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
                 return m.removeXstream(index);
         }, "index"_a)
         .def_property_readonly("num_xstreams", &MargoManager::getNumXstreams)
-    ;
-
-    py11::class_<ABTioManager> (m, "ABTioManager")
-        .def_property_readonly("config", [](const ABTioManager& manager) {
-            return manager.getCurrentConfig().dump();
-        })
-        .def_property_readonly("num_abtio_instances", &ABTioManager::numABTioInstances)
-        .def("get_abtio_instance", [](const ABTioManager& abtio, const std::string& name) {
-            return abtio.getABTioInstance(name);
-        }, "name"_a)
-        .def("get_abtio_instance", [](const ABTioManager& abtio, size_t index) {
-            return abtio.getABTioInstance(index);
-        }, "index"_a)
-        .def("add_abtio_instance", &ABTioManager::addABTioInstance)
     ;
 
     py11::class_<ProviderManager> (m, "ProviderManager")

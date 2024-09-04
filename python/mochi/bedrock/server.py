@@ -16,7 +16,7 @@ import pybedrock_server
 import pymargo.core
 import pymargo
 from typing import Mapping, List
-from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, AbtIOSpec, ProviderSpec, ClientSpec
+from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, ProviderSpec, ClientSpec
 import json
 
 
@@ -48,7 +48,6 @@ class NamedDependency:
 
 Pool = NamedDependency
 Xstream = NamedDependency
-AbtIOInstance = NamedDependency
 Client = NamedDependency
 
 
@@ -161,43 +160,6 @@ class MargoManager:
     @property
     def default_handler_pool(self):
         return Pool(self._internal.default_handler_pool)
-
-
-class AbtIOManager:
-
-    def __init__(self, internal: pybedrock_server.ABTioManager, server: 'Server'):
-        self._internal = internal
-        self._server = server
-
-    @property
-    def config(self):
-        return json.loads(self._internal.config)
-
-    @property
-    def spec(self) -> list[AbtIOSpec]:
-        abt_spec = self._server.spec.margo.argobots
-        return [AbtIOSpec.from_dict(instance, abt_spec=abt_spec) for instance in self.config]
-
-    def __len__(self) -> int:
-        return self._internal.num_abtio_instances
-
-    def __getitem__(self, key: int|str) -> AbtIOInstance:
-        return AbtIOInstance(self._internal.get_abtio_instance(key))
-
-    def __contains__(self, key: str) -> bool:
-        try:
-            self.__getitem__(key)
-            return True
-        except BedrockException:
-            return False
-
-    def create(self, name: str, pool: str|int|Pool, config: str|dict = {}) -> AbtIOInstance:
-        if isinstance(config, str):
-            config = json.loads(config)
-        if not isinstance(pool, Pool):
-            pool = self._server.margo.pools[pool]
-        pool = pool._internal
-        return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))
 
 
 class ClientManager:
@@ -361,10 +323,6 @@ class Server:
     @property
     def margo(self) -> MargoManager:
         return MargoManager(self._internal.margo_manager, self)
-
-    @property
-    def abtio(self) -> AbtIOManager:
-        return AbtIOManager(self._internal.abtio_manager, self)
 
     @property
     def clients(self) -> ClientManager:

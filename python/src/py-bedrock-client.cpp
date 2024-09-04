@@ -97,11 +97,6 @@ PYBIND11_MODULE(pybedrock_client, m) {
                const std::string& description) {
                     sh.addClient(description);
             }, "description"_a)
-        .def("add_abtio_instance",
-            [](const ServiceHandle& sh,
-               const std::string& description) {
-                    sh.addABTioInstance(description);
-            }, "description"_a = std::string("{}"))
         .def("add_pool", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addPool(config);
             },
