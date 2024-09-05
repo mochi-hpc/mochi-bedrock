@@ -110,6 +110,7 @@ class TestConfigSpace(unittest.TestCase):
 
         max_num_pools = 3
 
+        """
         provider_config_cs = ConfigurationSpace()
         provider_config_cs.add(Integer("x", (0,9)))
         provider_config_cs.add(Integer("y", (1,42)))
@@ -135,14 +136,38 @@ class TestConfigSpace(unittest.TestCase):
                 "count": (1,3)
             }
         ]
+        """
 
+        class MyProviderSpaceBuilder(ProviderConfigSpaceBuilder):
+
+            def set_provider_hyperparameters(self, configuration_space: CS) -> None:
+                configuration_space.add(Integer("x", (0,9)))
+                configuration_space.add(Integer("y", (1,42)))
+
+            def resolve_to_provider_spec(
+                    self, name: str, provider_id: int, config: Config, prefix: str) -> ProviderSpec:
+                cfg = {
+                    "x" : int(config[prefix + "x"]),
+                    "y" : int(config[prefix + "y"])
+                }
+                return ProviderSpec(
+                    name=name, type="yokan", provider_id=provider_id,
+                    tags=["tag1", "tag2"], config=cfg, dependencies={})
+
+        provider_space_factories = [
+            {
+                "family": "databases",
+                "builder": MyProviderSpaceBuilder(),
+                "count": (1,3)
+            }
+        ]
         space = ProcSpec.space(num_pools=(1, max_num_pools), num_xstreams=(2, 5),
                                provider_space_factories=provider_space_factories).freeze()
-        #print(space)
+        print(space)
         config = space.sample_configuration()
-        #print(config)
+        print(config)
         spec = ProcSpec.from_config(address='na+sm', config=config)
-        #print(spec.to_json(indent=4))
+        print(spec.to_json(indent=4))
 
     def test_service_config_space(self):
 

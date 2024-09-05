@@ -14,6 +14,7 @@
 
 import json
 import attr
+from abc import ABC, abstractmethod
 from attr import Factory
 from attr.validators import instance_of, in_
 from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable, Mapping
@@ -1369,9 +1370,25 @@ class MargoSpec:
             **extra)
 
 
-#ProviderConfigSpaceMaker   = Callable[[CS], CS]
-#ProviderConfigResolver     = Callable[[CS], None]
-#ProviderDependencyResolver = Callable[[Config, str], dict]
+class ProviderConfigSpaceBuilder(ABC):
+
+    @abstractmethod
+    def set_provider_hyperparameters(self, configuration_space: CS) -> None:
+        """
+        This method can add hyperparameters, conditions, and forbidden clauses
+        to the provided configuration_space. These hyperparameters will internally
+        be added to the configuration space with a prefix.
+        """
+        pass
+
+    @abstractmethod
+    def resolve_to_provider_spec(
+            self, name: str, provider_id: int, config: Config, prefix: str) -> 'ProviderSpec':
+        """
+        This method should convert a Configuration object into a ProviderSpec,
+        by extracting the configuration and dependencies from the sampled parameters.
+        """
+        pass
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
@@ -1698,6 +1715,7 @@ class ProcSpec:
         """
         from .config_space import (
                 ConfigurationSpace,
+                PrefixedConfigSpaceWrapper,
                 GreaterThanCondition,
                 ForbiddenInClause,
                 ForbiddenAndConjunction,
@@ -1719,26 +1737,27 @@ class ProcSpec:
         # for each family of providers...
         for provider_group in provider_space_factories:
             family = provider_group['family']
-            provider_cs = provider_group['space']
+            builder = provider_group['builder']
             count = provider_group.get('count', 1)
             default_count = count if isinstance(count, int) else count[0]
             # number of providers
             hp_num_providers = IntegerOrConst(f'providers.{family}.num_providers',
                                               count, default=default_count)
             cs.add(hp_num_providers)
-            # add each provider's sub-space
+            cs.add(Constant(f'providers.{family}.builder', builder))
+            # build each provider's sub-space
             for i in range(0, hp_num_providers.upper):
-                space_prefix = f'providers.{family}[{i}]'
-                cs.add_configuration_space(
-                    prefix=space_prefix, delimiter='.',
-                    configuration_space=provider_cs)
+                space_prefix = f'providers.{family}[{i}].'
+                builder.set_provider_hyperparameters(
+                    configuration_space=PrefixedConfigSpaceWrapper(cs, space_prefix))
                 # add conditions on all the hyperparameters of the sub-space,
                 # they exist only if i < num_providers.
                 if i <= hp_num_providers.lower:
                     continue
-                for param in provider_cs:
-                    param_key = f'{space_prefix}.{param}'
-                    cs.add(GreaterThanCondition(cs[param_key], hp_num_providers, i))
+                for param_name in cs:
+                    if not param_name.startswith(space_prefix):
+                        continue
+                    cs.add(GreaterThanCondition(cs[param_name], hp_num_providers, i))
         return cs
 
     @staticmethod
@@ -1756,10 +1775,11 @@ class ProcSpec:
         provider_specs = []
         for family in families:
             num_providers = int(config[f'{prefix}providers.{family}.num_providers'])
+            builder = config[f'{prefix}providers.{family}.builder']
             for i in range(num_providers):
                 provider_specs.append(
-                    ProviderSpec.from_config(
-                        name=f'{family}_{i}', #pools=margo_spec.argobots.pools,
+                    builder.resolve_to_provider_spec(
+                        name=f'{family}_{i}',
                         provider_id=current_provider_id,
                         config=config, prefix=f'{prefix}providers.{family}[{i}].'))
                 current_provider_id += 1

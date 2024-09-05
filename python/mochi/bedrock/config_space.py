@@ -153,6 +153,25 @@ class ConfigurationSpace:
         return self._inner
 
 
+class PrefixedConfigSpaceWrapper:
+
+    def __init__(self, configuration_space: ConfigurationSpace, prefix: str):
+        self.prefix = prefix
+        self.cs = configuration_space
+
+    def add(self, arg):
+        if isinstance(arg, Hyperparameter):
+            arg.name = self.prefix + arg.name
+        if isinstance(arg, list):
+            for a in args:
+                self.add(a)
+        else:
+            self.cs.add(arg)
+
+    def __getattr__(self, key):
+        return getattr(self.cs, key)
+
+
 def CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
                        default: Any|None = None, weights: Sequence[float]|None = None,
                        ordered: bool = False, meta: dict|None = None):
