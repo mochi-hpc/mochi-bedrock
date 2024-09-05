@@ -52,7 +52,7 @@ class TestServiceHandle(unittest.TestCase):
     def test_config(self):
         config = self.sh.config
         self.assertIsInstance(config, dict)
-        for k in ["margo", "providers", "clients", "bedrock"]:
+        for k in ["margo", "providers", "bedrock"]:
             self.assertIn(k, config)
 
     def test_spec(self):
@@ -67,10 +67,10 @@ class TestServiceHandle(unittest.TestCase):
         s = spec.ArgobotsSpec.from_dict(result)
 
     def test_load_module(self):
-        self.sh.load_module("module_a", "./libModuleA.so")
-        self.sh.load_module("module_b", "./libModuleB.so")
+        self.sh.load_module("./libModuleA.so")
+        self.sh.load_module("./libModuleB.so")
         with self.assertRaises(mbc.ClientException):
-            self.sh.load_module("module_x", "./libModuleX.so")
+            self.sh.load_module("./libModuleX.so")
 
     def add_pool(self, config):
         initial_num_pools = len(self.server.margo.pools)
@@ -180,51 +180,11 @@ class TestServiceHandle(unittest.TestCase):
         with self.assertRaises(mbc.ClientException):
             self.server.margo.xstreams["my_xstream"]
 
-    def test_add_client_from_dict(self):
-        self.test_load_module()
-        client_config = {
-            "name": "my_client",
-            "type": "module_a",
-            "config": {},
-            "dependencies": {},
-            "tags": ["my_tag_1", "my_tag_2"]
-        }
-        self.sh.add_client(client_config)
-        proc_spec = self.server.spec
-        client_spec = proc_spec.clients["my_client"]
-
-    def test_add_client_from_src(self):
-        self.test_load_module()
-        client_config = {
-            "name": "my_client",
-            "type": "module_a",
-            "config": {},
-            "dependencies": {},
-            "tags": ["my_tag_1", "my_tag_2"]
-        }
-        self.sh.add_client(json.dumps(client_config))
-        proc_spec = self.server.spec
-        client_spec = proc_spec.clients["my_client"]
-
-    def test_add_client_from_spec(self):
-        self.test_load_module()
-        client_config = spec.ClientSpec(
-            name="my_client",
-            type="module_a",
-            config={},
-            dependencies={},
-            tags=["my_tag_1", "my_tag_2"]
-        )
-        self.sh.add_client(client_config)
-        proc_spec = self.server.spec
-        client_spec = proc_spec.clients["my_client"]
-
     def test_add_provider_from_dict(self):
         self.test_load_module()
         provider_config = {
             "name": "my_provider",
             "type": "module_a",
-            "pool": "__primary__",
             "provider_id": 42,
             "config": {},
             "dependencies": {},
@@ -239,7 +199,6 @@ class TestServiceHandle(unittest.TestCase):
         provider_config = {
             "name": "my_provider",
             "type": "module_a",
-            "pool": "__primary__",
             "provider_id": 42,
             "config": {},
             "dependencies": {},
@@ -254,7 +213,6 @@ class TestServiceHandle(unittest.TestCase):
         provider_config = spec.ProviderSpec(
             name="my_provider",
             type="module_a",
-            pool=spec.PoolSpec(name="__primary__"),
             provider_id=42,
             config={},
             dependencies={},

@@ -75,27 +75,15 @@ PYBIND11_MODULE(pybedrock_client, m) {
             }, "script"_a)
         .def("load_module",
             [](const ServiceHandle& sh,
-               const std::string& name,
                const std::string& path) {
-                    sh.loadModule(name, path);
-            }, "name"_a, "path"_a)
+                    sh.loadModule(path);
+            }, "path"_a)
         .def("add_provider",
             [](const ServiceHandle& sh,
                const std::string& description) {
                     uint16_t provider_id_out;
                     sh.addProvider(description, &provider_id_out);
                     return provider_id_out;
-            }, "description"_a)
-        .def("change_provider_pool",
-             [](const ServiceHandle& sh,
-                const std::string& provider_name,
-                const std::string& pool_name) {
-                sh.changeProviderPool(provider_name, pool_name);
-             })
-        .def("add_client",
-            [](const ServiceHandle& sh,
-               const std::string& description) {
-                    sh.addClient(description);
             }, "description"_a)
         .def("add_pool", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addPool(config);

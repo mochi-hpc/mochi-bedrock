@@ -5,9 +5,8 @@
  */
 #include <bedrock/Server.hpp>
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/ModuleContext.hpp>
+#include <bedrock/ModuleManager.hpp>
 #include <bedrock/ProviderManager.hpp>
-#include <bedrock/ClientManager.hpp>
 #include <bedrock/DependencyFinder.hpp>
 #include <bedrock/Jx9Manager.hpp>
 #include <bedrock/Exception.hpp>
@@ -143,31 +142,18 @@ Server::Server(const std::string& address, const std::string& configString,
         self->m_provider_manager = providerManager;
         spdlog::trace("ProviderManager initialized");
 
-        // Initializing the client manager
-        spdlog::trace("Initializing ClientManager");
-        auto clientManager
-            = ClientManager(margoMgr, jx9Manager, bedrock_provider_id, bedrock_pool);
-        self->m_client_manager = clientManager;
-        spdlog::trace("ClientManager initialized");
-
         // Initialize the module context
         spdlog::trace("Initialize ModuleContext");
         auto librariesConfig = config["libraries"].dump();
-        ModuleContext::loadModulesFromJSON(librariesConfig);
+        ModuleManager::loadModulesFromJSON(librariesConfig);
         spdlog::trace("ModuleContext initialized");
 
         // Initializing dependency finder
         spdlog::trace("Initializing DependencyFinder");
-        auto dependencyFinder     = DependencyFinder(mpi, margoMgr, providerManager, clientManager);
+        auto dependencyFinder     = DependencyFinder(mpi, margoMgr, providerManager);
         self->m_dependency_finder = dependencyFinder;
         self->m_dependency_finder->m_timeout = dependency_timeout;
         spdlog::trace("DependencyFinder initialized");
-
-        // Creating clients
-        spdlog::trace("Initializing clients");
-        clientManager.setDependencyFinder(dependencyFinder);
-        auto& clientManagerConfig = config["clients"];
-        clientManager.addClientListFromJSON(clientManagerConfig);
 
         // Starting up providers
         spdlog::trace("Initializing providers");
@@ -193,20 +179,14 @@ ProviderManager Server::getProviderManager() const {
     return self->m_provider_manager;
 }
 
-ClientManager Server::getClientManager() const {
-    return self->m_client_manager;
-}
-
-void Server::onPreFinalize(void* uargs) {
+void Server::onPreFinalize() {
     spdlog::trace("Calling Server's pre-finalize callback");
-    auto server = reinterpret_cast<Server*>(uargs);
-    if(server->self) {
-        if(server->self->m_provider_manager)
-            server->self->m_provider_manager.reset();
+    if(self && self->m_provider_manager) {
+        self->m_provider_manager.reset();
     }
 }
 
-void Server::onFinalize(void* uargs) {
+void Server::onFinalize() {
     spdlog::trace("Calling Server's finalize callback");
 }
 
@@ -215,19 +195,17 @@ std::string Server::getCurrentConfig() const {
 }
 
 void Server::waitForFinalize() {
-    margo_push_finalize_callback(self->m_margo_manager->m_mid,
-                                 &Server::onFinalize, this);
-    margo_push_prefinalize_callback(self->m_margo_manager->m_mid,
-                                 &Server::onPreFinalize, this);
-    margo_wait_for_finalize(self->m_margo_manager->m_mid);
+    auto engine = getMargoManager().getThalliumEngine();
+    engine.push_finalize_callback([this]() { onFinalize(); });
+    engine.push_prefinalize_callback([this]() { onPreFinalize(); });
+    engine.wait_for_finalize();
 }
 
 void Server::finalize() {
-    margo_push_finalize_callback(self->m_margo_manager->m_mid,
-                                 &Server::onFinalize, this);
-    margo_push_prefinalize_callback(self->m_margo_manager->m_mid,
-                                 &Server::onPreFinalize, this);
-    margo_finalize_and_wait(self->m_margo_manager->m_mid);
+    auto engine = getMargoManager().getThalliumEngine();
+    engine.push_finalize_callback([this]() { onFinalize(); });
+    engine.push_prefinalize_callback([this]() { onPreFinalize(); });
+    engine.finalize_and_wait();
 }
 
 } // namespace bedrock

@@ -3,7 +3,6 @@ set (server-src-files
      Server.cpp
      MargoManager.cpp
      ProviderManager.cpp
-     ClientManager.cpp
      DependencyFinder.cpp
      MargoLogging.cpp
      Jx9Manager.cpp

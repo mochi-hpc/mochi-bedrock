@@ -20,39 +20,49 @@ using nlohmann::json;
 
 struct PoolRef : public NamedDependency {
 
-    PoolRef(std::string name, ABT_pool pool)
-    : NamedDependency(
-        std::move(name),
-        "pool", pool,
-        std::function<void(void*)>()) {}
+    tl::engine engine;
 
+    PoolRef(tl::engine e, std::string name, tl::pool pool)
+    : NamedDependency(std::move(name), "pool", std::move(pool))
+    , engine{std::move(e)} {
+        engine.pools().ref_incr(getHandle<tl::pool>());
+    }
+
+    PoolRef(const PoolRef&) = delete;
+    PoolRef(PoolRef&&) = delete;
+
+    ~PoolRef() {
+        engine.pools().release(getHandle<tl::pool>());
+    }
 };
 
 struct XstreamRef : public NamedDependency {
 
-    XstreamRef(std::string name, ABT_xstream xstream)
-    : NamedDependency(
-        std::move(name),
-        "xstream", xstream,
-        std::function<void(void*)>()) {}
+    tl::engine engine;
 
+    XstreamRef(tl::engine e, std::string name, tl::xstream es)
+    : NamedDependency(std::move(name), "xstream", std::move(es))
+    , engine{std::move(e)} {
+        engine.xstreams().ref_incr(getHandle<tl::xstream>());
+    }
+
+    XstreamRef(const XstreamRef&) = delete;
+    XstreamRef(XstreamRef&&) = delete;
+
+    ~XstreamRef() {
+        engine.xstreams().release(getHandle<tl::xstream>());
+    }
 };
 
 class MargoManagerImpl {
 
   public:
-    tl::mutex         m_mtx;
-    margo_instance_id m_mid;
-    tl::engine        m_engine;
-
-    // to keep track of who is using which pool and xstream,
-    // we keep a shared_ptr to a PoolRef/XstreamRef with just
-    // the name of the pool/xstream and its handle.
-    std::vector<std::shared_ptr<XstreamRef>> m_xstreams;
-    std::vector<std::shared_ptr<PoolRef>> m_pools;
+    tl::mutex  m_mtx;
+    tl::engine m_engine;
 
     json makeConfig() const {
-        char* str    = margo_get_config_opt(m_mid, MARGO_CONFIG_USE_NAMES);
+        auto mid = m_engine.get_margo_instance();
+        char* str    = margo_get_config_opt(mid, MARGO_CONFIG_USE_NAMES);
         auto  config = json::parse(str);
         free(str);
         return config;

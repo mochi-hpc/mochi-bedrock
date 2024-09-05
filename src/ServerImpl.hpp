@@ -8,13 +8,12 @@
 
 #include "MargoManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
-#include "ClientManagerImpl.hpp"
 #include "DependencyFinderImpl.hpp"
 #include "Jx9ManagerImpl.hpp"
 #include "MPIEnvImpl.hpp"
 #include "bedrock/Jx9Manager.hpp"
 #include "bedrock/RequestResult.hpp"
-#include "bedrock/ModuleContext.hpp"
+#include "bedrock/ModuleManager.hpp"
 #include <thallium/serialization/stl/string.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -31,7 +30,6 @@ class ServerImpl : public tl::provider<ServerImpl> {
     std::shared_ptr<MPIEnvImpl>           m_mpi;
     std::shared_ptr<Jx9ManagerImpl>       m_jx9_manager;
     std::shared_ptr<MargoManagerImpl>     m_margo_manager;
-    std::shared_ptr<ClientManagerImpl>    m_client_manager;
     std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
     std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
     std::shared_ptr<NamedDependency>      m_pool;
@@ -50,7 +48,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
     : tl::provider<ServerImpl>(margo->m_engine, provider_id, "bedrock"),
       m_margo_manager(std::move(margo)),
       m_pool(pool),
-      m_tl_pool(pool->getHandle<ABT_pool>()),
+      m_tl_pool(pool->getHandle<tl::pool>()),
       m_get_config_rpc(
           define("bedrock_get_config", &ServerImpl::getConfigRPC, m_tl_pool)),
       m_query_config_rpc(
@@ -77,9 +75,8 @@ class ServerImpl : public tl::provider<ServerImpl> {
     json makeConfig() const {
         auto config         = json::object();
         config["margo"]     = m_margo_manager->makeConfig();
-        config["clients"]   = m_client_manager->makeConfig();
         config["providers"] = m_provider_manager->makeConfig();
-        config["libraries"] = json::parse(ModuleContext::getCurrentConfig());
+        config["libraries"] = json::parse(ModuleManager::getCurrentConfig());
         config["bedrock"]   = json::object();
         config["bedrock"]["pool"] = m_pool->getName();
         config["bedrock"]["provider_id"] = get_provider_id();

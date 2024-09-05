@@ -6,12 +6,12 @@
 
     {
         "test": "invalid type for library",
-        "input": {"libraries":{"module_a":123}}
+        "input": {"libraries":[123]}
     },
 
     {
         "test": "library not found",
-        "input": {"libraries":{"module_a":"abc.so"}}
+        "input": {"libraries":["abc.so"]}
     },
 
 
@@ -37,113 +37,47 @@
 
     {
         "test": "invalid type for provider name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":true,"provider_id":123,"type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":true,"provider_id":123,"type":"module_a"}]}
     },
 
     {
         "test": "invalid type for provider type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":true}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"my_provider","provider_id":123,"type":true}]}
     },
 
     {
         "test": "invalid type for provider_id in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":true,"type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"my_provider","provider_id":true,"type":"module_a"}]}
     },
 
     {
         "test": "invalid provider_id value in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":-1,"type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"my_provider","provider_id":-1,"type":"module_a"}]}
     },
 
     {
         "test": "invalid config type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","config":true}]}
-    },
-
-    {
-        "test": "invalid pool type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":true}]}
-    },
-
-    {
-        "test": "invalid pool name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":"abc"}]}
-    },
-
-    {
-        "test": "invalid pool index in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","pool":1234}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"my_provider","provider_id":123,"type":"module_a","config":true}]}
     },
 
     {
         "test": "provider definition without a name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"provider_id":123,"type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"provider_id":123,"type":"module_a"}]}
     },
 
     {
         "test": "empty provider name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"","provider_id":123,"type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"","provider_id":123,"type":"module_a"}]}
     },
 
     {
         "test": "two providers with the same name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider","provider_id":1,"type":"module_a"},{"name":"my_provider","provider_id":2,"type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"my_provider","provider_id":1,"type":"module_a"},{"name":"my_provider","provider_id":2,"type":"module_a"}]}
     },
 
     {
         "test": "two providers with the same provider id",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"providers":[{"name":"my_provider1","provider_id":42,"type":"module_a"},{"name":"my_provider2","provider_id":42,"type":"module_a"}]}
-    },
-
-
-    {
-        "test": "invalid type of client field",
-        "input": {"clients":true}
-    },
-
-    {
-        "test": "invalid type of client definition",
-        "input": {"clients":[true]}
-    },
-
-    {
-        "test": "no client type in client definition",
-        "input": {"clients":[{"name":"my_client"}]}
-    },
-
-    {
-        "test": "invalid client type in client definition",
-        "input": {"clients":[{"name":"my_client","type":"module_invalid"}]}
-    },
-
-    {
-        "test": "invalid type for client name in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":true,"type":"module_a"}]}
-    },
-
-    {
-        "test": "invalid type for client type in provider definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":true}]}
-    },
-
-    {
-        "test": "invalid config type in client definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a","config":true}]}
-    },
-
-    {
-        "test": "client definition without a name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"type":"module_a"}]}
-    },
-
-    {
-        "test": "empty client name in client definition",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"","type":"module_a"}]}
-    },
-
-    {
-        "test": "two clients with the same name",
-        "input": {"libraries":{"module_a":"libModuleA.so"},"clients":[{"name":"my_client","type":"module_a"},{"name":"my_client","type":"module_a"}]}
+        "input": {"libraries":["libModuleA.so"],"providers":[{"name":"my_provider1","provider_id":42,"type":"module_a"},{"name":"my_provider2","provider_id":42,"type":"module_a"}]}
     }
 
 ]

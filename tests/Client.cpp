@@ -14,7 +14,6 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
         auto engine = server.getMargoManager().getThalliumEngine();
         bedrock::Client client(engine);
         auto serviceHandle = client.makeServiceHandle(engine.self(), 0);
-
         SECTION("Add and remove pool remotely") {
             // add a pool called "my_pool1", synchronously
             serviceHandle.addPool("{\"name\":\"my_pool1\",\"kind\":\"fifo_wait\",\"access\":\"mpmc\"}");
@@ -107,24 +106,28 @@ TEST_CASE("Tests various object creation and removal via a ServiceHandle", "[ser
         }
 
         SECTION("Load a library") {
+            auto server_config = server.getCurrentConfig();
+            REQUIRE(server_config.find("./libModuleA.so") == std::string::npos);
+            REQUIRE(server_config.find("./libModuleB.so") == std::string::npos);
             // load libModuleA.so synchronously
-            serviceHandle.loadModule("module_a", "./libModuleA.so");
-            REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
+            serviceHandle.loadModule("./libModuleA.so");
+            server_config = server.getCurrentConfig();
+            REQUIRE(server_config.find("./libModuleA.so") != std::string::npos);
             // load libModuleA.so asynchronously
             bedrock::AsyncRequest req;
-            serviceHandle.loadModule("module_b", "./libModuleB.so", &req);
+            serviceHandle.loadModule("./libModuleB.so", &req);
             req.wait();
-            REQUIRE(bedrock::ModuleContext::getServiceFactory("module_b") != nullptr);
-            // load libModuleC.so, which does not exist
+            server_config = server.getCurrentConfig();
+            REQUIRE(server_config.find("./libModuleB.so") != std::string::npos);
+            // load libModuleX.so, which does not exist
             REQUIRE_THROWS_AS(
-                serviceHandle.loadModule("module_x", "libModuleX.so"),
+                serviceHandle.loadModule("./libModuleX.so"),
                 bedrock::Exception);
         }
 
         SECTION("Add and remove providers") {
             // load module_a
-            serviceHandle.loadModule("module_a", "./libModuleA.so");
-            REQUIRE(bedrock::ModuleContext::getServiceFactory("module_a") != nullptr);
+            serviceHandle.loadModule("./libModuleA.so");
             // create a provider of type module_a
             REQUIRE_NOTHROW(serviceHandle.addProvider(R"(
                 {"name":"my_provider_a1", "type":"module_a", "provider_id":123})"));

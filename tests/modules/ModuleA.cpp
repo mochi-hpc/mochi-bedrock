@@ -1,7 +1,11 @@
 #include "BaseModule.hpp"
 
-class ModuleAServiceFactory : public BaseServiceFactory {
+class ComponentA : public BaseComponent {
 
+    public:
+
+    using BaseComponent::Register;
+    using BaseComponent::GetDependencies;
 };
 
-BEDROCK_REGISTER_MODULE_FACTORY(module_a, ModuleAServiceFactory)
+BEDROCK_REGISTER_COMPONENT_TYPE(module_a, ComponentA)

@@ -16,7 +16,6 @@ namespace tl = thallium;
 
 class Server;
 class ProviderManager;
-class ClientManager;
 class DependencyFinder;
 class MargoManagerImpl;
 class ProviderEntry;
@@ -29,7 +28,6 @@ class MargoManager {
 
     friend class Server;
     friend class ProviderManager;
-    friend class ClientManager;
     friend class DependencyFinder;
     friend class ProviderEntry;
     friend class ServerImpl;
@@ -94,7 +92,7 @@ class MargoManager {
      *
      * @return reference to the thallium engine.
      */
-    tl::engine getThalliumEngine() const;
+    const tl::engine& getThalliumEngine() const;
 
     /**
      * @brief Get the default handle pool from Margo.

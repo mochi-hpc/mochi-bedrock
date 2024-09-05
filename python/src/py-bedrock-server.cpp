@@ -35,8 +35,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
             [](std::shared_ptr<NamedDependency> nd) { return nd->getName(); })
         .def_property_readonly("type",
             [](std::shared_ptr<NamedDependency> nd) { return nd->getType(); })
-        .def_property_readonly("handle",
-            [](std::shared_ptr<NamedDependency> nd) { return nd->getHandle<intptr_t>(); })
     ;
 
     py11::class_<ProviderDependency, std::shared_ptr<ProviderDependency>> (m, "ProviderDependency", named_dep)
@@ -81,10 +79,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def_property_readonly("provider_manager",
              [](std::shared_ptr<Server> server) {
                 return server->getProviderManager();
-             })
-        .def_property_readonly("client_manager",
-             [](std::shared_ptr<Server> server) {
-                return server->getClientManager();
              })
     ;
 
@@ -143,9 +137,6 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("add_provider",
              &ProviderManager::addProviderFromJSON,
              "description"_a)
-        .def("change_pool",
-             &ProviderManager::changeProviderPool,
-             "provider"_a, "pool"_a)
         .def("migrate_provider",
              &ProviderManager::migrateProvider,
              "provider"_a, "dest_addr"_a, "dest_provider_id"_a,
@@ -156,30 +147,5 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def("restore_provider",
              &ProviderManager::restoreProvider,
              "provider"_a, "src_path"_a, "restore_config"_a)
-    ;
-
-    py11::class_<ClientManager> (m, "ClientManager")
-        .def_property_readonly("config", &ClientManager::getCurrentConfig)
-        .def("get_client", [](const ClientManager& cm, const std::string& name) {
-                return cm.getClient(name);
-             },
-             "name"_a)
-        .def("get_client", [](const ClientManager& cm, size_t index) {
-                return cm.getClient(index);
-             },
-             "index"_a)
-        .def_property_readonly("num_clients", &ClientManager::numClients)
-        .def("remove_client", [](ClientManager& cm, const std::string& name) {
-                return cm.removeClient(name);
-             },
-             "name"_a)
-        .def("remove_client", [](ClientManager& cm, size_t index) {
-                return cm.removeClient(index);
-             },
-             "index"_a)
-        .def("get_client_or_create", &ClientManager::getOrCreateAnonymous,
-             "type"_a)
-        .def("add_client", &ClientManager::addClientFromJSON,
-             "description"_a)
     ;
 }

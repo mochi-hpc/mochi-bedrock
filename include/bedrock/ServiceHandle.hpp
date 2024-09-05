@@ -80,11 +80,10 @@ class ServiceHandle {
     /**
      * @brief Ask the remote service daemon to load a module library.
      *
-     * @param name Name of the module.
      * @param path Library path.
      * @param req Asynchronous request to wait on, if provided.
      */
-    void loadModule(const std::string& name, const std::string& path,
+    void loadModule(const std::string& path,
                     AsyncRequest* req = nullptr) const;
 
     /**

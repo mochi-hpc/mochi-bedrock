@@ -70,12 +70,12 @@ tl::provider_handle ServiceHandle::providerHandle() const {
     } \
 } while(0)
 
-void ServiceHandle::loadModule(const std::string& name, const std::string& path,
+void ServiceHandle::loadModule(const std::string& path,
                                AsyncRequest* req) const {
     if (not self) throw BEDROCK_DETAILED_EXCEPTION("Invalid bedrock::ServiceHandle object");
     auto& rpc = self->m_client->m_load_module;
     auto& ph  = self->m_ph;
-    SEND_RPC_WITH_BOOL_RESULT(name, path);
+    SEND_RPC_WITH_BOOL_RESULT(path);
 }
 
 void ServiceHandle::addProvider(const std::string& description,

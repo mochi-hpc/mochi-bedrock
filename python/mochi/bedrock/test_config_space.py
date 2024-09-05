@@ -72,7 +72,7 @@ class TestConfigSpace(unittest.TestCase):
     def test_provider_config_space(self):
         from .config_space import ConfigurationSpace, Integer
         # pools to select from
-        pools = [PoolSpec(name=f'pool_{i}') for i in range(5)]
+        # pools = [PoolSpec(name=f'pool_{i}') for i in range(5)]
 
         # config space for the provider
         config_cs = ConfigurationSpace()
@@ -90,7 +90,7 @@ class TestConfigSpace(unittest.TestCase):
             return {'abc': 'def'}
 
         space = ProviderSpec.space(
-            type='yokan', max_num_pools=len(pools),
+            type='yokan',
             tags=['tag1', 'tag2'],
             provider_config_space=config_cs,
             provider_config_resolver=resolve_provider_config,
@@ -102,7 +102,7 @@ class TestConfigSpace(unittest.TestCase):
 
         spec = ProviderSpec.from_config(
             name='my_yokan_provider', provider_id=1,
-            pools=pools, config=config)
+            config=config)
         #print(spec.to_json(indent=4))
 
     def test_proc_with_providers(self):
@@ -127,7 +127,8 @@ class TestConfigSpace(unittest.TestCase):
                 "family": "databases",
                 "space": ProviderSpec.space(
                     type='yokan',
-                    max_num_pools=max_num_pools, tags=['tag1', 'tag2'],
+                    #max_num_pools=max_num_pools,
+                    tags=['tag1', 'tag2'],
                     provider_config_space=provider_config_cs,
                     provider_config_resolver=resolve_provider_config,
                     dependency_resolver=resolve_provider_dependencies),

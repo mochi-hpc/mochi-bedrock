@@ -12,20 +12,20 @@ class TestServiceGroupHandleInit(unittest.TestCase):
         self.tempdir = tempfile.TemporaryDirectory()
         self.groupfile = os.path.join(self.tempdir.name, "group.flock")
         config = {
-            "libraries": {
-                "flock": "libflock-bedrock-module.so"
-            },
+            "libraries": [
+                "libflock-bedrock-module.so"
+            ],
             "providers": [{
                 "name": "my_group",
                 "type": "flock",
                 "provider_id" : 1,
                 "config": {
-                  "bootstrap": "self",
-                  "file": self.groupfile,
-                  "group": {
-                      "type": "static"
-                  }
-              }
+                    "bootstrap": "self",
+                    "file": self.groupfile,
+                    "group": {
+                        "type": "static"
+                    }
+                },
             }]
         }
         self.server = mbs.Server(address="na+sm", config=config)
@@ -53,20 +53,23 @@ class TestServiceGroupHandle(unittest.TestCase):
         self.tempdir = tempfile.TemporaryDirectory()
         self.groupfile = os.path.join(self.tempdir.name, "group.flock")
         config = {
-            "libraries": {
-                "flock": "libflock-bedrock-module.so"
-            },
+            "libraries": [
+                "libflock-bedrock-module.so"
+            ],
             "providers": [{
                 "name": "my_group",
                 "type": "flock",
                 "provider_id" : 1,
                 "config": {
-                  "bootstrap": "self",
-                  "file": self.groupfile,
-                  "group": {
-                      "type": "static"
-                  }
-              }
+                    "bootstrap": "self",
+                    "file": self.groupfile,
+                    "group": {
+                        "type": "static"
+                    }
+                },
+                "dependencies": {
+                    "pool": "__primary__"
+                }
             }]
         }
         self.server = mbs.Server(address="na+sm", config=config)

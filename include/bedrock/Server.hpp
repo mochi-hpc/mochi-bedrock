@@ -8,7 +8,6 @@
 
 #include <bedrock/MargoManager.hpp>
 #include <bedrock/ProviderManager.hpp>
-#include <bedrock/ClientManager.hpp>
 #include <thallium.hpp>
 #include <memory>
 
@@ -89,11 +88,6 @@ class Server {
     ProviderManager getProviderManager() const;
 
     /**
-     * @brief Get the underlying ClientManager.
-     */
-    ClientManager getClientManager() const;
-
-    /**
      * @brief Blocks until the underlying margo instance is finalized.
      */
     void waitForFinalize();
@@ -111,8 +105,8 @@ class Server {
   private:
     std::unique_ptr<ServerImpl> self;
 
-    static void onFinalize(void* uargs);
-    static void onPreFinalize(void* uargs);
+    void onFinalize();
+    void onPreFinalize();
 };
 
 } // namespace bedrock

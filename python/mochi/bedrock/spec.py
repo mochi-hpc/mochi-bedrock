@@ -19,6 +19,10 @@ from attr.validators import instance_of, in_
 from typing import List, NoReturn, Union, Optional, Sequence, Any, Callable, Mapping
 
 
+CS = 'ConfigurationSpace'
+Config = 'Configuration'
+
+
 class _Configurable:
     """
     For some of the classes bellow, initializing from config simply means extracting
@@ -27,7 +31,7 @@ class _Configurable:
     """
 
     @classmethod
-    def from_config(cls, *, config: 'Configuration', prefix: str = '', **kwargs):
+    def from_config(cls, *, config: Config, prefix: str = '', **kwargs):
         expected_attr = set(attribute.name for attribute in cls.__attrs_attrs__)
         expected_kwargs = { k: v for k, v in kwargs.items() if k in expected_attr}
         for param, value in config.items():
@@ -461,7 +465,7 @@ class MercurySpec(_Configurable):
               output_eager_size: int|tuple[int,int] = 4080,
               na_max_expected_size: int|tuple[int,int] = 0,
               na_max_unexpected_size: int|tuple[int,int] = 0,
-              **kwargs):
+              **kwargs) -> CS:
         """
         Create a ConfigurationSpace object to generate MercurySpecs.
         Each of the argument can be set to either a single value or a range
@@ -556,7 +560,7 @@ class PoolSpec(_Configurable):
     @staticmethod
     def space(*,
               pool_kinds: str|list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first'],
-              **kwargs):
+              **kwargs) -> CS:
         """
         Create a ConfigurationSpace to generate PoolSpec objects.
         pool_kinds can be specified as a string or a list of strings to force the pool kind
@@ -656,7 +660,7 @@ class SchedulerSpec(_Configurable):
     @staticmethod
     def space(*,
               scheduler_types: str|list[str] = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
-              **kwargs):
+              **kwargs) -> CS:
         """
         Create a ConfigurationSpace to generate SchedulerSpec objects.
         """
@@ -664,14 +668,6 @@ class SchedulerSpec(_Configurable):
         cs = ConfigurationSpace()
         default_scheduler_types = scheduler_types[0] if isinstance(scheduler_types, list) else scheduler_types
         cs.add(CategoricalOrConst('type', scheduler_types, default=default_scheduler_types))
-        """
-        for i in range(0, max_num_pools):
-            if isinstance(pool_association_weights, list):
-                weight = pool_association_weights[i]
-            else:
-                weight = pool_association_weights
-            cs.add(FloatOrConst(f'pool_association_weight[{i}]', weight, default=-1.0))
-        """
         return cs
 
 
@@ -782,7 +778,7 @@ class XstreamSpec:
         self.scheduler.validate()
 
     @staticmethod
-    def space(*args, **kwargs):
+    def space(*args, **kwargs) -> CS:
         """
         Create a ConfigurationSpace object from which to generate XstreamSpecs.
         This function essentially forwards its arguments to the underlying
@@ -799,7 +795,7 @@ class XstreamSpec:
     def from_config(*,
                     name: str,
                     pools: list[PoolSpec],
-                    config: 'Configuration',
+                    config: Config,
                     prefix: str = ''):
         """
         Create an XstreamSpec from a Configuration object.
@@ -1010,7 +1006,7 @@ class ArgobotsSpec:
               pool_kinds : list[str] = ['fifo_wait', 'fifo', 'prio_wait', 'earliest_first'],
               scheduler_types: str|list[str]|None = ['basic_wait', 'default', 'basic', 'prio', 'randws'],
               mapping_weight_range: tuple[float,float] = (-1.0, 1.0),
-              **kwargs):
+              **kwargs) -> CS:
         """
         Create the ConfigurationSpace of an ArgobotsSpec.
 
@@ -1075,12 +1071,12 @@ class ArgobotsSpec:
 
     @staticmethod
     def from_config(*,
-                    config: 'Configuration',
+                    config: Config,
                     prefix: str = '',
                     pool_name_format: str = '__pool_{}__',
                     xstream_name_format: str = '__xstream_{}__',
                     use_progress_thread: bool = False,
-                    **kwargs):
+                    **kwargs) -> 'ArgobotsSpec':
         """
         Create an ArgobotsSpec from a Configuration object.
         pool_name_format and xstream_name_format are used to format the names
@@ -1298,7 +1294,7 @@ class MargoSpec:
               progress_timeout_ub_msec: int|tuple[int,int] = 100,
               use_progress_thread: bool|tuple[bool,bool] = [True, False],
               rpc_pool: int|tuple[int,int]|None = None,
-              **kwargs):
+              **kwargs) -> CS:
         """
         Create the ConfigurationSpace for a MargoSpec.
 
@@ -1316,7 +1312,8 @@ class MargoSpec:
                 IntegerOrConst,
                 ForbiddenAndConjunction,
                 ForbiddenInClause,
-                ForbiddenEqualsClause)
+                ForbiddenEqualsClause,
+                CategoricalChoice)
         cs = ConfigurationSpace()
         cs.add(CategoricalOrConst('use_progress_thread', use_progress_thread))
         cs.add(IntegerOrConst('handle_cache_size', handle_cache_size))
@@ -1330,20 +1327,11 @@ class MargoSpec:
             prefix='mercury', delimiter='.',
             configuration_space=mercury_cs)
         hp_num_pools = cs['argobots.num_pools']
-        # Note: rpc_pool and progress_pool are categorical because AI tools should not
-        # make the assumption that adding/removing 1 to the value will lead to a smaller
-        # change than adding/removing a larger value.
-        hp_rpc_pool = CategoricalOrConst('rpc_pool', list(range(hp_num_pools.upper)), default=0)
-        cs.add(hp_rpc_pool)
-        # add conditions on the possible values of rpc_pool and progress_pool
-        for i in range(hp_num_pools.lower, hp_num_pools.upper):
-            cs.add(ForbiddenAndConjunction(
-                ForbiddenInClause(hp_rpc_pool, list(range(i, hp_num_pools.upper))),
-                ForbiddenEqualsClause(hp_num_pools, i)))
+        cs.add(CategoricalChoice('rpc_pool', num_options=hp_num_pools))
         return cs
 
     @staticmethod
-    def from_config(*, config: 'Configuration', prefix: str = '', **kwargs):
+    def from_config(*, config: Config, prefix: str = '', **kwargs) -> 'MargoSpec':
         """
         Create a MargoSpec from a Configuration object.
 
@@ -1381,6 +1369,11 @@ class MargoSpec:
             **extra)
 
 
+#ProviderConfigSpaceMaker   = Callable[[CS], CS]
+#ProviderConfigResolver     = Callable[[CS], None]
+#ProviderDependencyResolver = Callable[[Config, str], dict]
+
+
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
 class ProviderSpec:
     """Provider specification.
@@ -1390,9 +1383,6 @@ class ProviderSpec:
 
     :param type: Type of provider
     :type type: str
-
-    :param pool: Pool associated with the group
-    :type pool: PoolSpec
 
     :param provider_id: Provider id
     :type provider_id: int
@@ -1413,8 +1403,6 @@ class ProviderSpec:
     type: str = attr.ib(
         validator=instance_of(str),
         on_setattr=attr.setters.frozen)
-    pool: PoolSpec = attr.ib(
-        validator=instance_of(PoolSpec))
     provider_id: int = attr.ib(
         default=0,
         validator=instance_of(int))
@@ -1433,27 +1421,19 @@ class ProviderSpec:
         """
         return {'name': self.name,
                 'type': self.type,
-                'pool': self.pool.name,
                 'provider_id': self.provider_id,
                 'dependencies': self.dependencies,
                 'config': self.config,
                 'tags': self.tags}
 
     @staticmethod
-    def from_dict(data: dict, abt_spec: ArgobotsSpec) -> 'ProviderSpec':
-        """Construct a ProviderSpec from a dictionary. Since the dictionary
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
+    def from_dict(data: dict) -> 'ProviderSpec':
+        """Construct a ProviderSpec from a dictionary.
 
         :param data: Dictionary
         :type data: dict
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
         """
-        args = data.copy()
-        args['pool'] = abt_spec.pools[data['pool']]
-        provider = ProviderSpec(**args)
+        provider = ProviderSpec(**data)
         return provider
 
     def to_json(self, *args, **kwargs) -> str:
@@ -1462,33 +1442,25 @@ class ProviderSpec:
         return json.dumps(self.to_dict(), *args, **kwargs)
 
     @staticmethod
-    def from_json(json_string: str,  abt_spec: ArgobotsSpec) -> 'ProviderSpec':
-        """Construct a ProviderSpec from a JSON string. Since the JSON string
-        references the pool by name or index, an ArgobotsSpec is necessary
-        to resolve the reference.
+    def from_json(json_string: str) -> 'ProviderSpec':
+        """Construct a ProviderSpec from a JSON string.
 
         :param json_string: JSON string
         :type json_string: str
-
-        :param abt_spec: ArgobotsSpec in which to look for the PoolSpec
-        :type abt_spec: ArgobotsSpec
         """
-        return ProviderSpec.from_dict(json.loads(json_string), abt_spec)
+        return ProviderSpec.from_dict(json.loads(json_string))
 
     @staticmethod
-    def space(*, type: str, max_num_pools: int, tags: list[str] = [],
-              provider_config_space: Optional['ConfigurationSpace'] = None,
-              provider_config_resolver: Callable[['Configuration', str], dict]|None = None,
-              dependency_config_space: Optional['ConfigurationSpace'] = None,
-              dependency_resolver: Callable[['Configuration', str], dict]|None = None):
+    def space(*, type: str, tags: list[str] = [],
+              provider_config_space: Optional[CS] = None,
+              provider_config_resolver: Callable[[Config, str], dict]|None = None,
+              dependency_config_space: Optional[CS] = None,
+              dependency_resolver: Callable[[Config, str], dict]|None = None) -> CS:
         """
         Create a ConfigurationSpace for a ProviderSpec.
 
         - type: type of provider.
-        - max_num_pools: maximum number of pools in the underlying process.
         - tags: list of tags the provider will use.
-        - pool_association_weights: range in which to draw the weight of association between
-          the provider and each pool. The provider will use the pool with the largest weight.
         - provider_config_space: a ConfigurationSpace for the "config" field of the provider.
         - provider_config_resolver: a function (or callable) taking a Configuration and a prefix
           and returning the provider's "config" field (dict) from the Configuration.
@@ -1500,6 +1472,7 @@ class ProviderSpec:
         cs = ConfigurationSpace()
         cs.add(Constant('type', type))
         cs.add(Constant('tags', tags))
+
         if provider_config_space is not None:
             cs.add_configuration_space(
                 prefix='config', delimiter='.',
@@ -1510,12 +1483,11 @@ class ProviderSpec:
                 prefix='dependencies', delimiter='.',
                 configuration_space=dependency_config_space)
         cs.add(Constant('dependency_resolver', dependency_resolver))
-        cs.add(Categorical('pool', list(range(max_num_pools))))
         return cs
 
     @staticmethod
-    def from_config(*, name: str, provider_id: int, pools: list[PoolSpec],
-                    config: 'Configuration', prefix: str = ''):
+    def from_config(*, name: str, provider_id: int,
+                    config: Config, prefix: str = '') -> 'ProviderSpec':
         """
         Create a ProviderSpec from a given Configuration object.
 
@@ -1527,7 +1499,6 @@ class ProviderSpec:
         tags = config[f'{prefix}tags']
         provider_config_resolver = config[f'{prefix}config_resolver']
         dependency_resolver = config[f'{prefix}dependency_resolver']
-        pool = pools[int(config[f'{prefix}pool'])]
         if provider_config_resolver is None:
             provider_config = {}
         else:
@@ -1538,77 +1509,8 @@ class ProviderSpec:
             provider_dependencies = dependency_resolver(config, f'{prefix}dependencies.')
         return ProviderSpec(
             name=name, type=type, provider_id=provider_id,
-            pool=pool, config=provider_config, tags=tags,
+            config=provider_config, tags=tags,
             dependencies=provider_dependencies)
-
-
-@attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
-class ClientSpec:
-    """Client specification.
-
-    :param name: Name of the client
-    :type name: str
-
-    :param type: Type of client
-    :type type: str
-
-    :param config: Configuration
-    :type config: dict
-
-    :param dependencies: Dependencies
-    :type dependencies: dict
-
-    :param tags: Tags
-    :type tags: List[str]
-    """
-
-    name: str = attr.ib(
-        validator=[instance_of(str), _validate_object_name],
-        on_setattr=attr.setters.frozen)
-    type: str = attr.ib(
-        validator=instance_of(str),
-        on_setattr=attr.setters.frozen)
-    config: dict = attr.ib(
-        validator=instance_of(dict),
-        factory=dict)
-    dependencies: dict = attr.ib(
-        validator=instance_of(dict),
-        factory=dict)
-    tags: List[str] = attr.ib(
-        validator=instance_of(List),
-        factory=list)
-
-    def to_dict(self) -> dict:
-        """Convert the ClientSpec into a dictionary.
-        """
-        return {'name': self.name,
-                'type': self.type,
-                'dependencies': self.dependencies,
-                'config': self.config,
-                'tags': self.tags}
-
-    @staticmethod
-    def from_dict(data: dict) -> 'ClientSpec':
-        """Construct a ClientSpec from a dictionary.
-
-        :param data: Dictionary
-        :type data: dict
-        """
-        return ClientSpec(**data)
-
-    def to_json(self, *args, **kwargs) -> str:
-        """Convert the ClientSpec into a JSON string.
-        """
-        return json.dumps(self.to_dict(), *args, **kwargs)
-
-    @staticmethod
-    def from_json(json_string: str) -> 'ClientSpec':
-        """Construct a ClientSpec from a JSON string.
-
-        :param json_string: JSON string
-        :type json_string: str
-        """
-        return ClientSpec.from_dict(json.loads(json_string))
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
@@ -1698,21 +1600,15 @@ class ProcSpec:
 
     :param providers: List of ProviderSpec
     :type providers: list
-
-    :param clients: List of ClientSpec
-    :type clients: list
     """
 
     margo: MargoSpec = attr.ib(
         validator=instance_of(MargoSpec),
         converter=_margo_from_args)
-    libraries: dict = attr.ib(
-        factory=dict,
-        validator=instance_of(dict))
-    _providers: list = attr.ib(
+    libraries: list = attr.ib(
         factory=list,
         validator=instance_of(list))
-    _clients: list = attr.ib(
+    _providers: list = attr.ib(
         factory=list,
         validator=instance_of(list))
     bedrock: BedrockSpec = attr.ib(
@@ -1727,20 +1623,12 @@ class ProcSpec:
         """
         return SpecListDecorator(list=self._providers, type=ProviderSpec)
 
-    @property
-    def clients(self) -> SpecListDecorator:
-        """Return a decorator to access the internal list of ClientSpec
-        and validate changes to this list.
-        """
-        return SpecListDecorator(list=self._clients, type=ClientSpec)
-
     def to_dict(self) -> dict:
         """Convert the ProcSpec into a dictionary.
         """
         data = {'margo': self.margo.to_dict(),
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
-                'clients': [c.to_dict() for c in self._clients],
                 'bedrock': self.bedrock.to_dict()}
         return data
 
@@ -1752,21 +1640,16 @@ class ProcSpec:
         libraries = dict()
         providers = []
         bedrock = {}
-        clients = []
         if 'libraries' in data:
             libraries = data['libraries']
         if 'providers' in data:
             for p in data['providers']:
-                providers.append(ProviderSpec.from_dict(p,  margo.argobots))
-        if 'clients' in data:
-            for c in data['clients']:
-                clients.append(ClientSpec.from_dict(c))
+                providers.append(ProviderSpec.from_dict(p))
         if 'bedrock' in data:
             bedrock = BedrockSpec.from_dict(data['bedrock'], margo.argobots)
         return ProcSpec(margo=margo,
                         libraries=libraries,
                         providers=providers,
-                        clients=clients,
                         bedrock=bedrock)
 
     def to_json(self, *args, **kwargs) -> str:
@@ -1795,14 +1678,10 @@ class ProcSpec:
             if p.type not in self._libraries:
                 raise ValueError('Could not find module library for' +
                                  f'module type {p.name}')
-        for c in self._clients:
-            if c.type not in self._libraries:
-                raise ValueError('Could not find module library for' +
-                                 f'module type {p.name}')
 
     @staticmethod
     def space(*, provider_space_factories: list[dict] = [],
-              **kwargs):
+              **kwargs) -> CS:
         """
         The provider_space_factories argument is a list of dictionaries with the following format.
         ```
@@ -1853,15 +1732,6 @@ class ProcSpec:
                 cs.add_configuration_space(
                     prefix=space_prefix, delimiter='.',
                     configuration_space=provider_cs)
-                # get the hyperparameter for the pool used by this provider
-                hp_pool = cs[f'{space_prefix}.pool']
-                # add a constraint on it (cannot have pool > num_pools)
-                # Note: pool is a categorical hyperparameter so we need a
-                # ForbiddenInClause for each subset of values it can take
-                for j in range(min_num_pools, max_num_pools):
-                    cs.add(ForbiddenAndConjunction(
-                        ForbiddenEqualsClause(hp_num_pools, j),
-                        ForbiddenInClause(hp_pool, list(range(j, max_num_pools)))))
                 # add conditions on all the hyperparameters of the sub-space,
                 # they exist only if i < num_providers.
                 if i <= hp_num_providers.lower:
@@ -1872,7 +1742,7 @@ class ProcSpec:
         return cs
 
     @staticmethod
-    def from_config(*, config: 'Configuration', prefix: str = '', **kwargs):
+    def from_config(*, config: Config, prefix: str = '', **kwargs) -> 'ProcSpec':
         """
         Create a ProcSpec from the provided Configuration object.
         Extra parameters (**kwargs) will be propagated to the underlying
@@ -1889,7 +1759,7 @@ class ProcSpec:
             for i in range(num_providers):
                 provider_specs.append(
                     ProviderSpec.from_config(
-                        name=f'{family}_{i}', pools=margo_spec.argobots.pools,
+                        name=f'{family}_{i}', #pools=margo_spec.argobots.pools,
                         provider_id=current_provider_id,
                         config=config, prefix=f'{prefix}providers.{family}[{i}].'))
                 current_provider_id += 1
@@ -1965,7 +1835,7 @@ class ServiceSpec:
 
     @staticmethod
     def space(*, process_space_factories: list[dict] = [],
-              **kwargs):
+              **kwargs) -> CS:
         """
         The process_space_factories argument is a list of dictionaries with the following format.
         ```
@@ -2011,8 +1881,8 @@ class ServiceSpec:
         return cs
 
     @staticmethod
-    def from_config(config: 'Configuration',
-                    prefix: str = '', **kwargs):
+    def from_config(config: Config,
+                    prefix: str = '', **kwargs) -> 'ServiceSpec':
         """
         Create a ServiceSpec from the provided Configuration object.
         Extra parameters (**kwargs) will be propagated to the underlying
@@ -2040,7 +1910,6 @@ attr.resolve_types(XstreamSpec, globals(), locals())
 attr.resolve_types(ArgobotsSpec, globals(), locals())
 attr.resolve_types(MargoSpec, globals(), locals())
 attr.resolve_types(ProviderSpec, globals(), locals())
-attr.resolve_types(ClientSpec, globals(), locals())
 attr.resolve_types(BedrockSpec, globals(), locals())
 attr.resolve_types(ProcSpec, globals(), locals())
 attr.resolve_types(ServiceSpec, globals(), locals())

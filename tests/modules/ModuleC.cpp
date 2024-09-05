@@ -1,9 +1,37 @@
-#include "BaseModule.hpp"
+#include "Helpers.hpp"
 #include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
+class ComponentC : public bedrock::AbstractComponent {
 
-class ModuleCServiceFactory : public BaseServiceFactory {
+    using json = nlohmann::json;
+
+    std::unique_ptr<TestProvider> m_provider;
+
+    public:
+
+    ComponentC(const bedrock::ComponentArgs& args)
+    : m_provider{std::make_unique<TestProvider>(args)} {}
+
+    void* getHandle() override {
+        return static_cast<void*>(m_provider.get());
+    }
+
+    static std::shared_ptr<bedrock::AbstractComponent>
+        Register(const bedrock::ComponentArgs& args) {
+            return std::make_shared<ComponentC>(args);
+        }
+
+    static std::vector<bedrock::Dependency>
+        GetDependencies(const bedrock::ComponentArgs& args) {
+            auto config = json::parse(args.config);
+            std::vector<bedrock::Dependency> dependencies;
+            if(!config.contains("expected_provider_dependencies"))
+                return dependencies;
+            auto& expected_dependencies = config["expected_provider_dependencies"];
+            return extractDependencies(expected_dependencies);
+        }
+
+    private:
 
     static inline std::vector<bedrock::Dependency> extractDependencies(
             const json& expected_dependencies) {
@@ -14,48 +42,17 @@ class ModuleCServiceFactory : public BaseServiceFactory {
             if(!dep.is_object()) continue;
             if(!dep.contains("name") || !dep.contains("type"))
                 continue;
-            int32_t flags = 0;
-            auto name = dep["name"].get<std::string>();
-            auto type = dep["type"].get<std::string>();
-            auto kind = dep.value("kind", std::string{""});
-            if(kind == "client") {
-                flags |= BEDROCK_KIND_CLIENT;
-            }
-            if(kind == "provider") {
-                flags |= BEDROCK_KIND_PROVIDER;
-            }
-            if(kind == "provider_handle") {
-                flags |= BEDROCK_KIND_PROVIDER_HANDLE;
-            }
-            if(dep.value("is_required", false)) {
-                flags |= BEDROCK_REQUIRED;
-            }
-            if(dep.value("is_array", false)) {
-                flags |= BEDROCK_ARRAY;
-            }
-            dependencies.push_back(bedrock::Dependency{name, type, flags});
+            bedrock::Dependency the_dep;
+            the_dep.name = dep["name"].get<std::string>();
+            the_dep.type = dep["type"].get<std::string>();
+            the_dep.is_array = dep.value("is_array", false);
+            the_dep.is_required = dep.value("is_required", false);
+            the_dep.is_updatable = dep.value("is_updatable", false);
+            dependencies.push_back(the_dep);
         }
         return dependencies;
     }
 
-    std::vector<bedrock::Dependency> getProviderDependencies(const char* cfg) override {
-        auto config = json::parse(cfg);
-        std::vector<bedrock::Dependency> dependencies;
-        if(!config.contains("expected_provider_dependencies"))
-            return dependencies;
-        auto& expected_dependencies = config["expected_provider_dependencies"];
-        return extractDependencies(expected_dependencies);
-    }
-
-    std::vector<bedrock::Dependency> getClientDependencies(const char* cfg) override {
-        auto config = json::parse(cfg);
-        std::vector<bedrock::Dependency> dependencies;
-        if(!config.contains("expected_client_dependencies"))
-            return dependencies;
-        auto& expected_dependencies = config["expected_client_dependencies"];
-        return extractDependencies(expected_dependencies);
-    }
-
 };
 
-BEDROCK_REGISTER_MODULE_FACTORY(module_c, ModuleCServiceFactory)
+BEDROCK_REGISTER_COMPONENT_TYPE(module_c, ComponentC)

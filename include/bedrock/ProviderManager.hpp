@@ -9,7 +9,6 @@
 #include <bedrock/NamedDependency.hpp>
 #include <bedrock/ProviderDescriptor.hpp>
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/AbstractServiceFactory.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
@@ -131,26 +130,6 @@ class ProviderManager {
         lookupProvider(const std::string& spec) const;
 
     /**
-     * @brief Register a provider from a descriptor.
-     *
-     * @param name Name of the provider.
-     * @param type Type of provider.
-     * @param provider_id Provider ID.
-     * @param pool Pool.
-     * @param config JSON configuration for the provider.
-     * @param dependencies Dependency map.
-     * @param tags Tags.
-     */
-    std::shared_ptr<ProviderDependency>
-        registerProvider(const std::string&               name,
-                         const std::string&               type,
-                         uint16_t                         provider_id,
-                         std::shared_ptr<NamedDependency> pool,
-                         const json&                      config,
-                         const ResolvedDependencyMap&     dependencies,
-                         const std::vector<std::string>&  tags = {});
-
-    /**
      * @brief Deregister a provider from a specification. The specification has
      * the same format as in lookupProvider().
      *
@@ -184,15 +163,6 @@ class ProviderManager {
      * @param list JSON array.
      */
     void addProviderListFromJSON(const json& list);
-
-    /**
-     * @brief Change the pool associated with a provider.
-     *
-     * @param provider Provider.
-     * @param pool New pool.
-     */
-    void changeProviderPool(const std::string& provider,
-                            const std::string& pool);
 
     /**
      * @brief Migrates the specified provider state to the destination.

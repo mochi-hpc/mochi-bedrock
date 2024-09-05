@@ -8,7 +8,6 @@
 
 #include "MargoManagerImpl.hpp"
 #include "ProviderManagerImpl.hpp"
-#include "ClientManagerImpl.hpp"
 #include "Formatting.hpp"
 #include "MPIEnvImpl.hpp"
 #include "bedrock/VoidPtr.hpp"
@@ -31,7 +30,6 @@ class DependencyFinderImpl {
     std::shared_ptr<MPIEnvImpl>        m_mpi;
     std::shared_ptr<MargoManagerImpl>  m_margo_context;
     std::weak_ptr<ProviderManagerImpl> m_provider_manager;
-    std::weak_ptr<ClientManagerImpl>   m_client_manager;
     double                             m_timeout = 30.0;
 
     tl::remote_procedure m_lookup_provider;
@@ -46,11 +44,10 @@ class DependencyFinderImpl {
         spdlog::trace("DependencyFinderImpl destroyed");
     }
 
-    void lookupRemoteProvider(hg_addr_t addr, uint16_t provider_id,
+    void lookupRemoteProvider(const tl::endpoint& addr, uint16_t provider_id,
                               const std::string&  spec,
                               ProviderDescriptor* desc) {
-        auto ph = tl::provider_handle(tl::endpoint(m_engine, addr, false),
-                                      provider_id);
+        auto ph = tl::provider_handle(addr, provider_id);
         RequestResult<ProviderDescriptor> result
             = m_lookup_provider.on(ph)(spec, m_timeout);
         if (result.error() != "") throw Exception(result.error());

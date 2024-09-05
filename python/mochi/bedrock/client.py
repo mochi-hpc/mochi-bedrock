@@ -16,7 +16,7 @@ import pybedrock_client
 import pymargo.core
 import pymargo
 import json
-from .spec import ProcSpec, XstreamSpec, PoolSpec, ProviderSpec, ClientSpec
+from .spec import ProcSpec, XstreamSpec, PoolSpec, ProviderSpec
 
 
 ClientException = pybedrock_client.Exception
@@ -51,8 +51,8 @@ class ServiceHandle:
     def query(self, script: str):
         return json.loads(self._internal.query_config(script))
 
-    def load_module(self, name: str, path: str):
-        self._internal.load_module(name, path)
+    def load_module(self, path: str):
+        self._internal.load_module(path)
 
     def _ensure_config_str(self, config):
         if isinstance(config, str):
@@ -76,17 +76,9 @@ class ServiceHandle:
     def remove_xstream(self, name: str):
         self._internal.remove_xstream(name)
 
-    def add_client(self, description: str|dict|ClientSpec):
-        description = self._ensure_config_str(description)
-        self._internal.add_client(description)
-
     def add_provider(self, description: str|dict|ProviderSpec):
         description = self._ensure_config_str(description)
         return self._internal.add_provider(description)
-
-    def change_provider_pool(self, provider_name: str, pool_name: str):
-        self._internal.change_provider_pool(
-            provider_name, pool_name)
 
 
 class ServiceGroupHandle:
