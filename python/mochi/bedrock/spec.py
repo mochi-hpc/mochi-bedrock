@@ -1383,7 +1383,8 @@ class ProviderConfigSpaceBuilder(ABC):
 
     @abstractmethod
     def resolve_to_provider_spec(
-            self, name: str, provider_id: int, config: Config, prefix: str) -> 'ProviderSpec':
+            self, name: str, provider_id: int,
+            config: Config, prefix: str) -> 'ProviderSpec':
         """
         This method should convert a Configuration object into a ProviderSpec,
         by extracting the configuration and dependencies from the sampled parameters.
@@ -1466,68 +1467,6 @@ class ProviderSpec:
         :type json_string: str
         """
         return ProviderSpec.from_dict(json.loads(json_string))
-
-    @staticmethod
-    def space(*, type: str, tags: list[str] = [],
-              provider_config_space: Optional[CS] = None,
-              provider_config_resolver: Callable[[Config, str], dict]|None = None,
-              dependency_config_space: Optional[CS] = None,
-              dependency_resolver: Callable[[Config, str], dict]|None = None) -> CS:
-        """
-        Create a ConfigurationSpace for a ProviderSpec.
-
-        - type: type of provider.
-        - tags: list of tags the provider will use.
-        - provider_config_space: a ConfigurationSpace for the "config" field of the provider.
-        - provider_config_resolver: a function (or callable) taking a Configuration and a prefix
-          and returning the provider's "config" field (dict) from the Configuration.
-        - dependency_config_space: a ConfigurationSpace for the "dependencies" field of the provider.
-        - dependency_resolver: a function (or callable) taking a Configuration and a prefix
-          and returning the provider's "dependencies" field (dict) from the Configuration.
-        """
-        from .config_space import ConfigurationSpace, FloatOrConst, Categorical, Constant
-        cs = ConfigurationSpace()
-        cs.add(Constant('type', type))
-        cs.add(Constant('tags', tags))
-
-        if provider_config_space is not None:
-            cs.add_configuration_space(
-                prefix='config', delimiter='.',
-                configuration_space=provider_config_space)
-        cs.add(Constant('config_resolver', provider_config_resolver))
-        if dependency_config_space is not None:
-            cs.add_configuration_space(
-                prefix='dependencies', delimiter='.',
-                configuration_space=dependency_config_space)
-        cs.add(Constant('dependency_resolver', dependency_resolver))
-        return cs
-
-    @staticmethod
-    def from_config(*, name: str, provider_id: int,
-                    config: Config, prefix: str = '') -> 'ProviderSpec':
-        """
-        Create a ProviderSpec from a given Configuration object.
-
-        This function must be also given the name and provider Id to give the provider,
-        as well as the list of pools of the underlying ProcSpec.
-        """
-        from .config_space import Configuration
-        type = config[f'{prefix}type']
-        tags = config[f'{prefix}tags']
-        provider_config_resolver = config[f'{prefix}config_resolver']
-        dependency_resolver = config[f'{prefix}dependency_resolver']
-        if provider_config_resolver is None:
-            provider_config = {}
-        else:
-            provider_config = provider_config_resolver(config, f'{prefix}config.')
-        if dependency_resolver is None:
-            provider_dependencies = {}
-        else:
-            provider_dependencies = dependency_resolver(config, f'{prefix}dependencies.')
-        return ProviderSpec(
-            name=name, type=type, provider_id=provider_id,
-            config=provider_config, tags=tags,
-            dependencies=provider_dependencies)
 
 
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)

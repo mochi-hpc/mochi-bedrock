@@ -163,13 +163,22 @@ class PrefixedConfigSpaceWrapper:
         if isinstance(arg, Hyperparameter):
             arg.name = self.prefix + arg.name
         if isinstance(arg, list):
-            for a in args:
+            for a in arg:
                 self.add(a)
         else:
             self.cs.add(arg)
 
     def __getattr__(self, key):
         return getattr(self.cs, key)
+
+    def __iter__(self):
+        return self.cs.__iter__()
+
+    def __getitem__(self, name):
+        return self.cs[name]
+
+    def __contains__(self, name):
+        return name in self.cs
 
 
 def CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
