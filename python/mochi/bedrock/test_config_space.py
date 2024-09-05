@@ -161,13 +161,13 @@ class TestConfigSpace(unittest.TestCase):
                     'count': 2
                 }
             ]).freeze()
-        print(space)
+        #print(space)
 
         config = space.sample_configuration()
-        print(config)
+        #print(config)
 
         spec = ServiceSpec.from_config(address='na+sm', config=config)
-        print(spec.to_json(indent=4))
+        #print(spec.to_json(indent=4))
 
 if __name__ == '__main__':
     unittest.main()

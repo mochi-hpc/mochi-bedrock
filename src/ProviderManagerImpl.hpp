@@ -47,15 +47,6 @@ class LocalProvider : public ProviderDependency {
         , resolved_dependencies(std::move(res_deps))
         , tags(std::move(_tags))
     {
-        std::cerr << "Created LocalProvider with name " << getName()
-            << ", type " << getType() << ", provider id " << provider_id
-            << ", and the following dependency map:" << std::endl;
-        for(auto& p : resolved_dependencies) {
-            std::cerr << p.first << ": " << std::endl;
-            for(auto d : p.second) {
-                std::cerr << "    " << d->getName() << std::endl;
-            }
-        }
     }
 
     json makeConfig() const {

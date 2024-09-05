@@ -126,6 +126,36 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
     return nullptr;
 }
 
+std::shared_ptr<NamedDependency> DependencyFinder::find(
+        const std::string& type,
+        size_t index,
+        std::string* resolved) const {
+    spdlog::trace("DependencyFinder search dependency of type {} at index {}", type, index);
+
+    if (type == "pool") { // Argobots pool
+
+        auto pool = MargoManager(self->m_margo_context).getPool(index);
+        if (!pool) {
+            throw Exception("Could not find pool at index \"{}\"", index);
+        }
+        if (resolved) { *resolved = pool->getName(); }
+        return pool;
+
+    } else if (type == "xstream") { // Argobots xstream
+
+        auto xstream = MargoManager(self->m_margo_context).getXstream(index);
+        if (!xstream) {
+            throw Exception("Could not find xstream at index \"{}\"", index);
+        }
+        if (resolved) { *resolved = xstream->getName(); }
+        return xstream;
+
+    } else {
+        throw Exception("Only pools and xstream can be referenced by index");
+    }
+    return nullptr;
+}
+
 std::shared_ptr<NamedDependency>
 DependencyFinder::findProvider(const std::string& type,
                                uint16_t           provider_id) const {

@@ -119,7 +119,15 @@ ProviderManager::addProviderFromJSON(const json& description) {
                 "additionalProperties": {
                     "anyOf": [
                         {"type": "string"},
-                        {"type": "array", "items": {"type": "string"}}
+                        {"type": "integer"},
+                        {"type": "array",
+                         "items": {
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "integer"}
+                            ]
+                          }
+                        }
                     ]
                 }
             },
@@ -148,21 +156,19 @@ ProviderManager::addProviderFromJSON(const json& description) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
-            if (!(dependency.is_array)) { // dependency should be a string
+            if (!(dependency.is_array)) { // dependency should be a string or an integer
                 if (dep_config.is_array() && dep_config.size() == 1) {
                     // an array of length 1 can be converted into a single string
                     dep_config = dep_config[0];
                 }
-                if (!dep_config.is_string()) {
-                    throw BEDROCK_DETAILED_EXCEPTION(
-                            "Dependency \"{}\" should be a string", dependency.name);
-                }
-                auto dep_handle = dependencyFinder.find(
-                        dependency.type, dep_config.get<std::string>(), nullptr);
+                auto dep_handle = dep_config.is_string() ?
+                    dependencyFinder.find(dependency.type, dep_config.get<std::string>(), nullptr)
+                  : dependencyFinder.find(dependency.type, dep_config.get<size_t>(), nullptr);
                 resolved_dependency_map[dependency.name].push_back(dep_handle);
 
             } else { // dependency is an array
-                if (dep_config.is_string()) {
+
+                if (dep_config.is_string() || dep_config.is_number_unsigned()) {
                     // a single string can be converted into an array of size 1
                     auto tmp_array = json::array();
                     tmp_array.push_back(dep_config);
@@ -173,10 +179,11 @@ ProviderManager::addProviderFromJSON(const json& description) {
                             "Dependency \"{}\" should be an array",
                             dependency.name);
                 }
-                std::vector<std::string> deps;
                 for (const auto& elem : dep_config) {
-                    auto dep_handle = dependencyFinder.find(
-                            dependency.type, elem.get<std::string>(), nullptr);
+                    auto dep_handle = elem.is_string() ?
+                        dependencyFinder.find(dependency.type, elem.get<std::string>(), nullptr)
+                      : dependencyFinder.find(dependency.type, elem.get<size_t>(), nullptr);
+
                     resolved_dependency_map[dependency.name].push_back(dep_handle);
                 }
             }

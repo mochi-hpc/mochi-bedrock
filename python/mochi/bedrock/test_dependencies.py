@@ -124,6 +124,26 @@ class TestProviderManager(unittest.TestCase):
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 
+    def test_dependency_on_pool_by_index(self):
+        providers = self.server.providers
+        self.assertEqual(len(providers), 2)
+
+        # Try creating a provider without the required dependency
+        provider_params = self.make_provider_params([
+            {"name": "dep1", "type": "pool", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with a wrong dependency
+        provider_params["dependencies"] = {"dep1": 123}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the required dependency
+        provider_params["dependencies"] = {"dep1": 1}
+        providers.create(**provider_params)
+        self.assertEqual(len(providers), 3)
+
     def test_dependency_on_xstream(self):
         providers = self.server.providers
         self.assertEqual(len(providers), 2)
@@ -141,6 +161,26 @@ class TestProviderManager(unittest.TestCase):
 
         # Try creating a provider with the required dependency
         provider_params["dependencies"] = {"dep1": "my_xstream"}
+        providers.create(**provider_params)
+        self.assertEqual(len(providers), 3)
+
+    def test_dependency_on_xstream_by_index(self):
+        providers = self.server.providers
+        self.assertEqual(len(providers), 2)
+
+        # Try creating a provider without the required dependency
+        provider_params = self.make_provider_params([
+            {"name": "dep1", "type": "xstream", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the wrong dependency
+        provider_params["dependencies"] = {"dep1": 123}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the required dependency
+        provider_params["dependencies"] = {"dep1": 1}
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 

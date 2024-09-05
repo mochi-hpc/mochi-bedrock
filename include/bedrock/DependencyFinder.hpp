@@ -105,6 +105,21 @@ class DependencyFinder {
              std::string* resolved) const;
 
     /**
+     * @brief Find a dependency by an "index" value. The dependency
+     * should be a pool or an xstream
+     *
+     * @param [in] type Type of dependency.
+     * @param [in] index Index of the dependency.
+     * @param [out] resolved Resolved specification.
+     *
+     * @return handle to dependency
+     */
+    std::shared_ptr<NamedDependency>
+        find(const std::string& type,
+             size_t index,
+             std::string* resolved) const;
+
+    /**
      * @brief Find a local provider based on a type and provider id.
      * Throws an exception if not found.
      *
