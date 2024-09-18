@@ -69,7 +69,7 @@ find_package (spdlog REQUIRED)
 find_package (fmt REQUIRED)
 # search for toml11
 find_package (toml11 REQUIRED)
-# search for abt-io
+# search for flock
 if (ENABLE_FLOCK)
     find_package (flock REQUIRED)
     add_definitions (-DENABLE_FLOCK)

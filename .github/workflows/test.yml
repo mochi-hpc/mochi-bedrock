@@ -44,6 +44,7 @@ jobs:
         cmake .. -DENABLE_TESTS=ON \
                  -DENABLE_EXAMPLES=ON \
                  -DENABLE_MPI=ON \
+                 -DENABLE_FLOCK=ON \
                  -DENABLE_PYTHON=ON \
                  -DCMAKE_BUILD_TYPE=Debug
         make
@@ -61,6 +62,7 @@ jobs:
         cmake .. -DENABLE_COVERAGE=ON \
                  -DENABLE_TESTS=ON \
                  -DENABLE_EXAMPLES=ON \
+                 -DENABLE_FLOCK=ON \
                  -DENABLE_MPI=ON \
                  -DENABLE_PYTHON=ON \
                  -DCMAKE_BUILD_TYPE=Debug
