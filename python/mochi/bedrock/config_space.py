@@ -17,7 +17,7 @@ import ConfigSpace
 from ConfigSpace.hyperparameters import Hyperparameter
 from ConfigSpace.conditions import Condition, Conjunction, ConditionLike
 from ConfigSpace.forbidden import ForbiddenLike
-from typing import Sequence, Any
+from typing import Sequence, Any, Mapping, Hashable
 
 
 # Configuration
@@ -33,6 +33,7 @@ NormalIntegerHyperparameter = ConfigSpace.NormalIntegerHyperparameter
 Constant = ConfigSpace.Constant
 UnParametrizedHyperparameter = ConfigSpace.UnParametrizedHyperparameter
 OrdinalHyperparameter = ConfigSpace.OrdinalHyperparameter
+IntegerHyperparameter = ConfigSpace.hyperparameters.IntegerHyperparameter
 # Conditions
 AndConjunction = ConfigSpace.AndConjunction
 OrConjunction = ConfigSpace.OrConjunction
@@ -68,9 +69,13 @@ class ConfigurationSpace:
         self._conditions = {} # associates the name of the condition's child to the tuple
                               # (condition_type, parent_name, value)
 
-    def add(self, arg: (Hyperparameter|ConditionLike|ForbiddenLike)):
+    def add(self, arg: (Hyperparameter|ConditionLike|ForbiddenLike|list)):
         if self._frozen:
             raise PermissionError("ConfigurationSpace is already frozen")
+        if isinstance(arg, list):
+            for x in arg:
+                self.add(x)
+            return
         if isinstance(arg, Condition):
             if arg.child.name not in self._conditions:
                 self._conditions[arg.child.name] = []
@@ -148,6 +153,34 @@ class ConfigurationSpace:
         return self._inner
 
 
+class PrefixedConfigSpaceWrapper:
+
+    def __init__(self, configuration_space: ConfigurationSpace, prefix: str):
+        self.prefix = prefix
+        self.cs = configuration_space
+
+    def add(self, arg):
+        if isinstance(arg, Hyperparameter):
+            arg.name = self.prefix + arg.name
+        if isinstance(arg, list):
+            for a in arg:
+                self.add(a)
+        else:
+            self.cs.add(arg)
+
+    def __getattr__(self, key):
+        return getattr(self.cs, key)
+
+    def __iter__(self):
+        return self.cs.__iter__()
+
+    def __getitem__(self, name):
+        return self.cs[name]
+
+    def __contains__(self, name):
+        return name in self.cs
+
+
 def CategoricalOrConst(name: str, items: Sequence[Any]|Any, *,
                        default: Any|None = None, weights: Sequence[float]|None = None,
                        ordered: bool = False, meta: dict|None = None):
@@ -209,3 +242,32 @@ def FloatOrConst(name: str, bounds: float|tuple[float, float], *,
     else:
         return Float(name=name, bounds=bounds, distribution=distribution,
                      default=default, log=log, meta=meta)
+
+
+def CategoricalChoice(name: str,
+                      num_options: IntegerHyperparameter|int,
+                      weights: Sequence[float] | None = None,
+                      meta: Mapping[Hashable, Any] | None = None) -> list[Any]:
+    """
+    This function is a helper to build a Categorical hyperparameter with the specified
+    name, whose value must be taken between 0 and num_options-1. num_options can be either
+    and integer or an IntegerHyperparameter. In the later case, this function will also
+    construct the required Forbidden clauses to constrain the value of the choice.
+
+    The result of this function is a list of Hyperparameter and Forbidden clauses, which
+    should then be passed to a ConfigurationSpace's add function.
+    """
+
+    max_options = num_options if isinstance(num_options, int) else int(num_options.upper)
+    min_options = num_options if isinstance(num_options, int) else int(num_options.lower)
+    choice = CategoricalOrConst(name, list(range(max_options)),
+                                default=0, meta=meta, weights=weights)
+    conditions = []
+    if max_options != min_options:
+        for j in range(min_options, max_options):
+            conditions.append(
+                ForbiddenAndConjunction(
+                    ForbiddenEqualsClause(num_options, j),
+                    ForbiddenInClause(choice, list(range(j, max_options)))))
+    return [choice, *conditions]
+

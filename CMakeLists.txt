@@ -2,7 +2,7 @@
 # See COPYRIGHT in top-level directory.
 cmake_minimum_required (VERSION 3.8)
 project (bedrock C CXX)
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing ()
 
@@ -11,10 +11,7 @@ option (ENABLE_COVERAGE "Enable code coverage" OFF)
 option (ENABLE_TESTS    "Build tests" OFF)
 option (ENABLE_EXAMPLES "Build examples" OFF)
 option (ENABLE_MPI      "Enable MPI support" OFF)
-option (ENABLE_MONA     "Enable MoNA support" OFF)
-option (ENABLE_SSG      "Enable SSG support" OFF)
 option (ENABLE_FLOCK    "Enable Flock support" OFF)
-option (ENABLE_ABT_IO   "Enable ABT-IO support" OFF)
 option (ENABLE_PYTHON   "Enable Python support" OFF)
 
 # library version set here (e.g. for shared libs).
@@ -59,8 +56,6 @@ endif ()
 
 # search for bedrock-module-api
 find_package (bedrock-module-api REQUIRED)
-# search for pkg-config
-find_package (PkgConfig REQUIRED)
 # search fo thallium
 find_package (thallium REQUIRED)
 # search for nlohmann/json and schema validator
@@ -75,20 +70,6 @@ find_package (fmt REQUIRED)
 # search for toml11
 find_package (toml11 REQUIRED)
 # search for abt-io
-if (ENABLE_ABT_IO)
-    pkg_check_modules (ABTIO REQUIRED IMPORTED_TARGET abt-io)
-    add_definitions (-DENABLE_ABT_IO)
-    set (OPTIONAL_ABT_IO PkgConfig::ABTIO)
-    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} abt-io")
-endif ()
-# search for ssg
-if (ENABLE_SSG)
-    pkg_check_modules (SSG REQUIRED IMPORTED_TARGET ssg)
-    add_definitions (-DENABLE_SSG)
-    set (OPTIONAL_SSG PkgConfig::SSG)
-    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} ssg")
-    set (OPTIONAL_CLIENT_DEPS "${OPTIONAL_CLIENT_DEPS} ssg")
-endif ()
 if (ENABLE_FLOCK)
     find_package (flock REQUIRED)
     add_definitions (-DENABLE_FLOCK)
@@ -101,13 +82,6 @@ if (${ENABLE_MPI})
     find_package (MPI REQUIRED)
     add_definitions (-DENABLE_MPI)
     set (OPTIONAL_MPI MPI::MPI_C)
-endif ()
-# search for mona
-if (ENABLE_MONA)
-    pkg_check_modules (MONA REQUIRED IMPORTED_TARGET mona)
-    add_definitions (-DENABLE_MONA)
-    set (OPTIONAL_MONA PkgConfig::MONA)
-    set (OPTIONAL_SERVER_DEPS "${OPTIONAL_SERVER_DEPS} mona")
 endif ()
 # search for Python
 if (ENABLE_PYTHON)

@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include <bedrock/Server.hpp>
+#include <bedrock/Exception.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>
 
@@ -9,13 +10,6 @@ using json = nlohmann::json;
 static void cleanupOutputConfig(json& config) {
     config["margo"].erase("mercury");
     config["margo"].erase("version");
-    for(auto& instance : config["abt_io"]) {
-        instance["config"].erase("version");
-    }
-    for(auto& instance : config["mona"]) {
-        if(instance.contains("address"))
-            instance["address"] = "<replaced>";
-    }
 }
 
 static std::string jsonToJx9(const json& config) {

@@ -80,11 +80,10 @@ class ServiceHandle {
     /**
      * @brief Ask the remote service daemon to load a module library.
      *
-     * @param name Name of the module.
      * @param path Library path.
      * @param req Asynchronous request to wait on, if provided.
      */
-    void loadModule(const std::string& name, const std::string& path,
+    void loadModule(const std::string& path,
                     AsyncRequest* req = nullptr) const;
 
     /**
@@ -170,26 +169,6 @@ class ServiceHandle {
      */
     void addClient(const std::string& description,
                    AsyncRequest*      req = nullptr) const;
-
-    /**
-     * @brief Creates a new ABT-IO instance on the target service daemon.
-     *
-     * @param description JSON description.
-     * @param req Asynchronous request to wait on, if provided.
-     */
-    void addABTioInstance(const std::string& description,
-                          AsyncRequest*      req = nullptr) const;
-
-    /**
-     * @brief Adds an SSG group to the target service daemon.
-     * The group is created from the provided JSON configuration.
-     *
-     * @param description JSON description.
-     * @param req Asynchronous request to wait on, if provided.
-     */
-    void addSSGgroup(const std::string& config,
-                     AsyncRequest*      req = nullptr) const;
-
 
     /**
      * @brief Adds an Argobots pool to the Margo instance of

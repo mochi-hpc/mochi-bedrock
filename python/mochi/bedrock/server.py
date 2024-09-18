@@ -16,7 +16,7 @@ import pybedrock_server
 import pymargo.core
 import pymargo
 from typing import Mapping, List
-from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, SSGSpec, AbtIOSpec, ProviderSpec, ClientSpec
+from .spec import ProcSpec, MargoSpec, PoolSpec, XstreamSpec, ProviderSpec
 import json
 
 
@@ -41,16 +41,9 @@ class NamedDependency:
     def type(self):
         return self._internal.type
 
-    @property
-    def handle(self):
-        return self._internal.handle
-
 
 Pool = NamedDependency
 Xstream = NamedDependency
-SSGGroup = NamedDependency
-AbtIOInstance = NamedDependency
-Client = NamedDependency
 
 
 class ProviderDependency(NamedDependency):
@@ -164,137 +157,6 @@ class MargoManager:
         return Pool(self._internal.default_handler_pool)
 
 
-class SSGManager:
-
-    def __init__(self, internal: pybedrock_server.SSGManager, server: 'Server'):
-        self._internal = internal
-        self._server = server
-
-    @property
-    def config(self):
-        return json.loads(self._internal.config)
-
-    @property
-    def spec(self) -> list[SSGSpec]:
-        abt_spec = self._server.margo.spec.argobots
-        return [SSGSpec.from_dict(group, abt_spec) for group in self.config]
-
-    def resolve(self, location: str) -> pymargo.core.Address:
-        mid = self._server.margo.mid
-        return pymargo.core.Address(
-                mid=mid, hg_addr=self._internal.resolve_address(location),
-                need_del=False).copy()
-
-    def __len__(self) -> int:
-        return self._internal.num_groups
-
-    def __getitem__(self, key: int|str) -> SSGGroup:
-        return SSGGroup(self._internal.get_group(key))
-
-    def __contains__(self, key: str) -> bool:
-        try:
-            self.__getitem__(key)
-            return True
-        except BedrockException:
-            return False
-
-    def create(self, name: str, pool: str|int|Pool = "__primary__",
-               config: str|dict|SSGSpec = "{}",
-               bootstrap: str = "init", group_file: str = "",
-               credential: int = -1) -> SSGGroup:
-        if not isinstance(pool, Pool):
-            pool = self._server.margo.pools[pool]
-        pool = pool._internal
-        if isinstance(config, str):
-            config = json.loads(config)
-        return SSGGroup(self._internal.add_group(name, config, pool, bootstrap, group_file, credential))
-
-
-class AbtIOManager:
-
-    def __init__(self, internal: pybedrock_server.ABTioManager, server: 'Server'):
-        self._internal = internal
-        self._server = server
-
-    @property
-    def config(self):
-        return json.loads(self._internal.config)
-
-    @property
-    def spec(self) -> list[AbtIOSpec]:
-        abt_spec = self._server.spec.margo.argobots
-        return [AbtIOSpec.from_dict(instance, abt_spec=abt_spec) for instance in self.config]
-
-    def __len__(self) -> int:
-        return self._internal.num_abtio_instances
-
-    def __getitem__(self, key: int|str) -> AbtIOInstance:
-        return AbtIOInstance(self._internal.get_abtio_instance(key))
-
-    def __contains__(self, key: str) -> bool:
-        try:
-            self.__getitem__(key)
-            return True
-        except BedrockException:
-            return False
-
-    def create(self, name: str, pool: str|int|Pool, config: str|dict = {}) -> AbtIOInstance:
-        if isinstance(config, str):
-            config = json.loads(config)
-        if not isinstance(pool, Pool):
-            pool = self._server.margo.pools[pool]
-        pool = pool._internal
-        return AbtIOInstance(self._internal.add_abtio_instance(name, pool, config))
-
-
-class ClientManager:
-
-    def __init__(self, internal: pybedrock_server.ClientManager, server: 'Server'):
-        self._internal = internal
-        self._server = server
-
-    @property
-    def config(self) -> dict:
-        return self._internal.config
-
-    @property
-    def spec(self) -> list[ClientSpec]:
-        return [ClientSpec.from_dict(client) for client in self.config]
-
-    def __len__(self):
-        return self._internal.num_clients
-
-    def __getitem__(self, key: int|str) -> Client:
-        return self._internal.get_client(key)
-
-    def __delitem__(self, key: int|str) -> None:
-        self._internal.remove_client(key)
-
-    def __contains__(self, key: str) -> bool:
-        try:
-            self.__getitem__(key)
-            return True
-        except BedrockException:
-            return False
-
-    def get_or_create_anonymous(self, type: str) -> Client:
-        return Client(self._internal.get_client_or_create(type))
-
-    def create(self, name: str, type: str, config: str|dict = "{}",
-               dependencies: dict[str,str|list[str]] = {},
-               tags: list[str] = []) -> Client:
-        if isinstance(config, str):
-            config = json.loads(config)
-        info = {
-            "name": name,
-            "type": type,
-            "dependencies": dependencies,
-            "tags": tags,
-            "config": config
-        }
-        return Client(self._internal.add_client(info))
-
-
 class ProviderManager:
 
     def __init__(self, internal: pybedrock_server.ProviderManager, server: 'Server'):
@@ -308,7 +170,7 @@ class ProviderManager:
     @property
     def spec(self) -> list[ProviderSpec]:
         abt_spec = self._server.margo.spec.argobots
-        return [ProviderSpec.from_dict(provider, abt_spec) for provider in self.config]
+        return [ProviderSpec.from_dict(provider) for provider in self.config]
 
     def __len__(self):
         return self._internal.num_providers
@@ -330,11 +192,8 @@ class ProviderManager:
         return Provider(self, self._internal.lookup_provider(locator))
 
     def create(self, name: str, type: str, provider_id: int = 65535,
-               pool: str|int|Pool = "__primary__",
                config: str|dict = {}, dependencies: dict[str,str|list[str]] = {},
-               tags: list[str] = []) -> Client:
-        if isinstance(pool, Pool):
-            pool = pool.name
+               tags: list[str] = []) -> Provider:
         if isinstance(config, str):
             config = json.loads(config)
         info = {
@@ -408,18 +267,6 @@ class Server:
     @property
     def margo(self) -> MargoManager:
         return MargoManager(self._internal.margo_manager, self)
-
-    @property
-    def ssg(self) -> SSGManager:
-        return SSGManager(self._internal.ssg_manager, self)
-
-    @property
-    def abtio(self) -> AbtIOManager:
-        return AbtIOManager(self._internal.abtio_manager, self)
-
-    @property
-    def clients(self) -> ClientManager:
-        return ClientManager(self._internal.client_manager, self)
 
     @property
     def providers(self) -> ProviderManager:

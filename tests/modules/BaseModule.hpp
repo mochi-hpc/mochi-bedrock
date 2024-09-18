@@ -1,51 +1,28 @@
 #include "Helpers.hpp"
 #include <iostream>
 
-class BaseServiceFactory : public bedrock::AbstractServiceFactory {
+class BaseComponent : public bedrock::AbstractComponent {
+
+    std::unique_ptr<TestProvider> m_provider;
 
     public:
 
-    BaseServiceFactory() = default;
+    BaseComponent(const bedrock::ComponentArgs& args)
+    : m_provider{std::make_unique<TestProvider>(args)} {}
 
-    virtual ~BaseServiceFactory() = default;
+    virtual ~BaseComponent() = default;
 
-    void* registerProvider(const bedrock::FactoryArgs& args) override {
-        return new TestProvider(args);
+    void* getHandle() override {
+        return static_cast<void*>(m_provider.get());
     }
 
-    void deregisterProvider(void* provider) override {
-        delete static_cast<TestProvider*>(provider);
-    }
+    static std::shared_ptr<bedrock::AbstractComponent>
+        Register(const bedrock::ComponentArgs& args) {
+            return std::make_shared<BaseComponent>(args);
+        }
 
-    std::string getProviderConfig(void* provider) override {
-        return static_cast<TestProvider*>(provider)->config;
-    }
-
-    void* initClient(const bedrock::FactoryArgs& args) override {
-        return new TestClient(args);
-    }
-
-    void finalizeClient(void* client) override {
-        delete static_cast<TestClient*>(client);
-    }
-
-    std::string getClientConfig(void* client) override {
-        return static_cast<TestClient*>(client)->config;
-    }
-
-    void* createProviderHandle(void* client, hg_addr_t address, uint16_t provider_id) override {
-        return new TestProviderHandle(client, address, provider_id);
-    }
-
-    void destroyProviderHandle(void* providerHandle) override {
-        delete static_cast<TestProviderHandle*>(providerHandle);
-    }
-
-    std::vector<bedrock::Dependency> getProviderDependencies(const char*) override {
-        return {};
-    }
-
-    std::vector<bedrock::Dependency> getClientDependencies(const char*) override {
-        return {};
-    }
+    static std::vector<bedrock::Dependency>
+        GetDependencies(const bedrock::ComponentArgs& args) {
+            return std::vector<bedrock::Dependency>{};
+        }
 };

@@ -1,8 +1,5 @@
 #include <bedrock/Client.hpp>
 #include <bedrock/ServiceGroupHandle.hpp>
-#ifdef ENABLE_SSG
-#include <ssg.h>
-#endif
 #include <spdlog/spdlog.h>
 #include <tclap/CmdLine.h>
 #include <nlohmann/json.hpp>
@@ -20,7 +17,6 @@ using nlohmann::json;
 static std::string              g_protocol;
 static std::vector<std::string> g_addresses;
 static std::string              g_log_level;
-static std::string              g_ssg_file;
 static std::string              g_flock_file;
 static std::string              g_jx9_file;
 static std::string              g_jx9_script_content;
@@ -47,10 +43,6 @@ int main(int argc, char** argv) {
     try {
         auto engine = thallium::engine(g_protocol, THALLIUM_CLIENT_MODE);
 
-#ifdef ENABLE_SSG
-        ssg_init();
-#endif
-
         if(!g_flock_file.empty()) {
             json flock_file_content;
             std::ifstream flock_file{g_flock_file};
@@ -70,8 +62,7 @@ int main(int argc, char** argv) {
 
         bedrock::Client client(engine);
 
-        auto sgh = g_ssg_file.empty() ? client.makeServiceGroupHandle(g_addresses, g_provider_id)
-                                      : client.makeServiceGroupHandleFromSSGFile(g_ssg_file, g_provider_id);
+        auto sgh = client.makeServiceGroupHandle(g_addresses, g_provider_id);
 
         std::string result;
         if (g_jx9_script_content.empty())
@@ -79,9 +70,6 @@ int main(int argc, char** argv) {
         else
             sgh.queryConfig(g_jx9_script_content, &result);
         std::cout << (g_pretty ? json::parse(result).dump(4) : result) << std::endl;
-#ifdef ENABLE_SSG
-        ssg_finalize();
-#endif
     } catch (const std::exception& e) { spdlog::critical(e.what()); exit(-1); }
     return 0;
 }
@@ -106,12 +94,6 @@ static void parseCommandLine(int argc, char** argv) {
             "f", "flock-file",
             "Flock file from which to read addresses of Bedrock daemons", false,
             "", "filename");
-#ifdef ENABLE_SSG
-        TCLAP::ValueArg<std::string> ssgFile(
-            "s", "ssg-file",
-            "SSG file from which to read addresses of Bedrock daemons", false,
-            "", "filename");
-#endif
         TCLAP::ValueArg<std::string> jx9File(
             "j", "jx9-file", "Jx9 file to send to processes and execute", false,
             "", "filename");
@@ -122,9 +104,6 @@ static void parseCommandLine(int argc, char** argv) {
         cmd.add(protocol);
         cmd.add(logLevel);
         cmd.add(flockFile);
-#ifdef ENABLE_SSG
-        cmd.add(ssgFile);
-#endif
         cmd.add(providerID);
         cmd.add(addresses);
         cmd.add(prettyJSON);
@@ -133,15 +112,12 @@ static void parseCommandLine(int argc, char** argv) {
         g_addresses   = addresses.getValue();
         g_log_level   = logLevel.getValue();
         g_flock_file  = flockFile.getValue();
-#ifdef ENABLE_SSG
-        g_ssg_file    = ssgFile.getValue();
-#endif
         g_protocol    = protocol.getValue();
         g_provider_id = providerID.getValue();
         g_pretty      = prettyJSON.getValue();
         g_jx9_file    = jx9File.getValue();
-        if(!g_addresses.empty() && !g_ssg_file.empty()) {
-            std::cerr << "error: specifying -s and -a at the same time is not supported" << std::endl;
+        if(g_addresses.empty()) {
+            std::cerr << "error: no address specified" << std::endl;
             exit(-1);
         }
     } catch (TCLAP::ArgException& e) {

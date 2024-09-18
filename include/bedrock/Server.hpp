@@ -7,10 +7,7 @@
 #define __BEDROCK_SERVER_HPP
 
 #include <bedrock/MargoManager.hpp>
-#include <bedrock/ABTioManager.hpp>
-#include <bedrock/SSGManager.hpp>
 #include <bedrock/ProviderManager.hpp>
-#include <bedrock/ClientManager.hpp>
 #include <thallium.hpp>
 #include <memory>
 
@@ -86,24 +83,9 @@ class Server {
     MargoManager getMargoManager() const;
 
     /**
-     * @brief Get the underlying ABTioManager.
-     */
-    ABTioManager getABTioManager() const;
-
-    /**
      * @brief Get the underlying ProviderManager.
      */
     ProviderManager getProviderManager() const;
-
-    /**
-     * @brief Get the underlying ClientManager.
-     */
-    ClientManager getClientManager() const;
-
-    /**
-     * @brief Get the underlying SSG context.
-     */
-    SSGManager getSSGManager() const;
 
     /**
      * @brief Blocks until the underlying margo instance is finalized.
@@ -123,8 +105,8 @@ class Server {
   private:
     std::unique_ptr<ServerImpl> self;
 
-    static void onFinalize(void* uargs);
-    static void onPreFinalize(void* uargs);
+    void onFinalize();
+    void onPreFinalize();
 };
 
 } // namespace bedrock

@@ -8,10 +8,10 @@ class TestProviderManager(unittest.TestCase):
 
     def setUp(self):
         config = {
-            "libraries": {
-                "module_a": "./libModuleA.so",
-                "module_b": "./libModuleB.so"
-            },
+            "libraries": [
+                "./libModuleA.so",
+                "./libModuleB.so"
+            ],
             "providers": [
                 {
                     "name": "my_provider_A",
@@ -44,7 +44,6 @@ class TestProviderManager(unittest.TestCase):
         self.assertEqual(provider_A.name, provider_B.name)
         self.assertEqual(provider_A.type, provider_B.type)
         self.assertEqual(provider_A.provider_id, provider_B.provider_id)
-        self.assertEqual(provider_A.handle, provider_B.handle)
         with self.assertRaises(mbs.BedrockException):
             p = providers[1]
         with self.assertRaises(mbs.BedrockException):
@@ -56,7 +55,7 @@ class TestProviderManager(unittest.TestCase):
         self.assertEqual(len(config), 1)
         provider_1 = config[0]
         self.assertIsInstance(provider_1, dict)
-        for key in ["name", "pool", "config", "provider_id", "dependencies", "tags", "type"]:
+        for key in ["name", "config", "provider_id", "dependencies", "tags", "type"]:
             self.assertIn(key, provider_1)
 
     def test_provider_manager_spec(self):
@@ -69,7 +68,6 @@ class TestProviderManager(unittest.TestCase):
         providers = self.server.providers
         providers.create(
             name="my_provider_B",
-            pool="__primary__",
             provider_id=2,
             type="module_b")
         self.assertEqual(len(providers), 2)
@@ -78,7 +76,6 @@ class TestProviderManager(unittest.TestCase):
         self.assertEqual(provider_A.name, provider_B.name)
         self.assertEqual(provider_A.type, provider_B.type)
         self.assertEqual(provider_A.provider_id, provider_B.provider_id)
-        self.assertEqual(provider_A.handle, provider_B.handle)
 
     def test_remove_provider(self):
         self.test_add_provider()

@@ -11,9 +11,6 @@ spack:
   - mochi-margo
   - mochi-thallium
   - mochi-bedrock-module-api
-  - mochi-abt-io
-  - mochi-ssg+mpi
-  - mochi-mona
   - mochi-flock
   - nlohmann-json
   - nlohmann-json-schema-validator
@@ -28,7 +25,6 @@ spack:
   - py-coverage
   - py-typer
   - py-rich
-  - py-mochi-ssg
   - py-configspace
   concretizer:
     unify: true

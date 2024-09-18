@@ -7,7 +7,6 @@ from pymargo.core import Engine
 
 class ServiceContext:
 
-    ssg_prefix = "ssg://"
     flock_prefix = "flock://"
 
     def __init__(self, target=None):
@@ -15,14 +14,6 @@ class ServiceContext:
         if self.connection is None:
             print(f"Error: bedrockctl not connected")
             raise typer.Exit(code=-1)
-        # SSG file
-        if self.connection.startswith(ServiceContext.ssg_prefix):
-            group_file = self.connection[len(ServiceContext.ssg_prefix):]
-            if not (os.path.exists(group_file) and os.path.isfile(group_file)):
-                print(f"Error: could not access SSG file {group_file}")
-                raise typer.Exit(code=-1)
-            import pyssg
-            self.protocol = pyssg.get_group_transport_from_file(group_file)
         # Flock file
         elif self.connection.startswith(ServiceContext.flock_prefix):
             group_file = self.connection[len(ServiceContext.flock_prefix):]
@@ -58,12 +49,7 @@ class ServiceContext:
     def __enter__(self):
         self.engine = Engine(self.protocol)
         client = Client(self.engine)
-        if self.connection.startswith(ServiceContext.ssg_prefix):
-            import pyssg
-            pyssg.init()
-            self.service = client.make_service_group_handle_from_ssg(
-                self.connection[len(ServiceContext.ssg_prefix):])
-        elif self.connection.startswith(ServiceContext.flock_prefix):
+        if self.connection.startswith(ServiceContext.flock_prefix):
             self.service = client.make_service_group_handle_from_flock(
                 self.connection[len(ServiceContext.flock_prefix):])
         else:
@@ -73,9 +59,6 @@ class ServiceContext:
     def __exit__(self, type, value, traceback):
         self.service = None
         del self.service
-        if self.connection.startswith(ServiceContext.ssg_prefix):
-            import pyssg
-            pyssg.finalize()
         self.engine.finalize()
 
 

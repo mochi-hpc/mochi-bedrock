@@ -4,8 +4,8 @@
  * See COPYRIGHT in top-level directory.
  */
 #include <bedrock/ProviderManager.hpp>
-#include <bedrock/ModuleContext.hpp>
-#include <bedrock/AbstractServiceFactory.hpp>
+#include <bedrock/ModuleManager.hpp>
+#include <bedrock/AbstractComponent.hpp>
 #include <bedrock/DependencyFinder.hpp>
 #include <bedrock/DetailedException.hpp>
 
@@ -30,7 +30,7 @@ ProviderManager::ProviderManager(const MargoManager& margo,
                                  uint16_t provider_id,
                                  std::shared_ptr<NamedDependency> pool)
 : self(std::make_shared<ProviderManagerImpl>(margo.getThalliumEngine(),
-                                             provider_id, tl::pool(pool->getHandle<ABT_pool>()))) {
+                                             provider_id, tl::pool(pool->getHandle<tl::pool>()))) {
     self->m_margo_manager = margo;
     self->m_jx9_manager   = jx9;
 }
@@ -86,65 +86,6 @@ std::shared_ptr<ProviderDependency> ProviderManager::getProvider(size_t index) c
     return self->m_providers[index];
 }
 
-std::shared_ptr<ProviderDependency>
-ProviderManager::registerProvider(
-    const std::string& name, const std::string& type, uint16_t provider_id,
-    std::shared_ptr<NamedDependency> pool, const json& config,
-    const ResolvedDependencyMap& dependencies,
-    const std::vector<std::string>& tags) {
-
-    std::shared_ptr<LocalProvider> entry;
-    auto service_factory = ModuleContext::getServiceFactory(type);
-    if (!service_factory) {
-        throw BEDROCK_DETAILED_EXCEPTION(
-            "Could not find service factory for provider type \"{}\"", type);
-    }
-
-    {
-        std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-        auto                       it = self->resolveSpec(name);
-        if (it != self->m_providers.end()) {
-            throw BEDROCK_DETAILED_EXCEPTION(
-                "Name \"{}\" already used by another provider", name);
-        }
-
-        if (provider_id == std::numeric_limits<uint16_t>::max())
-            provider_id = self->getAvailableProviderID();
-
-        it = std::find_if(self->m_providers.begin(), self->m_providers.end(),
-                [provider_id](const auto& p) { return p->getProviderID() == provider_id; });
-        if (it != self->m_providers.end()) {
-            throw BEDROCK_DETAILED_EXCEPTION(
-                "Another provider already uses provider ID {}", provider_id);
-        }
-
-        auto margo = MargoManager(self->m_margo_manager);
-
-        FactoryArgs args;
-        args.name         = name;
-        args.mid          = margo.getMargoInstance();
-        args.engine       = margo.getThalliumEngine();
-        args.pool         = pool->getHandle<ABT_pool>();
-        args.config       = config.is_null() ? std::string{"{}"} : config.dump();
-        args.tags         = tags;
-        args.dependencies = dependencies;
-        args.provider_id  = provider_id;
-
-        auto handle = service_factory->registerProvider(args);
-
-        entry = std::make_shared<LocalProvider>(
-            name, type, provider_id, handle, service_factory, pool,
-            std::move(dependencies), tags);
-
-        spdlog::trace("Registered provider {} of type {} with provider id {}",
-                      name, type, provider_id);
-
-        self->m_providers.push_back(entry);
-    }
-    self->m_providers_cv.notify_all();
-    return entry;
-}
-
 void ProviderManager::deregisterProvider(const std::string& spec) {
     std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
     auto                       it = self->resolveSpec(spec);
@@ -161,17 +102,12 @@ ProviderManager::addProviderFromJSON(const json& description) {
         throw BEDROCK_DETAILED_EXCEPTION("No DependencyFinder set in ProviderManager");
     }
     auto dependencyFinder = DependencyFinder(self->m_dependency_finder);
-
     static const json configSchema = R"(
     {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "type": "object",
         "properties": {
             "name": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
-            "pool": {"oneOf": [
-                {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
-                {"type": "integer", "minimum": 0 }
-            ]},
             "provider_id": {"type": "integer", "minimum": 0, "maximum": 65535},
             "type": {"type": "string"},
             "tags": {
@@ -183,7 +119,15 @@ ProviderManager::addProviderFromJSON(const json& description) {
                 "additionalProperties": {
                     "anyOf": [
                         {"type": "string"},
-                        {"type": "array", "items": {"type": "string"}}
+                        {"type": "integer"},
+                        {"type": "array",
+                         "items": {
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "integer"}
+                            ]
+                          }
+                        }
                     ]
                 }
             },
@@ -195,85 +139,93 @@ ProviderManager::addProviderFromJSON(const json& description) {
     static const JsonValidator validator{configSchema};
     validator.validate(description, "ProviderManager");
 
-    auto& name = description["name"].get_ref<const std::string&>();
     auto& type = description["type"].get_ref<const std::string&>();
-    auto provider_id = description.value("provider_id", std::numeric_limits<uint16_t>::max());
-
-    auto service_factory = ModuleContext::getServiceFactory(type);
-    if (!service_factory) {
-        throw BEDROCK_DETAILED_EXCEPTION(
-            "Could not find service factory for provider type \"{}\"", type);
-    }
-
-    auto config = description.value("config", json::object());
-    auto configStr = config.dump();
-
-    // find pool
-    std::shared_ptr<NamedDependency> pool;
-    if(description.contains("pool") && description["pool"].is_number()) {
-        pool = MargoManager(self->m_margo_manager)
-            .getPool(description["pool"].get<uint32_t>());
-    } else {
-        pool = MargoManager(self->m_margo_manager)
-            .getPool(description.value("pool", "__primary__"));
-    }
-
-    std::vector<std::string> tags;
-    for(auto& tag : description.value("tags", json::array())) {
-        tags.push_back(tag.get<std::string>());
-    }
+    ComponentArgs args;
+    args.name = description["name"];
+    args.provider_id = description.value("provider_id", std::numeric_limits<uint16_t>::max());
+    args.config = description.value("config", json::object()).dump();
+    args.engine = MargoManager{self->m_margo_manager}.getThalliumEngine();
+    for(auto& tag : description.value("tags", json::array()))
+        args.tags.push_back(tag.get<std::string>());
 
     auto deps_from_config = description.value("dependencies", json::object());
-    ResolvedDependencyMap resolved_dependency_map;
+    auto requested_dependencies = ModuleManager::getDependencies(type, args);
+    auto& resolved_dependency_map = args.dependencies;
 
-    for (const auto& dependency : service_factory->getProviderDependencies(configStr.c_str())) {
+    for (const auto& dependency : requested_dependencies) {
         spdlog::trace("Resolving dependency {}", dependency.name);
         if (deps_from_config.contains(dependency.name)) {
             auto dep_config = deps_from_config[dependency.name];
-            if (!(dependency.flags & BEDROCK_ARRAY)) { // dependency should be a string
+            if (!(dependency.is_array)) { // dependency should be a string or an integer
                 if (dep_config.is_array() && dep_config.size() == 1) {
                     // an array of length 1 can be converted into a single string
                     dep_config = dep_config[0];
                 }
-                if (!dep_config.is_string()) {
-                    throw BEDROCK_DETAILED_EXCEPTION("Dependency \"{}\" should be a string",
-                            dependency.name);
-                }
-                auto dep_handle = dependencyFinder.find(
-                        dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
-                        dep_config.get<std::string>(), nullptr);
-                resolved_dependency_map[dependency.name].is_array = false;
-                resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
+                auto dep_handle = dep_config.is_string() ?
+                    dependencyFinder.find(dependency.type, dep_config.get<std::string>(), nullptr)
+                  : dependencyFinder.find(dependency.type, dep_config.get<size_t>(), nullptr);
+                resolved_dependency_map[dependency.name].push_back(dep_handle);
 
             } else { // dependency is an array
-                if (dep_config.is_string()) {
+
+                if (dep_config.is_string() || dep_config.is_number_unsigned()) {
                     // a single string can be converted into an array of size 1
                     auto tmp_array = json::array();
                     tmp_array.push_back(dep_config);
                     dep_config = tmp_array;
                 }
                 if (!dep_config.is_array()) {
-                    throw BEDROCK_DETAILED_EXCEPTION("Dependency \"{}\" should be an array",
+                    throw BEDROCK_DETAILED_EXCEPTION(
+                            "Dependency \"{}\" should be an array",
                             dependency.name);
                 }
-                std::vector<std::string> deps;
                 for (const auto& elem : dep_config) {
-                    auto dep_handle = dependencyFinder.find(
-                            dependency.type, BEDROCK_GET_KIND_FROM_FLAG(dependency.flags),
-                            elem.get<std::string>(), nullptr);
-                    resolved_dependency_map[dependency.name].is_array = true;
-                    resolved_dependency_map[dependency.name].dependencies.push_back(dep_handle);
+                    auto dep_handle = elem.is_string() ?
+                        dependencyFinder.find(dependency.type, elem.get<std::string>(), nullptr)
+                      : dependencyFinder.find(dependency.type, elem.get<size_t>(), nullptr);
+
+                    resolved_dependency_map[dependency.name].push_back(dep_handle);
                 }
             }
-        } else if (dependency.flags & BEDROCK_REQUIRED) {
+        } else if (dependency.is_required) {
             throw BEDROCK_DETAILED_EXCEPTION(
-                "Missing dependency \"{}\" of type \"{}\" in provider configuration",
-                dependency.name, dependency.type);
+                    "Missing dependency \"{}\" of type \"{}\" in provider configuration",
+                    dependency.name, dependency.type);
         }
     }
 
-    return registerProvider(name, type, provider_id, pool, config,
-                            resolved_dependency_map, tags);
+    std::shared_ptr<LocalProvider> entry;
+    {
+        std::unique_lock<tl::mutex> lock(self->m_providers_mtx);
+        auto                        it = self->resolveSpec(args.name);
+        if (it != self->m_providers.end()) {
+            throw BEDROCK_DETAILED_EXCEPTION(
+                    "Name \"{}\" already used by another provider", args.name);
+        }
+
+        if (args.provider_id == std::numeric_limits<uint16_t>::max())
+            args.provider_id = self->getAvailableProviderID();
+
+        it = std::find_if(self->m_providers.begin(), self->m_providers.end(),
+                [&](const auto& p) { return p->getProviderID() == args.provider_id; });
+        if (it != self->m_providers.end()) {
+            throw BEDROCK_DETAILED_EXCEPTION(
+                    "Another provider already uses provider ID {}", args.provider_id);
+        }
+
+        auto handle = ModuleManager::createComponent(type, args);
+
+        entry = std::make_shared<LocalProvider>(
+                args.name, type, args.provider_id, handle,
+                requested_dependencies, args.dependencies, args.tags);
+
+        spdlog::trace("Registered provider {} of type {} with provider id {}",
+                args.name, type, args.provider_id);
+
+        self->m_providers.push_back(entry);
+    }
+    self->m_providers_cv.notify_all();
+    return entry;
 }
 
 void ProviderManager::addProviderListFromJSON(const json& list) {
@@ -288,24 +240,6 @@ void ProviderManager::addProviderListFromJSON(const json& list) {
     }
 }
 
-void ProviderManager::changeProviderPool(const std::string& provider,
-                                         const std::string& pool_name) {
-    // find the provider
-    std::lock_guard<tl::mutex> lock(self->m_providers_mtx);
-    auto                       it = self->resolveSpec(provider);
-    if (it == self->m_providers.end())
-        throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
-    // find the pool
-    auto margo_manager = MargoManager(self->m_margo_manager);
-    auto pool = margo_manager.getPool(pool_name);
-    if(!pool) {
-        throw BEDROCK_DETAILED_EXCEPTION("Could not find pool named \"{}\"", pool_name);
-    }
-    // call the provider's change_pool callback
-    (*it)->factory->changeProviderPool((*it)->getHandle<void*>(), pool->getHandle<ABT_pool>());
-    (*it)->pool = pool;
-}
-
 void ProviderManager::migrateProvider(
         const std::string& provider,
         const std::string& dest_addr,
@@ -317,10 +251,9 @@ void ProviderManager::migrateProvider(
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
         throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
-    // call the provider's migrateProvider callback
+    ComponentPtr theProvider = (*it)->getHandle<ComponentPtr>();
     try {
-        (*it)->factory->migrateProvider(
-                (*it)->getHandle<void*>(),
+        theProvider->migrate(
                 dest_addr.c_str(), dest_provider_id,
                 migration_config.c_str(),
                 remove_source);
@@ -339,13 +272,12 @@ void ProviderManager::snapshotProvider(
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
         throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
-    // call the provider's snapshotProvider callback
+    ComponentPtr theProvider = (*it)->getHandle<ComponentPtr>();
     try {
-        (*it)->factory->snapshotProvider(
-                (*it)->getHandle<void*>(),
-                dest_path.c_str(),
-                snapshot_config.c_str(),
-                remove_source);
+        theProvider->snapshot(
+            dest_path.c_str(),
+            snapshot_config.c_str(),
+            remove_source);
     } catch(const std::exception& ex) {
         throw Exception{ex.what()};
     }
@@ -360,12 +292,11 @@ void ProviderManager::restoreProvider(
     auto                       it = self->resolveSpec(provider);
     if (it == self->m_providers.end())
         throw BEDROCK_DETAILED_EXCEPTION("Provider with spec \"{}\" not found", provider);
-    // call the provider's restoreProvider callback
+    ComponentPtr theProvider = (*it)->getHandle<ComponentPtr>();
     try {
-        (*it)->factory->restoreProvider(
-                (*it)->getHandle<void*>(),
-                src_path.c_str(),
-                restore_config.c_str());
+        theProvider->restore(
+            src_path.c_str(),
+            restore_config.c_str());
     } catch(const std::exception& ex) {
         throw Exception{ex.what()};
     }

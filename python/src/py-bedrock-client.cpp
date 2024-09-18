@@ -35,15 +35,6 @@ PYBIND11_MODULE(pybedrock_client, m) {
              "Create a ServiceHandle instance",
              "address"_a,
              "provider_id"_a=0)
-        .def("make_service_group_handle_from_ssg_file",
-             [](const Client& client,
-                const std::string& groupfile,
-                uint16_t provider_id) {
-                return client.makeServiceGroupHandleFromSSGFile(groupfile, provider_id);
-             },
-             "Create a ServiceGroupHandle instance",
-             "group_file"_a,
-             "provider_id"_a=0)
         .def("make_service_group_handle",
              [](const Client& client,
                 const std::vector<std::string>& addresses,
@@ -52,15 +43,6 @@ PYBIND11_MODULE(pybedrock_client, m) {
              },
              "Create a ServiceGroupHandle instance",
              "addresses"_a,
-             "provider_id"_a=0)
-        .def("make_service_group_handle_from_ssg_group",
-             [](const Client& client,
-                uint64_t gid,
-                uint16_t provider_id) {
-                return client.makeServiceGroupHandleFromSSGGroup(gid, provider_id);
-             },
-             "Create a ServiceGroupHandle instance",
-             "group_id"_a,
              "provider_id"_a=0)
         .def("make_service_group_handle_from_flock_file",
              [](const Client& client,
@@ -93,10 +75,9 @@ PYBIND11_MODULE(pybedrock_client, m) {
             }, "script"_a)
         .def("load_module",
             [](const ServiceHandle& sh,
-               const std::string& name,
                const std::string& path) {
-                    sh.loadModule(name, path);
-            }, "name"_a, "path"_a)
+                    sh.loadModule(path);
+            }, "path"_a)
         .def("add_provider",
             [](const ServiceHandle& sh,
                const std::string& description) {
@@ -104,26 +85,6 @@ PYBIND11_MODULE(pybedrock_client, m) {
                     sh.addProvider(description, &provider_id_out);
                     return provider_id_out;
             }, "description"_a)
-        .def("change_provider_pool",
-             [](const ServiceHandle& sh,
-                const std::string& provider_name,
-                const std::string& pool_name) {
-                sh.changeProviderPool(provider_name, pool_name);
-             })
-        .def("add_client",
-            [](const ServiceHandle& sh,
-               const std::string& description) {
-                    sh.addClient(description);
-            }, "description"_a)
-        .def("add_abtio_instance",
-            [](const ServiceHandle& sh,
-               const std::string& description) {
-                    sh.addABTioInstance(description);
-            }, "description"_a = std::string("{}"))
-        .def("add_ssg_group", [](const ServiceHandle& sh, const std::string& config) {
-                sh.addSSGgroup(config);
-            },
-            "description"_a)
         .def("add_pool", [](const ServiceHandle& sh, const std::string& config) {
                 sh.addPool(config);
             },

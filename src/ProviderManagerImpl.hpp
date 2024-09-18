@@ -10,7 +10,7 @@
 #include "bedrock/DependencyFinder.hpp"
 #include "bedrock/DependencyMap.hpp"
 #include "bedrock/RequestResult.hpp"
-#include "bedrock/AbstractServiceFactory.hpp"
+#include "bedrock/AbstractComponent.hpp"
 #include "bedrock/ProviderDescriptor.hpp"
 #include "bedrock/Jx9Manager.hpp"
 #include "bedrock/Exception.hpp"
@@ -34,49 +34,42 @@ class LocalProvider : public ProviderDependency {
 
     public:
 
-    std::shared_ptr<NamedDependency> pool;
-    ResolvedDependencyMap            dependencies;
-    AbstractServiceFactory*          factory = nullptr;
-    std::vector<std::string>         tags;
+    std::vector<Dependency>  requested_dependencies;
+    ResolvedDependencyMap    resolved_dependencies;
+    std::vector<std::string> tags;
 
     LocalProvider(
-        std::string name, std::string type, uint16_t provider_id,
-        void* handle, AbstractServiceFactory* factory,
-        std::shared_ptr<NamedDependency> pool,
-        ResolvedDependencyMap deps,
-        std::vector<std::string> _tags)
-    : ProviderDependency(std::move(name), std::move(type), handle,
-        [factory](void* handle) {
-            if(factory) factory->deregisterProvider(handle);
-        }, provider_id)
-    , pool(std::move(pool))
-    , dependencies(std::move(deps))
-    , factory(factory)
-    , tags(std::move(_tags))
-    {}
+            std::string name, std::string type, uint16_t provider_id, ComponentPtr ptr,
+            std::vector<Dependency> req_deps, ResolvedDependencyMap res_deps,
+            std::vector<std::string> _tags)
+        : ProviderDependency(std::move(name), std::move(type), ptr, provider_id)
+        , requested_dependencies(std::move(req_deps))
+        , resolved_dependencies(std::move(res_deps))
+        , tags(std::move(_tags))
+    {
+    }
 
     json makeConfig() const {
+        ComponentPtr ptr  = getHandle<ComponentPtr>();
         auto c            = json::object();
         c["name"]         = getName();
         c["type"]         = getType();
         c["provider_id"]  = getProviderID();
-        c["pool"]         = pool->getName();
-        c["config"]       = json::parse(factory->getProviderConfig(getHandle<void*>()));
+        c["config"]       = json::parse(ptr->getConfig());
         c["tags"]         = json::array();
         for(auto& t : tags) c["tags"].push_back(t);
         c["dependencies"] = json::object();
         auto& d           = c["dependencies"];
-        for (auto& p : dependencies) {
-            auto& dep_name  = p.first;
-            auto& dep_group = p.second;
-            if (dep_group.dependencies.size() == 0) continue;
-            if (!dep_group.is_array) {
-                d[dep_name] = dep_group.dependencies[0]->getName();
-            } else {
-                d[dep_name] = json::array();
-                for (auto& x : dep_group.dependencies) {
-                    d[dep_name].push_back(x->getName());
+        for (auto& dep : requested_dependencies) {
+            auto res_dep = resolved_dependencies.find(dep.name);
+            if(res_dep == resolved_dependencies.end()) continue;
+            if(dep.is_array) {
+                d[dep.name] = json::array();
+                for(auto& x : res_dep->second) {
+                    d[dep.name].push_back(x->getName());
                 }
+            } else {
+                d[dep.name] = res_dep->second[0]->getName();
             }
         }
         return c;
@@ -99,7 +92,6 @@ class ProviderManagerImpl
     tl::auto_remote_procedure m_lookup_provider;
     tl::auto_remote_procedure m_load_module;
     tl::auto_remote_procedure m_start_provider;
-    tl::auto_remote_procedure m_change_provider_pool;
     tl::auto_remote_procedure m_migrate_provider;
     tl::auto_remote_procedure m_snapshot_provider;
     tl::auto_remote_procedure m_restore_provider;
@@ -113,8 +105,6 @@ class ProviderManagerImpl
                            &ProviderManagerImpl::loadModuleRPC, pool)),
       m_start_provider(define("bedrock_start_provider",
                               &ProviderManagerImpl::startProviderRPC, pool)),
-      m_change_provider_pool(define("bedrock_change_provider_pool",
-                              &ProviderManagerImpl::changeProviderPoolRPC, pool)),
       m_migrate_provider(define("bedrock_migrate_provider",
                                  &ProviderManagerImpl::migrateProviderRPC, pool)),
       m_snapshot_provider(define("bedrock_snapshot_provider",
@@ -199,12 +189,12 @@ class ProviderManagerImpl
         }
     }
 
-    void loadModuleRPC(const tl::request& req, const std::string& name,
+    void loadModuleRPC(const tl::request& req,
                        const std::string& path) {
         RequestResult<bool> result;
         tl::auto_respond<decltype(result)> auto_respond_with{req, result};
         try {
-            ModuleContext::loadModule(name, path);
+            ModuleManager::loadModule(path);
             result.success() = true;
             result.value()   = true;
         } catch (const Exception& e) {
@@ -223,19 +213,6 @@ class ProviderManagerImpl
         } catch (std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();
-        }
-    }
-
-    void changeProviderPoolRPC(const tl::request& req, const std::string& name,
-                               const std::string& pool) {
-        RequestResult<bool> result;
-        tl::auto_respond<decltype(result)> auto_respond_with{req, result};
-        auto manager = ProviderManager(shared_from_this());
-        try {
-            manager.changeProviderPool(name, pool);
-        } catch (Exception& ex) {
-            result.success() = false;
-            result.error() = ex.what();
         }
     }
 

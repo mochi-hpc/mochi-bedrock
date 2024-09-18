@@ -18,18 +18,6 @@ app.add_typer(module_app, name="module", help="Access and modify modules")
 from .provider import app as provider_app
 app.add_typer(provider_app, name="provider", help="Access and modify providers")
 
-from .client import app as client_app
-app.add_typer(client_app, name="client", help="Access and modify clients")
-
-from .abt_io import app as abt_io_app
-app.add_typer(abt_io_app, name="abtio", help="Access and modify ABT-IO instances")
-
-from .mona import app as mona_app
-app.add_typer(mona_app, name="mona", help="Access and modify MoNA instances")
-
-from .ssg import app as ssg_app
-app.add_typer(ssg_app, name="ssg", help="Access and modify SSG groups")
-
 
 @app.command()
 def status():
