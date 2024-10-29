@@ -121,6 +121,7 @@ class ProviderManagerImpl
 
     uint16_t getAvailableProviderID() const {
         std::unordered_set<uint16_t> used_provider_ids;
+        used_provider_ids.insert(get_provider_id());
         for(auto& p : m_providers) {
             used_provider_ids.insert(p->getProviderID());
         }

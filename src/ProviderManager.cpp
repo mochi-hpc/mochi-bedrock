@@ -148,6 +148,11 @@ ProviderManager::addProviderFromJSON(const json& description) {
     for(auto& tag : description.value("tags", json::array()))
         args.tags.push_back(tag.get<std::string>());
 
+    if(args.provider_id == self->get_provider_id()) {
+        throw BEDROCK_DETAILED_EXCEPTION(
+                "Bedrock already uses provider ID {}", args.provider_id);
+    }
+
     auto deps_from_config = description.value("dependencies", json::object());
     auto requested_dependencies = ModuleManager::getDependencies(type, args);
     auto& resolved_dependency_map = args.dependencies;
