@@ -116,8 +116,8 @@ static void parseCommandLine(int argc, char** argv) {
         g_provider_id = providerID.getValue();
         g_pretty      = prettyJSON.getValue();
         g_jx9_file    = jx9File.getValue();
-        if(g_addresses.empty()) {
-            std::cerr << "error: no address specified" << std::endl;
+        if(g_addresses.empty() && g_flock_file.empty()) {
+            std::cerr << "error: no address or flock file specified" << std::endl;
             exit(-1);
         }
     } catch (TCLAP::ArgException& e) {
