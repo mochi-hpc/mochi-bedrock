@@ -26,5 +26,9 @@ check_required_components(bedrock)
 
 include ("${CMAKE_CURRENT_LIST_DIR}/bedrock-targets.cmake")
 
+if (NOT TARGET bedrock::server)
 add_library (bedrock::server ALIAS bedrock-server)
+endif ()
+if (NOT TARGET bedrock::client)
 add_library (bedrock::client ALIAS bedrock-client)
+endif ()
