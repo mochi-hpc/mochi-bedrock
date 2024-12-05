@@ -1202,6 +1202,8 @@ class MargoSpec:
         factory=ArgobotsSpec, validator=instance_of(ArgobotsSpec))
     progress_timeout_ub_msec: int = attr.ib(
         default=100, validator=instance_of(int))
+    progress_spindown_msec: int = attr.ib(
+        default=10, validator=instance_of(int))
     enable_abt_profiling: bool = attr.ib(
         default=False, validator=instance_of(bool))
     handle_cache_size: int = attr.ib(
@@ -1293,6 +1295,7 @@ class MargoSpec:
     def space(*,
               handle_cache_size: int|tuple[int,int] = 32,
               progress_timeout_ub_msec: int|tuple[int,int] = 100,
+              progress_spindown_msec: int|tuple[int,int] = 10,
               use_progress_thread: bool|tuple[bool,bool] = [True, False],
               rpc_pool: int|tuple[int,int]|None = None,
               **kwargs) -> CS:
@@ -1319,6 +1322,7 @@ class MargoSpec:
         cs.add(CategoricalOrConst('use_progress_thread', use_progress_thread))
         cs.add(IntegerOrConst('handle_cache_size', handle_cache_size))
         cs.add(IntegerOrConst('progress_timeout_ub_msec', progress_timeout_ub_msec))
+        cs.add(IntegerOrConst('progress_spindown_msec', progress_spindown_msec))
         argobots_cs = ArgobotsSpec.space(**kwargs)
         mercury_cs = MercurySpec.space(**kwargs)
         cs.add_configuration_space(
