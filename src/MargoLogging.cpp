@@ -51,7 +51,15 @@ void setupMargoLogging() {
     logger.critical = spdlog_critical;
 
     margo_set_global_logger(&logger);
-    margo_set_global_log_level(MARGO_LOG_EXTERNAL);
+    switch(spdlog::get_level()) {
+        case spdlog::level::trace:    margo_set_global_log_level(MARGO_LOG_TRACE); break;
+        case spdlog::level::debug:    margo_set_global_log_level(MARGO_LOG_DEBUG); break;
+        case spdlog::level::info:     margo_set_global_log_level(MARGO_LOG_INFO); break;
+        case spdlog::level::warn:     margo_set_global_log_level(MARGO_LOG_WARNING); break;
+        case spdlog::level::err:      margo_set_global_log_level(MARGO_LOG_ERROR); break;
+        case spdlog::level::critical: margo_set_global_log_level(MARGO_LOG_CRITICAL); break;
+        default:                      margo_set_global_log_level(MARGO_LOG_CRITICAL); break;
+    }
 }
 
 void setupMargoLoggingForInstance(margo_instance_id mid) {
@@ -66,7 +74,15 @@ void setupMargoLoggingForInstance(margo_instance_id mid) {
     logger.critical = spdlog_critical;
 
     margo_set_logger(mid, &logger);
-    margo_set_log_level(mid, MARGO_LOG_EXTERNAL);
+    switch(spdlog::get_level()) {
+        case spdlog::level::trace:    margo_set_log_level(mid, MARGO_LOG_TRACE); break;
+        case spdlog::level::debug:    margo_set_log_level(mid, MARGO_LOG_DEBUG); break;
+        case spdlog::level::info:     margo_set_log_level(mid, MARGO_LOG_INFO); break;
+        case spdlog::level::warn:     margo_set_log_level(mid, MARGO_LOG_WARNING); break;
+        case spdlog::level::err:      margo_set_log_level(mid, MARGO_LOG_ERROR); break;
+        case spdlog::level::critical: margo_set_log_level(mid, MARGO_LOG_CRITICAL); break;
+        default:                      margo_set_log_level(mid, MARGO_LOG_CRITICAL); break;
+    }
 }
 
 } // namespace bedrock
