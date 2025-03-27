@@ -35,14 +35,17 @@ add_library (bedrock-server ${server-src-files})
 add_library (bedrock::server ALIAS bedrock-server)
 target_compile_options (bedrock-server PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries (bedrock-server
-    PRIVATE nlohmann_json_schema_validator::validator toml11::toml11 jx9 coverage_config
+    PRIVATE
+    nlohmann_json_schema_validator::validator
+    toml11::toml11 jx9 coverage_config
     PUBLIC
     bedrock::module-api
     thallium
     nlohmann_json::nlohmann_json
     spdlog::spdlog
     fmt::fmt
-    ${OPTIONAL_MPI})
+    ${OPTIONAL_MPI}
+    ${OPTIONAL_FLOCK})
 target_include_directories (bedrock-server PUBLIC $<INSTALL_INTERFACE:include>)
 target_include_directories (bedrock-server BEFORE PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
