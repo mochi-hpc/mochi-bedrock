@@ -61,6 +61,7 @@ target_link_libraries (bedrock-client
     ${OPTIONAL_FLOCK}
     PUBLIC
     bedrock::module-api
+    nlohmann_json::nlohmann_json
     thallium
     spdlog::spdlog
     fmt::fmt)
