@@ -60,6 +60,7 @@ target_link_libraries (bedrock-client
     PRIVATE coverage_config
     ${OPTIONAL_FLOCK}
     PUBLIC
+    bedrock::module-api
     thallium
     spdlog::spdlog
     fmt::fmt)
