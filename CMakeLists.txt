@@ -17,7 +17,7 @@ option (ENABLE_PYTHON   "Enable Python support" OFF)
 # library version set here (e.g. for shared libs).
 set (BEDROCK_VERSION_MAJOR 0)
 set (BEDROCK_VERSION_MINOR 15)
-set (BEDROCK_VERSION_PATCH 2)
+set (BEDROCK_VERSION_PATCH 3)
 set (BEDROCK_VERSION
      "${BEDROCK_VERSION_MAJOR}.${BEDROCK_VERSION_MINOR}.${BEDROCK_VERSION_PATCH}")
 add_definitions ("-DBEDROCK_VERSION=${BEDROCK_VERSION}")
