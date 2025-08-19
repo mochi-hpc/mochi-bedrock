@@ -181,8 +181,15 @@ ProviderManager Server::getProviderManager() const {
 
 void Server::onPreFinalize() {
     spdlog::trace("Calling Server's pre-finalize callback");
-    if(self && self->m_provider_manager) {
+    if(self) {
         self->m_provider_manager.reset();
+        self->m_dependency_finder.reset();
+        self->m_get_config_rpc.deregister();
+        self->m_query_config_rpc.deregister();
+        self->m_add_pool_rpc.deregister();
+        self->m_add_xstream_rpc.deregister();
+        self->m_remove_pool_rpc.deregister();
+        self->m_remove_xstream_rpc.deregister();
     }
 }
 
