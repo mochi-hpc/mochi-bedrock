@@ -27,6 +27,7 @@ MargoManager::MargoManager(const std::string& address,
     }
     self->m_engine = tl::engine{address.c_str(), MARGO_SERVER_MODE, &args};
     self->m_engine.enable_remote_shutdown();
+    margo_instance_ref_incr(self->m_engine.get_margo_instance());
     setupMargoLoggingForInstance(self->m_engine.get_margo_instance());
 }
 
