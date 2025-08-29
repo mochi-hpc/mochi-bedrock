@@ -213,6 +213,7 @@ void Server::finalize() {
     engine.push_finalize_callback([this]() { onFinalize(); });
     engine.push_prefinalize_callback([this]() { onPreFinalize(); });
     engine.finalize_and_wait();
+    margo_instance_release(engine.get_margo_instance());
 }
 
 } // namespace bedrock
