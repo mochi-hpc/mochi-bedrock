@@ -58,10 +58,12 @@ PYBIND11_MODULE(pybedrock_server, m) {
             "jx9_params"_a=Jx9ParamMap{})
         .def("wait_for_finalize",
              [](std::shared_ptr<Server> server) {
+                py11::gil_scoped_release release;
                 server->waitForFinalize();
              })
         .def("finalize",
              [](std::shared_ptr<Server> server) {
+                py11::gil_scoped_release release;
                 server->finalize();
              })
         .def_property_readonly("margo_instance_id",
