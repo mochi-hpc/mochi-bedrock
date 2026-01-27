@@ -1,6 +1,6 @@
 # (C) 2020 The University of Chicago
 # See COPYRIGHT in top-level directory.
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.10)
 project (bedrock C CXX)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -96,6 +96,7 @@ add_subdirectory (src)
 
 if (ENABLE_EXAMPLES)
     add_subdirectory (examples)
+    add_subdirectory (docs/examples/bedrock)
 endif ()
 
 if (ENABLE_TESTS)
