@@ -1518,6 +1518,9 @@ class ProviderSpec:
     tags: List[str] = attr.ib(
         validator=instance_of(List),
         factory=list)
+    engine: int = attr.ib(
+        default=0,
+        validator=instance_of(int))
 
     def to_dict(self) -> dict:
         """Convert the ProviderSpec into a dictionary.
@@ -1527,7 +1530,8 @@ class ProviderSpec:
                 'provider_id': self.provider_id,
                 'dependencies': self.dependencies,
                 'config': self.config,
-                'tags': self.tags}
+                'tags': self.tags,
+                'engine': self.engine}
 
     @staticmethod
     def from_dict(data: dict) -> 'ProviderSpec':

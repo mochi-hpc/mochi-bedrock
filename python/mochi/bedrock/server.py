@@ -156,6 +156,10 @@ class MargoManager:
     def default_handler_pool(self):
         return Pool(self._internal.default_handler_pool)
 
+    @property
+    def num_engines(self) -> int:
+        return self._internal.num_engines
+
 
 class ProviderManager:
 

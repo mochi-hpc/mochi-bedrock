@@ -131,7 +131,8 @@ ProviderManager::addProviderFromJSON(const json& description) {
                     ]
                 }
             },
-            "config": {"type": "object"}
+            "config": {"type": "object"},
+            "engine": {"type": "integer", "minimum": 0}
         },
         "required": ["name", "type"]
     }
@@ -140,11 +141,18 @@ ProviderManager::addProviderFromJSON(const json& description) {
     validator.validate(description, "ProviderManager");
 
     auto& type = description["type"].get_ref<const std::string&>();
+    auto engineIndex = description.value("engine", 0);
+    auto mgr = MargoManager{self->m_margo_manager};
+    if (static_cast<size_t>(engineIndex) >= mgr.getNumEngines()) {
+        throw BEDROCK_DETAILED_EXCEPTION(
+            "Invalid engine index {} (only {} engines available)",
+            engineIndex, mgr.getNumEngines());
+    }
     ComponentArgs args;
     args.name = description["name"];
     args.provider_id = description.value("provider_id", std::numeric_limits<uint16_t>::max());
     args.config = description.value("config", json::object()).dump();
-    args.engine = MargoManager{self->m_margo_manager}.getThalliumEngine();
+    args.engine = mgr.getThalliumEngine(static_cast<size_t>(engineIndex));
     for(auto& tag : description.value("tags", json::array()))
         args.tags.push_back(tag.get<std::string>());
 
@@ -222,7 +230,8 @@ ProviderManager::addProviderFromJSON(const json& description) {
 
         entry = std::make_shared<LocalProvider>(
                 args.name, type, args.provider_id, handle,
-                requested_dependencies, args.dependencies, args.tags);
+                requested_dependencies, args.dependencies, args.tags,
+                static_cast<size_t>(engineIndex));
 
         spdlog::trace("Registered provider {} of type {} with provider id {}",
                 args.name, type, args.provider_id);
