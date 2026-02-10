@@ -21,11 +21,35 @@ MargoManager::MargoManager(margo_instance_id mid)
 MargoManager::MargoManager(const std::string& address,
                            const std::string& configString)
 : self(std::make_shared<MargoManagerImpl>()) {
+    std::string resolvedAddress = address;
+    if (resolvedAddress.empty()) {
+        if (!configString.empty() && configString != "null") {
+            try {
+                auto config = json::parse(configString);
+                if (config.contains("mercury") && config["mercury"].is_object()
+                    && config["mercury"].contains("address")
+                    && config["mercury"]["address"].is_string()) {
+                    auto addr = config["mercury"]["address"].get<std::string>();
+                    auto colon = addr.find(':');
+                    if (colon != std::string::npos) {
+                        resolvedAddress = addr.substr(0, colon);
+                    }
+                }
+            } catch (const json::parse_error&) {
+                // configString is not valid JSON, fall through to error
+            }
+        }
+        if (resolvedAddress.empty()) {
+            throw Exception{
+                "Could not infer protocol: no address provided and "
+                "no valid mercury.address found in configuration"};
+        }
+    }
     struct margo_init_info args = MARGO_INIT_INFO_INITIALIZER;
     if (!configString.empty() && configString != "null") {
         args.json_config = configString.c_str();
     }
-    self->m_engine = tl::engine{address.c_str(), MARGO_SERVER_MODE, &args};
+    self->m_engine = tl::engine{resolvedAddress.c_str(), MARGO_SERVER_MODE, &args};
     self->m_engine.enable_remote_shutdown();
     margo_instance_ref_incr(self->m_engine.get_margo_instance());
     setupMargoLoggingForInstance(self->m_engine.get_margo_instance());
