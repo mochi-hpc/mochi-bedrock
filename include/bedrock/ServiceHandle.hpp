@@ -162,15 +162,6 @@ class ServiceHandle {
             AsyncRequest*      req = nullptr) const;
 
     /**
-     * @brief Creates a client on the target service daemon.
-     *
-     * @param description JSON description of the client.
-     * @param req Asynchronous request to wait on, if provided.
-     */
-    void addClient(const std::string& description,
-                   AsyncRequest*      req = nullptr) const;
-
-    /**
      * @brief Adds an Argobots pool to the Margo instance of
      * the target service.
      *

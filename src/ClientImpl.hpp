@@ -25,8 +25,6 @@ class ClientImpl {
     tl::remote_procedure m_migrate_provider;
     tl::remote_procedure m_snapshot_provider;
     tl::remote_procedure m_restore_provider;
-    tl::remote_procedure m_add_client;
-    tl::remote_procedure m_add_abtio;
     tl::remote_procedure m_add_pool;
     tl::remote_procedure m_add_xstream;
     tl::remote_procedure m_remove_pool;
@@ -41,8 +39,6 @@ class ClientImpl {
       m_migrate_provider(m_engine.define("bedrock_migrate_provider")),
       m_snapshot_provider(m_engine.define("bedrock_snapshot_provider")),
       m_restore_provider(m_engine.define("bedrock_restore_provider")),
-      m_add_client(m_engine.define("bedrock_add_client")),
-      m_add_abtio(m_engine.define("bedrock_add_abtio")),
       m_add_pool(m_engine.define("bedrock_add_pool")),
       m_add_xstream(m_engine.define("bedrock_add_xstream")),
       m_remove_pool(m_engine.define("bedrock_remove_pool")),
