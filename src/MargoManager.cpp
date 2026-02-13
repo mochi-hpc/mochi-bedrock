@@ -50,6 +50,11 @@ MargoManager::MargoManager(const std::vector<std::string>& addresses,
         if (!configString.empty() && configString != "null") {
             args.json_config = configString.c_str();
         }
+#if MARGO_VERSION_NUM >= 2300
+        if (i > 0) {
+            args.parent_mid = self->m_engines[0].get_margo_instance();
+        }
+#endif
         self->m_engines.push_back(
             tl::engine{resolvedAddress.c_str(), MARGO_SERVER_MODE, &args});
         auto& engine = self->m_engines.back();
