@@ -143,7 +143,6 @@ Server::Server(const std::string& address, const std::string& configString,
     // Create self
     self = std::unique_ptr<ServerImpl>(
             new ServerImpl(margoMgr, bedrock_provider_id, bedrock_pool));
-    self->initAuxProviders(self->m_margo_manager, bedrock_provider_id);
     self->m_mpi = mpi.self;
     self->m_jx9_manager = jx9Manager;
 
@@ -198,14 +197,7 @@ void Server::onPreFinalize() {
     if(self) {
         self->m_provider_manager.reset();
         self->m_dependency_finder.reset();
-        // Destroy auxiliary providers before deregistering primary RPCs
-        self->m_aux_providers.clear();
-        self->m_get_config_rpc.deregister();
-        self->m_query_config_rpc.deregister();
-        self->m_add_pool_rpc.deregister();
-        self->m_add_xstream_rpc.deregister();
-        self->m_remove_pool_rpc.deregister();
-        self->m_remove_xstream_rpc.deregister();
+        self->m_providers.clear();
         // Finalize non-primary engines
         auto& engines = self->m_margo_manager->m_engines;
         for (size_t i = 1; i < engines.size(); i++) {

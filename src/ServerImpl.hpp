@@ -26,7 +26,7 @@ namespace tl = thallium;
 
 class ServerImpl;
 
-class ServerAuxProvider : public tl::provider<ServerAuxProvider> {
+class BedrockProviderImpl : public tl::provider<BedrockProviderImpl> {
     ServerImpl* m_impl;
 public:
     tl::remote_procedure m_get_config_rpc;
@@ -36,7 +36,7 @@ public:
     tl::remote_procedure m_remove_pool_rpc;
     tl::remote_procedure m_remove_xstream_rpc;
 
-    ServerAuxProvider(tl::engine& engine, uint16_t provider_id,
+    BedrockProviderImpl(tl::engine& engine, uint16_t provider_id,
                       tl::pool pool, ServerImpl* impl);
 
     void getConfigRPC(const tl::request& req);
@@ -46,10 +46,10 @@ public:
     void addXstreamRPC(const tl::request& req, const std::string& config);
     void removeXstreamRPC(const tl::request& req, const std::string& name);
 
-    ~ServerAuxProvider() = default;
+    ~BedrockProviderImpl() = default;
 };
 
-class ServerImpl : public tl::provider<ServerImpl> {
+class ServerImpl {
 
   public:
     std::shared_ptr<MPIEnvImpl>           m_mpi;
@@ -58,45 +58,22 @@ class ServerImpl : public tl::provider<ServerImpl> {
     std::shared_ptr<ProviderManagerImpl>  m_provider_manager;
     std::shared_ptr<DependencyFinderImpl> m_dependency_finder;
     std::shared_ptr<NamedDependency>      m_pool;
-    tl::pool                              m_tl_pool;
+    uint16_t                              m_provider_id;
 
-    tl::remote_procedure m_get_config_rpc;
-    tl::remote_procedure m_query_config_rpc;
-
-    tl::remote_procedure m_add_pool_rpc;
-    tl::remote_procedure m_add_xstream_rpc;
-    tl::remote_procedure m_remove_pool_rpc;
-    tl::remote_procedure m_remove_xstream_rpc;
-
-    std::vector<std::unique_ptr<ServerAuxProvider>> m_aux_providers;
+    std::vector<std::unique_ptr<BedrockProviderImpl>> m_providers;
 
     ServerImpl(std::shared_ptr<MargoManagerImpl> margo, uint16_t provider_id,
                std::shared_ptr<NamedDependency> pool)
-    : tl::provider<ServerImpl>(margo->m_engines[0], provider_id, "bedrock"),
-      m_margo_manager(std::move(margo)),
+    : m_margo_manager(std::move(margo)),
       m_pool(pool),
-      m_tl_pool(pool->getHandle<tl::pool>()),
-      m_get_config_rpc(
-          define("bedrock_get_config", &ServerImpl::getConfigRPC, m_tl_pool)),
-      m_query_config_rpc(
-          define("bedrock_query_config", &ServerImpl::queryConfigRPC, m_tl_pool)),
-      m_add_pool_rpc(
-          define("bedrock_add_pool", &ServerImpl::addPoolRPC, m_tl_pool)),
-      m_add_xstream_rpc(
-          define("bedrock_add_xstream", &ServerImpl::addXstreamRPC, m_tl_pool)),
-      m_remove_pool_rpc(
-          define("bedrock_remove_pool", &ServerImpl::removePoolRPC, m_tl_pool)),
-      m_remove_xstream_rpc(
-          define("bedrock_remove_xstream", &ServerImpl::removeXstreamRPC, m_tl_pool))
-    {}
-
-    void initAuxProviders(std::shared_ptr<MargoManagerImpl> margo, uint16_t provider_id) {
-        auto mgr = MargoManager(margo);
-        for (size_t i = 1; i < mgr.getNumEngines(); ++i) {
+      m_provider_id(provider_id)
+    {
+        auto mgr = MargoManager(m_margo_manager);
+        for (size_t i = 0; i < mgr.getNumEngines(); ++i) {
             auto& engine = const_cast<tl::engine&>(mgr.getThalliumEngine(i));
-            auto pool = mgr.getDefaultHandlerPool(i);
-            m_aux_providers.push_back(std::make_unique<ServerAuxProvider>(
-                engine, provider_id, tl::pool(pool->getHandle<tl::pool>()), this));
+            auto handler_pool = mgr.getDefaultHandlerPool(i);
+            m_providers.push_back(std::make_unique<BedrockProviderImpl>(
+                engine, provider_id, tl::pool(handler_pool->getHandle<tl::pool>()), this));
         }
     }
 
@@ -107,7 +84,7 @@ class ServerImpl : public tl::provider<ServerImpl> {
         config["libraries"] = json::parse(ModuleManager::getCurrentConfig());
         config["bedrock"]   = json::object();
         config["bedrock"]["pool"] = m_pool->getName();
-        config["bedrock"]["provider_id"] = get_provider_id();
+        config["bedrock"]["provider_id"] = m_provider_id;
         return config;
     }
 
@@ -181,47 +158,47 @@ class ServerImpl : public tl::provider<ServerImpl> {
     }
 };
 
-// --- ServerAuxProvider implementation ---
+// --- BedrockProviderImpl implementation ---
 
-inline ServerAuxProvider::ServerAuxProvider(tl::engine& engine, uint16_t provider_id,
+inline BedrockProviderImpl::BedrockProviderImpl(tl::engine& engine, uint16_t provider_id,
                                             tl::pool pool, ServerImpl* impl)
-: tl::provider<ServerAuxProvider>(engine, provider_id, "bedrock"),
+: tl::provider<BedrockProviderImpl>(engine, provider_id, "bedrock"),
   m_impl(impl),
   m_get_config_rpc(
-      define("bedrock_get_config", &ServerAuxProvider::getConfigRPC, pool)),
+      define("bedrock_get_config", &BedrockProviderImpl::getConfigRPC, pool)),
   m_query_config_rpc(
-      define("bedrock_query_config", &ServerAuxProvider::queryConfigRPC, pool)),
+      define("bedrock_query_config", &BedrockProviderImpl::queryConfigRPC, pool)),
   m_add_pool_rpc(
-      define("bedrock_add_pool", &ServerAuxProvider::addPoolRPC, pool)),
+      define("bedrock_add_pool", &BedrockProviderImpl::addPoolRPC, pool)),
   m_add_xstream_rpc(
-      define("bedrock_add_xstream", &ServerAuxProvider::addXstreamRPC, pool)),
+      define("bedrock_add_xstream", &BedrockProviderImpl::addXstreamRPC, pool)),
   m_remove_pool_rpc(
-      define("bedrock_remove_pool", &ServerAuxProvider::removePoolRPC, pool)),
+      define("bedrock_remove_pool", &BedrockProviderImpl::removePoolRPC, pool)),
   m_remove_xstream_rpc(
-      define("bedrock_remove_xstream", &ServerAuxProvider::removeXstreamRPC, pool))
+      define("bedrock_remove_xstream", &BedrockProviderImpl::removeXstreamRPC, pool))
 {}
 
-inline void ServerAuxProvider::getConfigRPC(const tl::request& req) {
+inline void BedrockProviderImpl::getConfigRPC(const tl::request& req) {
     m_impl->getConfigRPC(req);
 }
 
-inline void ServerAuxProvider::queryConfigRPC(const tl::request& req, const std::string& s) {
+inline void BedrockProviderImpl::queryConfigRPC(const tl::request& req, const std::string& s) {
     m_impl->queryConfigRPC(req, s);
 }
 
-inline void ServerAuxProvider::addPoolRPC(const tl::request& req, const std::string& config) {
+inline void BedrockProviderImpl::addPoolRPC(const tl::request& req, const std::string& config) {
     m_impl->addPoolRPC(req, config);
 }
 
-inline void ServerAuxProvider::removePoolRPC(const tl::request& req, const std::string& name) {
+inline void BedrockProviderImpl::removePoolRPC(const tl::request& req, const std::string& name) {
     m_impl->removePoolRPC(req, name);
 }
 
-inline void ServerAuxProvider::addXstreamRPC(const tl::request& req, const std::string& config) {
+inline void BedrockProviderImpl::addXstreamRPC(const tl::request& req, const std::string& config) {
     m_impl->addXstreamRPC(req, config);
 }
 
-inline void ServerAuxProvider::removeXstreamRPC(const tl::request& req, const std::string& name) {
+inline void BedrockProviderImpl::removeXstreamRPC(const tl::request& req, const std::string& name) {
     m_impl->removeXstreamRPC(req, name);
 }
 
