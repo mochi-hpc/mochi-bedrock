@@ -32,4 +32,5 @@ from deploying components, to writing Bedrock modules for your own components.
    bedrock/06_flock_integration.rst
    bedrock/07_runtime_config.rst
    bedrock/08_python.rst
+   bedrock/09_multi_margo.rst
    bedrock/cpp_api.rst

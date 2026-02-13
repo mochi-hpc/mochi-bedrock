@@ -421,6 +421,8 @@ class MercurySpec(_Configurable):
     na_max_expected_size: int = attr.ib(default=0, validator=instance_of(int))
     na_max_unexpected_size: int = attr.ib(default=0, validator=instance_of(int))
     na_request_mem_device: bool = attr.ib(default=False, validator=instance_of(bool))
+    log_level: str = attr.ib(default="warning", validator=instance_of(str))
+    log_subsys: str = attr.ib(default="hg,na", validator=instance_of(str))
 
     def to_dict(self) -> dict:
         """Convert the MercurySpec into a dictionary.
@@ -484,6 +486,73 @@ class MercurySpec(_Configurable):
         cs.add(IntegerOrConst('na_max_expected_size', na_max_expected_size, default=0))
         cs.add(IntegerOrConst('na_max_unexpected_size', na_max_unexpected_size, default=0))
         return cs
+
+
+@attr.s(auto_attribs=True,
+        on_setattr=_check_validators,
+        kw_only=True,
+        hash=False,
+        eq=False)
+class PlumberSpec(_Configurable):
+    """Plumber specification.
+
+    :param bucket_policy: Bucket policy
+    :type bucket_policy: str
+
+    :param nic_policy: NIC policy
+    :type nic_policy: str
+    """
+
+    bucket_policy: str = attr.ib(
+        default="package",
+        validator=instance_of(str))
+    nic_policy: str = attr.ib(
+        default="roundrobin",
+        validator=instance_of(str))
+
+    def to_dict(self) -> dict:
+        """Convert the PoolSpec into a dictionary.
+        """
+        return attr.asdict(self)
+
+    @staticmethod
+    def from_dict(data) -> 'PlumberSpec':
+        """Construct a PlumberSpec from a dictionary.
+        """
+        return PlumberSpec(**data)
+
+    def to_json(self, *args, **kwargs) -> str:
+        """Convert the PlumberSpec into a JSON string.
+        """
+        return json.dumps(self.to_dict(), *args, **kwargs)
+
+    @staticmethod
+    def from_json(json_string: str) -> 'PlumberSpec':
+        """Construct a PlumberSpec from a JSON string.
+        """
+        data = json.loads(json_string)
+        return PlumberSpec.from_dict(data)
+
+    def __hash__(self) -> int:
+        """Hash function.
+        """
+        return id(self)
+
+    def __eq__(self, other) -> bool:
+        """Equality check.
+        """
+        return id(self) == id(other)
+
+    def __ne__(self, other) -> bool:
+        """Inequality check.
+        """
+        return id(self) != id(other)
+
+    def validate(self) -> NoReturn:
+        """Validate the PoolSpec, raising an error if the PoolSpec
+        is not valid.
+        """
+        attr.validate(self)
 
 
 @attr.s(auto_attribs=True,
@@ -1191,6 +1260,9 @@ class MargoSpec:
     :param rpc_pool: RPC pool
     :type rpc_pool: PoolSpec
 
+    :param plumber: Plumber specifications
+    :type plumber: PlumberSpec
+
     :param version: Version of Margo
     :type version: str
     """
@@ -1216,6 +1288,9 @@ class MargoSpec:
         default=Factory(lambda self: self.argobots.pools[0],
                         takes_self=True),
         validator=instance_of(PoolSpec))
+    plumber: PlumberSpec = attr.ib(
+        factory=PlumberSpec,
+        validator=instance_of(PlumberSpec))
     version: str = attr.ib(default='unknown',
                            validator=instance_of(str))
 
@@ -1225,10 +1300,12 @@ class MargoSpec:
         filter = attr.filters.exclude(attr.fields(type(self)).argobots,
                                       attr.fields(type(self)).mercury,
                                       attr.fields(type(self)).progress_pool,
-                                      attr.fields(type(self)).rpc_pool)
+                                      attr.fields(type(self)).rpc_pool,
+                                      attr.fields(type(self)).plumber)
         data = attr.asdict(self, filter=filter)
         data['argobots'] = self.argobots.to_dict()
         data['mercury'] = self.mercury.to_dict()
+        data['plumber'] = self.plumber.to_dict()
         if self.progress_pool is None:
             data['progress_pool'] = None
         else:
@@ -1245,8 +1322,10 @@ class MargoSpec:
         """
         abt_args = data['argobots']
         hg_args = data['mercury']
+        plumber_args = data['plumber']
         argobots = ArgobotsSpec.from_dict(abt_args)
         mercury = MercurySpec.from_dict(hg_args)
+        plumber = PlumberSpec.from_dict(plumber_args)
         rpc_pool = None
         progress_pool = None
         if data['rpc_pool'] is not None:
@@ -1258,6 +1337,7 @@ class MargoSpec:
         args['mercury'] = mercury
         args['rpc_pool'] = rpc_pool
         args['progress_pool'] = progress_pool
+        args['plumber'] = plumber
         return MargoSpec(**args)
 
     def to_json(self, *args, **kwargs) -> str:
@@ -1278,6 +1358,7 @@ class MargoSpec:
         attr.validate(self)
         self.mercury.validate()
         self.argobots.validate()
+        self.plumber.validate()
         if self.progress_pool is None:
             raise ValueError('progress_pool not set in MargoSpec')
         if self.rpc_pool is None:
@@ -1437,6 +1518,9 @@ class ProviderSpec:
     tags: List[str] = attr.ib(
         validator=instance_of(List),
         factory=list)
+    engine: int = attr.ib(
+        default=0,
+        validator=instance_of(int))
 
     def to_dict(self) -> dict:
         """Convert the ProviderSpec into a dictionary.
@@ -1446,7 +1530,8 @@ class ProviderSpec:
                 'provider_id': self.provider_id,
                 'dependencies': self.dependencies,
                 'config': self.config,
-                'tags': self.tags}
+                'tags': self.tags,
+                'engine': self.engine}
 
     @staticmethod
     def from_dict(data: dict) -> 'ProviderSpec':
@@ -1533,7 +1618,7 @@ class BedrockSpec:
         return BedrockSpec.from_dict(json.loads(json_string), abt_spec)
 
 
-def _margo_from_args(arg) -> MargoSpec:
+def _single_margo_from_args(arg) -> MargoSpec:
     """Construct a MargoSpec from a single argument. If the argument
     is a string it considers it as the Mercury address. If the argument
     if a dict, its content if forwarded to the MargoSpec constructor.
@@ -1548,12 +1633,23 @@ def _margo_from_args(arg) -> MargoSpec:
         raise TypeError(f'cannot convert type {type(arg)} into a MargoSpec')
 
 
+def _margo_from_args(arg):
+    """Construct a MargoSpec or list of MargoSpecs from the argument.
+    If the argument is a list, each element is converted individually.
+    """
+    if isinstance(arg, list):
+        if len(arg) == 0:
+            raise ValueError('margo list must not be empty')
+        return [_single_margo_from_args(a) for a in arg]
+    return _single_margo_from_args(arg)
+
+
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
 class ProcSpec:
     """Process specification.
 
-    :param margo: Margo specification
-    :type margo: MargoSpec
+    :param margo: Margo specification (single or list for multi-engine)
+    :type margo: MargoSpec or list[MargoSpec]
 
     :param libraries: Dictionary of libraries
     :type libraries: dict
@@ -1562,8 +1658,7 @@ class ProcSpec:
     :type providers: list
     """
 
-    margo: MargoSpec = attr.ib(
-        validator=instance_of(MargoSpec),
+    margo: 'MargoSpec | list[MargoSpec]' = attr.ib(
         converter=_margo_from_args)
     libraries: list = attr.ib(
         factory=list,
@@ -1572,9 +1667,23 @@ class ProcSpec:
         factory=list,
         validator=instance_of(list))
     bedrock: BedrockSpec = attr.ib(
-        default=Factory(lambda self: BedrockSpec(pool=self.margo.rpc_pool),
-                        takes_self=True),
+        default=Factory(
+            lambda self: BedrockSpec(
+                pool=(self.margo[0] if isinstance(self.margo, list)
+                      else self.margo).rpc_pool),
+            takes_self=True),
         validator=instance_of(BedrockSpec))
+
+    @margo.validator
+    def _check_margo(self, attribute, value):
+        if isinstance(value, list):
+            for i, m in enumerate(value):
+                if not isinstance(m, MargoSpec):
+                    raise TypeError(
+                        f'margo[{i}] is not a MargoSpec (got {type(m)})')
+        elif not isinstance(value, MargoSpec):
+            raise TypeError(
+                f'margo is not a MargoSpec (got {type(value)})')
 
     @property
     def providers(self) -> SpecListDecorator:
@@ -1586,7 +1695,11 @@ class ProcSpec:
     def to_dict(self) -> dict:
         """Convert the ProcSpec into a dictionary.
         """
-        data = {'margo': self.margo.to_dict(),
+        if isinstance(self.margo, list):
+            margo_dict = [m.to_dict() for m in self.margo]
+        else:
+            margo_dict = self.margo.to_dict()
+        data = {'margo': margo_dict,
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
                 'bedrock': self.bedrock.to_dict()}
@@ -1596,7 +1709,13 @@ class ProcSpec:
     def from_dict(data: dict) -> 'ProcSpec':
         """Construct a ProcSpec from a dictionary.
         """
-        margo = MargoSpec.from_dict(data['margo'])
+        margo_data = data['margo']
+        if isinstance(margo_data, list):
+            margo = [MargoSpec.from_dict(m) for m in margo_data]
+            first_margo = margo[0]
+        else:
+            margo = MargoSpec.from_dict(margo_data)
+            first_margo = margo
         libraries = dict()
         providers = []
         bedrock = {}
@@ -1606,7 +1725,7 @@ class ProcSpec:
             for p in data['providers']:
                 providers.append(ProviderSpec.from_dict(p))
         if 'bedrock' in data:
-            bedrock = BedrockSpec.from_dict(data['bedrock'], margo.argobots)
+            bedrock = BedrockSpec.from_dict(data['bedrock'], first_margo.argobots)
         return ProcSpec(margo=margo,
                         libraries=libraries,
                         providers=providers,
@@ -1627,6 +1746,9 @@ class ProcSpec:
         """Validate the state of the ProcSpec.
         """
         attr.validate(self)
+        margo_list = self.margo if isinstance(self.margo, list) else [self.margo]
+        for m in margo_list:
+            m.validate()
         for k, v in self.libraries.items():
             if not isinstance(k, str):
                 raise TypeError('Invalid key type found in libraries' +

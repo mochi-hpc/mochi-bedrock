@@ -91,12 +91,25 @@ Server::Server(const std::string& address, const std::string& configString,
 
     // Extract margo section from the config
     spdlog::trace("Initializing MargoManager");
-    auto margoConfig = config["margo"].dump();
     // Dependency-injecting spdlog into Margo
     setupMargoLogging();
 
-    // Initialize margo context
-    auto margoMgr = MargoManager(address, margoConfig);
+    // Initialize margo context (single object or array of engine configs)
+    MargoManager margoMgr = [&]() -> MargoManager {
+        if (config["margo"].is_array()) {
+            auto& margoArray = config["margo"];
+            std::vector<std::string> addresses;
+            std::vector<std::string> configs;
+            for (auto& elem : margoArray) {
+                addresses.push_back(address);
+                configs.push_back(elem.dump());
+            }
+            return MargoManager(addresses, configs);
+        } else {
+            auto margoConfig = config["margo"].dump();
+            return MargoManager(address, margoConfig);
+        }
+    }();
     spdlog::trace("MargoManager initialized");
 
     // Sync addresses with other MPI members
@@ -184,12 +197,12 @@ void Server::onPreFinalize() {
     if(self) {
         self->m_provider_manager.reset();
         self->m_dependency_finder.reset();
-        self->m_get_config_rpc.deregister();
-        self->m_query_config_rpc.deregister();
-        self->m_add_pool_rpc.deregister();
-        self->m_add_xstream_rpc.deregister();
-        self->m_remove_pool_rpc.deregister();
-        self->m_remove_xstream_rpc.deregister();
+        self->m_providers.clear();
+        // Finalize non-primary engines
+        auto& engines = self->m_margo_manager->m_engines;
+        for (size_t i = 1; i < engines.size(); i++) {
+            engines[i].finalize();
+        }
     }
 }
 
@@ -202,14 +215,28 @@ std::string Server::getCurrentConfig() const {
 }
 
 void Server::waitForFinalize() {
-    auto engine = getMargoManager().getThalliumEngine();
+    auto mgr = getMargoManager();
+    auto engine = mgr.getThalliumEngine();
     engine.push_finalize_callback([this]() { onFinalize(); });
     engine.push_prefinalize_callback([this]() { onPreFinalize(); });
+    // Set up cross-engine remote shutdown: if a non-primary engine is
+    // remotely shut down, it triggers finalization of the primary engine
+    for (size_t i = 1; i < mgr.getNumEngines(); i++) {
+        auto impl = self->m_margo_manager;
+        auto& engines = impl->m_engines;
+        engines[i].push_prefinalize_callback(
+            [&engines, impl]() {
+                if (!impl->m_shutting_down.exchange(true)) {
+                    engines[0].finalize();
+                }
+            });
+    }
     engine.wait_for_finalize();
 }
 
 void Server::finalize() {
-    auto engine = getMargoManager().getThalliumEngine();
+    auto mgr = getMargoManager();
+    auto engine = mgr.getThalliumEngine();
     engine.push_finalize_callback([this]() { onFinalize(); });
     engine.push_prefinalize_callback([this]() { onPreFinalize(); });
     engine.finalize_and_wait();

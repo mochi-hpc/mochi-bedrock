@@ -88,38 +88,50 @@ PYBIND11_MODULE(pybedrock_server, m) {
         .def_property_readonly("margo_instance_id", [](const MargoManager& m) {
                 return MID2CAPSULE(m.getMargoInstance());
         })
-        .def_property_readonly("default_handler_pool", &MargoManager::getDefaultHandlerPool)
+        .def_property_readonly("default_handler_pool", [](const MargoManager& m) {
+                return m.getDefaultHandlerPool();
+        })
         .def_property_readonly("config", &MargoManager::getCurrentConfig)
+        .def_property_readonly("num_engines", &MargoManager::getNumEngines)
         .def("get_pool", [](const MargoManager& m, const std::string& pool_name) {
                 return m.getPool(pool_name);
         }, "name"_a)
         .def("get_pool", [](const MargoManager& m, uint32_t index) {
                 return m.getPool(index);
         }, "index"_a)
-        .def("add_pool", &MargoManager::addPool,
-             "config"_a)
+        .def("add_pool", [](MargoManager& m, const std::string& config) {
+                return m.addPool(config);
+        }, "config"_a)
         .def("remove_pool", [](MargoManager& m, const std::string& pool_name) {
                 return m.removePool(pool_name);
         }, "name"_a)
         .def("remove_pool", [](MargoManager& m, uint32_t index) {
                 return m.removePool(index);
         }, "index"_a)
-        .def_property_readonly("num_pools", &MargoManager::getNumPools)
+        .def_property_readonly("num_pools", [](const MargoManager& m) {
+                return m.getNumPools();
+        })
         .def("get_xstream", [](const MargoManager& m, const std::string& es_name) {
                 return m.getXstream(es_name);
         }, "name"_a)
         .def("get_xstream", [](const MargoManager& m, uint32_t index) {
                 return m.getXstream(index);
         }, "index"_a)
-        .def("add_xstream", &MargoManager::addXstream,
-             "config"_a)
+        .def("add_xstream", [](MargoManager& m, const std::string& config) {
+                return m.addXstream(config);
+        }, "config"_a)
         .def("remove_xstream", [](MargoManager& m, const std::string& es_name) {
                 return m.removeXstream(es_name);
         }, "name"_a)
         .def("remove_xstream", [](MargoManager& m, uint32_t index) {
                 return m.removeXstream(index);
         }, "index"_a)
-        .def_property_readonly("num_xstreams", &MargoManager::getNumXstreams)
+        .def_property_readonly("num_xstreams", [](const MargoManager& m) {
+                return m.getNumXstreams();
+        })
+        .def("get_margo_instance_id", [](const MargoManager& m, size_t engine_index) {
+                return MID2CAPSULE(m.getMargoInstance(engine_index));
+        }, "engine_index"_a)
     ;
 
     py11::class_<ProviderManager> (m, "ProviderManager")

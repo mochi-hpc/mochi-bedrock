@@ -1,0 +1,10 @@
+{
+    "name": "my_provider",
+    "type": "my_module",
+    "provider_id": 1,
+    "engine": 1,
+    "config": {},
+    "dependencies": {
+        "my_pool": "pool_tcp"
+    }
+}

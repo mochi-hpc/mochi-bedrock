@@ -11,6 +11,8 @@
 #include <thallium.hpp>
 #include "bedrock/NamedDependency.hpp"
 #include "Formatting.hpp"
+#include <vector>
+#include <atomic>
 
 namespace tl = thallium;
 
@@ -57,15 +59,27 @@ struct XstreamRef : public NamedDependency {
 class MargoManagerImpl {
 
   public:
-    tl::mutex  m_mtx;
-    tl::engine m_engine;
+    tl::mutex                  m_mtx;
+    std::vector<tl::engine>    m_engines;
+    std::atomic<bool>          m_shutting_down{false};
 
     json makeConfig() const {
-        auto mid = m_engine.get_margo_instance();
-        char* str    = margo_get_config_opt(mid, MARGO_CONFIG_USE_NAMES);
-        auto  config = json::parse(str);
-        free(str);
-        return config;
+        if (m_engines.size() == 1) {
+            auto mid = m_engines[0].get_margo_instance();
+            char* str    = margo_get_config_opt(mid, MARGO_CONFIG_USE_NAMES);
+            auto  config = json::parse(str);
+            free(str);
+            return config;
+        }
+        auto configs = json::array();
+        for (auto& engine : m_engines) {
+            auto mid = engine.get_margo_instance();
+            char* str    = margo_get_config_opt(mid, MARGO_CONFIG_USE_NAMES);
+            auto  config = json::parse(str);
+            free(str);
+            configs.push_back(std::move(config));
+        }
+        return configs;
     }
 };
 

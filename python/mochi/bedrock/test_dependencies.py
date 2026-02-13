@@ -184,6 +184,51 @@ class TestProviderManager(unittest.TestCase):
         providers.create(**provider_params)
         self.assertEqual(len(providers), 3)
 
+    def test_dependency_on_margo(self):
+        providers = self.server.providers
+        self.assertEqual(len(providers), 2)
+
+        # Try creating a provider without the required dependency
+        provider_params = self.make_provider_params([
+            {"name": "dep1", "type": "margo", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with a wrong dependency (invalid index)
+        provider_params["dependencies"] = {"dep1": "999"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with an invalid string
+        provider_params["dependencies"] = {"dep1": "not_a_number"}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the required dependency
+        provider_params["dependencies"] = {"dep1": "0"}
+        providers.create(**provider_params)
+        self.assertEqual(len(providers), 3)
+
+    def test_dependency_on_margo_by_index(self):
+        providers = self.server.providers
+        self.assertEqual(len(providers), 2)
+
+        # Try creating a provider without the required dependency
+        provider_params = self.make_provider_params([
+            {"name": "dep1", "type": "margo", "is_required": True}])
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with a wrong dependency (out of range)
+        provider_params["dependencies"] = {"dep1": 999}
+        with self.assertRaises(mbs.BedrockException):
+            providers.create(**provider_params)
+
+        # Try creating a provider with the required dependency
+        provider_params["dependencies"] = {"dep1": 0}
+        providers.create(**provider_params)
+        self.assertEqual(len(providers), 3)
+
     def test_dependency_on_provider(self):
         providers = self.server.providers
         self.assertEqual(len(providers), 2)

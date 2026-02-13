@@ -142,7 +142,10 @@ class MargoManager:
 
     @property
     def spec(self):
-        return MargoSpec.from_dict(self.config)
+        config = self.config
+        if isinstance(config, list):
+            return [MargoSpec.from_dict(c) for c in config]
+        return MargoSpec.from_dict(config)
 
     @property
     def pools(self):
@@ -155,6 +158,10 @@ class MargoManager:
     @property
     def default_handler_pool(self):
         return Pool(self._internal.default_handler_pool)
+
+    @property
+    def num_engines(self) -> int:
+        return self._internal.num_engines
 
 
 class ProviderManager:
@@ -169,7 +176,9 @@ class ProviderManager:
 
     @property
     def spec(self) -> list[ProviderSpec]:
-        abt_spec = self._server.margo.spec.argobots
+        margo_spec = self._server.margo.spec
+        abt_spec = (margo_spec[0] if isinstance(margo_spec, list)
+                    else margo_spec).argobots
         return [ProviderSpec.from_dict(provider) for provider in self.config]
 
     def __len__(self):
@@ -247,7 +256,8 @@ class Server:
     @staticmethod
     def from_spec(spec: ProcSpec):
         config = spec.to_json()
-        return Server(spec.margo.mercury.address,
+        first_margo = spec.margo[0] if isinstance(spec.margo, list) else spec.margo
+        return Server(first_margo.mercury.address,
                       config, ConfigType.JSON)
 
     def finalize(self) -> None:

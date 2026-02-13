@@ -70,8 +70,10 @@ static void parseCommandLine(int argc, char** argv) {
         TCLAP::UnlabeledValueArg<std::string> address(
             "address",
             "Protocol (e.g. ofi+tcp) or address (e.g. "
-            "ofi+tcp://127.0.0.1:1234)",
-            true, "na+sm", "address");
+            "ofi+tcp://127.0.0.1:1234). If not provided, "
+            "it will be inferred from the mercury.address "
+            "field in the configuration.",
+            false, "", "address");
         TCLAP::ValueArg<std::string> logLevel(
             "v", "verbose",
             "Log level (trace, debug, info, warning, error, critical, off)",

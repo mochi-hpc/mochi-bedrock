@@ -37,15 +37,17 @@ class LocalProvider : public ProviderDependency {
     std::vector<Dependency>  requested_dependencies;
     ResolvedDependencyMap    resolved_dependencies;
     std::vector<std::string> tags;
+    size_t                   engine_index = 0;
 
     LocalProvider(
             std::string name, std::string type, uint16_t provider_id, ComponentPtr ptr,
             std::vector<Dependency> req_deps, ResolvedDependencyMap res_deps,
-            std::vector<std::string> _tags)
+            std::vector<std::string> _tags, size_t _engine_index = 0)
         : ProviderDependency(std::move(name), std::move(type), ptr, provider_id)
         , requested_dependencies(std::move(req_deps))
         , resolved_dependencies(std::move(res_deps))
         , tags(std::move(_tags))
+        , engine_index(_engine_index)
     {
     }
 
@@ -55,6 +57,7 @@ class LocalProvider : public ProviderDependency {
         c["name"]         = getName();
         c["type"]         = getType();
         c["provider_id"]  = getProviderID();
+        c["engine"]       = engine_index;
         c["config"]       = json::parse(ptr->getConfig());
         c["tags"]         = json::array();
         for(auto& t : tags) c["tags"].push_back(t);

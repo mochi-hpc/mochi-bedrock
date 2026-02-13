@@ -67,6 +67,25 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         if (resolved) { *resolved = spec; }
         return xstream;
 
+    } else if (type == "margo") { // Margo instance
+
+        size_t engineIndex;
+        try {
+            engineIndex = std::stoul(spec);
+        } catch (...) {
+            throw Exception(
+                "Invalid margo instance specification \"{}\" "
+                "(expected integer index)", spec);
+        }
+        auto mgr = MargoManager(self->m_margo_context);
+        if (engineIndex >= mgr.getNumEngines()) {
+            throw Exception(
+                "Could not find margo instance at index {}", engineIndex);
+        }
+        auto mid = mgr.getMargoInstance(engineIndex);
+        if (resolved) { *resolved = spec; }
+        return std::make_shared<NamedDependency>(spec, "margo", mid);
+
     } else if (spec.find("@") == std::string::npos) { // local provider
 
         // the spec can be in the form "name" or "type:id"
@@ -150,8 +169,21 @@ std::shared_ptr<NamedDependency> DependencyFinder::find(
         if (resolved) { *resolved = xstream->getName(); }
         return xstream;
 
+    } else if (type == "margo") { // Margo instance
+
+        auto mgr = MargoManager(self->m_margo_context);
+        if (index >= mgr.getNumEngines()) {
+            throw Exception(
+                "Could not find margo instance at index {}", index);
+        }
+        auto mid = mgr.getMargoInstance(index);
+        auto name = std::to_string(index);
+        if (resolved) { *resolved = name; }
+        return std::make_shared<NamedDependency>(name, "margo", mid);
+
     } else {
-        throw Exception("Only pools and xstream can be referenced by index");
+        throw Exception("Only pools, xstreams, and margo instances "
+                         "can be referenced by index");
     }
     return nullptr;
 }

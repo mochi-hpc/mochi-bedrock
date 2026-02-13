@@ -8,6 +8,7 @@
 
 #include <thallium.hpp>
 #include <memory>
+#include <vector>
 #include <bedrock/NamedDependency.hpp>
 
 namespace bedrock {
@@ -35,11 +36,13 @@ class MargoManager {
   public:
 
     /**
-     * @brief Constructor from an existing Margo instance.
+     * @brief Constructor for multiple engines.
      *
-     * @param mid Margo instance, if already initialized.
+     * @param addresses Vector of addresses (one per engine).
+     * @param configs Vector of JSON configuration strings (one per engine).
      */
-    MargoManager(margo_instance_id mid);
+    MargoManager(const std::vector<std::string>& addresses,
+                 const std::vector<std::string>& configs);
 
     /**
      * @brief Constructor from a JSON configurations string.
@@ -48,7 +51,9 @@ class MargoManager {
      * @param configString Configuration string.
      */
     MargoManager(const std::string& address,
-                 const std::string& configString = "");
+                 const std::string& configString = "")
+    : MargoManager(std::vector<std::string>{address},
+                   std::vector<std::string>{configString}) {}
 
     /**
      * @brief Copy-constructor.
@@ -81,23 +86,24 @@ class MargoManager {
     operator bool() const;
 
     /**
-     * @brief Get the internal margo_instance_id.
-     *
-     * @return the internal margo_instance_id.
+     * @brief Get the number of engines.
      */
-    margo_instance_id getMargoInstance() const;
+    size_t getNumEngines() const;
 
     /**
-     * @brief Get the thallium engine associated with the Margo instance.
-     *
-     * @return reference to the thallium engine.
+     * @brief Get the internal margo_instance_id for a specific engine.
      */
-    const tl::engine& getThalliumEngine() const;
+    margo_instance_id getMargoInstance(size_t engineIndex = 0) const;
 
     /**
-     * @brief Get the default handle pool from Margo.
+     * @brief Get a specific thallium engine.
      */
-    std::shared_ptr<NamedDependency> getDefaultHandlerPool() const;
+    const tl::engine& getThalliumEngine(size_t engineIndex = 0) const;
+
+    /**
+     * @brief Get the default handle pool from a specific engine.
+     */
+    std::shared_ptr<NamedDependency> getDefaultHandlerPool(size_t engineIndex=0) const;
 
     /**
      * @brief Get the pool corresponding to a particular name.

@@ -1,0 +1,53 @@
+{
+    "margo": [
+        {
+            "mercury": {
+                "address": "na+sm"
+            },
+            "argobots": {
+                "pools": [
+                    { "name": "pool_sm", "kind": "fifo_wait", "access": "mpmc" }
+                ],
+                "xstreams": [
+                    {
+                        "name": "xstream_sm",
+                        "scheduler": {
+                            "type": "basic_wait",
+                            "pools": ["pool_sm"]
+                        }
+                    }
+                ]
+            },
+            "progress_pool": "pool_sm",
+            "rpc_pool": "pool_sm"
+        },
+        {
+            "mercury": {
+                "address": "ofi+tcp"
+            },
+            "progress_pool": "pool_sm",
+            "rpc_pool": "pool_sm"
+        }
+    ],
+    "libraries": [
+        "libmy-bedrock-module.so"
+    ],
+    "providers": [
+        {
+            "name": "my_provider_sm",
+            "type": "my_module",
+            "provider_id": 1,
+            "engine": 0,
+            "config": {},
+            "dependencies": {}
+        },
+        {
+            "name": "my_provider_tcp",
+            "type": "my_module",
+            "provider_id": 2,
+            "engine": 1,
+            "config": {},
+            "dependencies": {}
+        }
+    ]
+}
