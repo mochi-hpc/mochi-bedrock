@@ -1618,7 +1618,7 @@ class BedrockSpec:
         return BedrockSpec.from_dict(json.loads(json_string), abt_spec)
 
 
-def _margo_from_args(arg) -> MargoSpec:
+def _single_margo_from_args(arg) -> MargoSpec:
     """Construct a MargoSpec from a single argument. If the argument
     is a string it considers it as the Mercury address. If the argument
     if a dict, its content if forwarded to the MargoSpec constructor.
@@ -1633,12 +1633,23 @@ def _margo_from_args(arg) -> MargoSpec:
         raise TypeError(f'cannot convert type {type(arg)} into a MargoSpec')
 
 
+def _margo_from_args(arg):
+    """Construct a MargoSpec or list of MargoSpecs from the argument.
+    If the argument is a list, each element is converted individually.
+    """
+    if isinstance(arg, list):
+        if len(arg) == 0:
+            raise ValueError('margo list must not be empty')
+        return [_single_margo_from_args(a) for a in arg]
+    return _single_margo_from_args(arg)
+
+
 @attr.s(auto_attribs=True, on_setattr=_check_validators, kw_only=True)
 class ProcSpec:
     """Process specification.
 
-    :param margo: Margo specification
-    :type margo: MargoSpec
+    :param margo: Margo specification (single or list for multi-engine)
+    :type margo: MargoSpec or list[MargoSpec]
 
     :param libraries: Dictionary of libraries
     :type libraries: dict
@@ -1647,8 +1658,7 @@ class ProcSpec:
     :type providers: list
     """
 
-    margo: MargoSpec = attr.ib(
-        validator=instance_of(MargoSpec),
+    margo: 'MargoSpec | list[MargoSpec]' = attr.ib(
         converter=_margo_from_args)
     libraries: list = attr.ib(
         factory=list,
@@ -1657,9 +1667,23 @@ class ProcSpec:
         factory=list,
         validator=instance_of(list))
     bedrock: BedrockSpec = attr.ib(
-        default=Factory(lambda self: BedrockSpec(pool=self.margo.rpc_pool),
-                        takes_self=True),
+        default=Factory(
+            lambda self: BedrockSpec(
+                pool=(self.margo[0] if isinstance(self.margo, list)
+                      else self.margo).rpc_pool),
+            takes_self=True),
         validator=instance_of(BedrockSpec))
+
+    @margo.validator
+    def _check_margo(self, attribute, value):
+        if isinstance(value, list):
+            for i, m in enumerate(value):
+                if not isinstance(m, MargoSpec):
+                    raise TypeError(
+                        f'margo[{i}] is not a MargoSpec (got {type(m)})')
+        elif not isinstance(value, MargoSpec):
+            raise TypeError(
+                f'margo is not a MargoSpec (got {type(value)})')
 
     @property
     def providers(self) -> SpecListDecorator:
@@ -1671,7 +1695,11 @@ class ProcSpec:
     def to_dict(self) -> dict:
         """Convert the ProcSpec into a dictionary.
         """
-        data = {'margo': self.margo.to_dict(),
+        if isinstance(self.margo, list):
+            margo_dict = [m.to_dict() for m in self.margo]
+        else:
+            margo_dict = self.margo.to_dict()
+        data = {'margo': margo_dict,
                 'libraries': self.libraries,
                 'providers': [p.to_dict() for p in self._providers],
                 'bedrock': self.bedrock.to_dict()}
@@ -1681,7 +1709,13 @@ class ProcSpec:
     def from_dict(data: dict) -> 'ProcSpec':
         """Construct a ProcSpec from a dictionary.
         """
-        margo = MargoSpec.from_dict(data['margo'])
+        margo_data = data['margo']
+        if isinstance(margo_data, list):
+            margo = [MargoSpec.from_dict(m) for m in margo_data]
+            first_margo = margo[0]
+        else:
+            margo = MargoSpec.from_dict(margo_data)
+            first_margo = margo
         libraries = dict()
         providers = []
         bedrock = {}
@@ -1691,7 +1725,7 @@ class ProcSpec:
             for p in data['providers']:
                 providers.append(ProviderSpec.from_dict(p))
         if 'bedrock' in data:
-            bedrock = BedrockSpec.from_dict(data['bedrock'], margo.argobots)
+            bedrock = BedrockSpec.from_dict(data['bedrock'], first_margo.argobots)
         return ProcSpec(margo=margo,
                         libraries=libraries,
                         providers=providers,
@@ -1712,6 +1746,9 @@ class ProcSpec:
         """Validate the state of the ProcSpec.
         """
         attr.validate(self)
+        margo_list = self.margo if isinstance(self.margo, list) else [self.margo]
+        for m in margo_list:
+            m.validate()
         for k, v in self.libraries.items():
             if not isinstance(k, str):
                 raise TypeError('Invalid key type found in libraries' +
