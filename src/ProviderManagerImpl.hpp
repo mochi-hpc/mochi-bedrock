@@ -214,7 +214,7 @@ class ProviderManagerImpl
         try {
             auto c = json::parse(description);
             result.value() = manager.addProviderFromJSON(c)->getProviderID();
-        } catch (std::exception& ex) {
+        } catch (const std::exception& ex) {
             result.success() = false;
             result.error()   = ex.what();
         }
@@ -232,7 +232,7 @@ class ProviderManagerImpl
         try {
             manager.migrateProvider(
                 name, dest_addr, dest_provider_id, config, remove_source);
-        } catch (Exception& ex) {
+        } catch (const Exception& ex) {
             result.success() = false;
             result.error() = ex.what();
         }
@@ -249,7 +249,7 @@ class ProviderManagerImpl
         try {
             manager.snapshotProvider(
                 name, dest_path, config, remove_source);
-        } catch (Exception& ex) {
+        } catch (const Exception& ex) {
             result.success() = false;
             result.error() = ex.what();
         }
@@ -264,7 +264,7 @@ class ProviderManagerImpl
         auto manager = ProviderManager(shared_from_this());
         try {
             manager.restoreProvider(name, src_path, config);
-        } catch (Exception& ex) {
+        } catch (const Exception& ex) {
             result.success() = false;
             result.error() = ex.what();
         }

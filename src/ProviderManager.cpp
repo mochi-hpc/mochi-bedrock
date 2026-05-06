@@ -272,7 +272,7 @@ void ProviderManager::migrateProvider(
                 migration_config.c_str(),
                 remove_source);
     } catch(const std::exception& ex) {
-        throw Exception{ex.what()};
+        throw Exception{"{}", ex.what()};
     }
 }
 
@@ -293,7 +293,7 @@ void ProviderManager::snapshotProvider(
             snapshot_config.c_str(),
             remove_source);
     } catch(const std::exception& ex) {
-        throw Exception{ex.what()};
+        throw Exception{"{}", ex.what()};
     }
 }
 
@@ -312,7 +312,7 @@ void ProviderManager::restoreProvider(
             src_path.c_str(),
             restore_config.c_str());
     } catch(const std::exception& ex) {
-        throw Exception{ex.what()};
+        throw Exception{"{}", ex.what()};
     }
 }
 

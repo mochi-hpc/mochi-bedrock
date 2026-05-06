@@ -38,7 +38,9 @@ struct JsonValidator {
         try {
             config = json::parse(config_str);
         } catch(const std::exception& ex) {
-            throw Exception(ex.what());
+            throw Exception("Error parsing JSON ({}): {}",
+                context ? context : "unknown context",
+                ex.what());
         }
         validate(config, context);
         return config;
