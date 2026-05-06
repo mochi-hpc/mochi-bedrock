@@ -50,7 +50,7 @@ tl::provider_handle ServiceHandle::providerHandle() const {
 #define SEND_RPC_WITH_BOOL_RESULT(...) do {\
     if (req == nullptr) { \
         RequestResult<bool> response = rpc.on(ph)(__VA_ARGS__); \
-        if (!response.success()) { throw BEDROCK_DETAILED_EXCEPTION(response.error()); } \
+        if (!response.success()) { throw BEDROCK_DETAILED_EXCEPTION("{}", response.error()); } \
     } else { \
         if (req->active()) { \
             throw BEDROCK_DETAILED_EXCEPTION("AsyncRequest object passed is already in use"); \
@@ -63,7 +63,7 @@ tl::provider_handle ServiceHandle::providerHandle() const {
                   RequestResult<bool> response \
                       = async_request_impl.m_async_response.wait(); \
                   if (!response.success()) { \
-                      throw BEDROCK_DETAILED_EXCEPTION(response.error()); \
+                      throw BEDROCK_DETAILED_EXCEPTION("{}", response.error()); \
                   } \
               }; \
         *req = AsyncRequest(std::move(async_request_impl)); \
@@ -86,7 +86,7 @@ void ServiceHandle::addProvider(const std::string& description,
     auto& ph  = self->m_ph;
     if (req == nullptr) {
         RequestResult<uint16_t> response = rpc.on(ph)(description);
-        if (!response.success()) { throw BEDROCK_DETAILED_EXCEPTION(response.error()); }
+        if (!response.success()) { throw BEDROCK_DETAILED_EXCEPTION("{}", response.error()); }
         if(provider_id_out) *provider_id_out = response.value();
     } else {
         if (req->active()) {
@@ -100,7 +100,7 @@ void ServiceHandle::addProvider(const std::string& description,
                   RequestResult<uint16_t> response
                       = async_request_impl.m_async_response.wait();
                   if (!response.success()) {
-                      throw BEDROCK_DETAILED_EXCEPTION(response.error());
+                      throw BEDROCK_DETAILED_EXCEPTION("{}", response.error());
                   }
                   if(provider_id_out) *provider_id_out = response.value();
               };
@@ -194,7 +194,7 @@ void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {
         if (response.success()) {
             if (result) *result = std::move(response.value());
         } else {
-            throw BEDROCK_DETAILED_EXCEPTION(response.error());
+            throw BEDROCK_DETAILED_EXCEPTION("{}", response.error());
         }
     } else { // asynchronous call
         auto async_response = rpc.on(ph).async();
@@ -207,7 +207,7 @@ void ServiceHandle::getConfig(std::string* result, AsyncRequest* req) const {
                   if (response.success()) {
                       if (result) *result = std::move(response.value());
                   } else {
-                      throw BEDROCK_DETAILED_EXCEPTION(response.error());
+                      throw BEDROCK_DETAILED_EXCEPTION("{}", response.error());
                   }
               };
         *req = AsyncRequest(std::move(async_request_impl));
@@ -224,7 +224,7 @@ void ServiceHandle::queryConfig(const std::string& script, std::string* result,
         if (response.success()) {
             if (result) *result = std::move(response.value());
         } else {
-            throw BEDROCK_DETAILED_EXCEPTION(response.error());
+            throw BEDROCK_DETAILED_EXCEPTION("{}", response.error());
         }
     } else { // asynchronous call
         auto async_response = rpc.on(ph).async(script);
@@ -237,7 +237,7 @@ void ServiceHandle::queryConfig(const std::string& script, std::string* result,
                   if (response.success()) {
                       if (result) *result = std::move(response.value());
                   } else {
-                      throw BEDROCK_DETAILED_EXCEPTION(response.error());
+                      throw BEDROCK_DETAILED_EXCEPTION("{}", response.error());
                   }
               };
         *req = AsyncRequest(std::move(async_request_impl));
