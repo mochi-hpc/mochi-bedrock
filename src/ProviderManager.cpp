@@ -167,43 +167,49 @@ ProviderManager::addProviderFromJSON(const json& description) {
 
     for (const auto& dependency : requested_dependencies) {
         spdlog::trace("Resolving dependency {}", dependency.name);
-        if (deps_from_config.contains(dependency.name)) {
-            auto dep_config = deps_from_config[dependency.name];
-            if (!(dependency.is_array)) { // dependency should be a string or an integer
-                if (dep_config.is_array() && dep_config.size() == 1) {
-                    // an array of length 1 can be converted into a single string
-                    dep_config = dep_config[0];
-                }
-                auto dep_handle = dep_config.is_string() ?
-                    dependencyFinder.find(dependency.type, dep_config.get<std::string>(), nullptr)
-                  : dependencyFinder.find(dependency.type, dep_config.get<size_t>(), nullptr);
-                resolved_dependency_map[dependency.name].push_back(dep_handle);
-
-            } else { // dependency is an array
-
-                if (dep_config.is_string() || dep_config.is_number_unsigned()) {
-                    // a single string can be converted into an array of size 1
-                    auto tmp_array = json::array();
-                    tmp_array.push_back(dep_config);
-                    dep_config = tmp_array;
-                }
-                if (!dep_config.is_array()) {
-                    throw BEDROCK_DETAILED_EXCEPTION(
-                            "Dependency \"{}\" should be an array",
-                            dependency.name);
-                }
-                for (const auto& elem : dep_config) {
-                    auto dep_handle = elem.is_string() ?
-                        dependencyFinder.find(dependency.type, elem.get<std::string>(), nullptr)
-                      : dependencyFinder.find(dependency.type, elem.get<size_t>(), nullptr);
-
+        try {
+            if (deps_from_config.contains(dependency.name)) {
+                auto dep_config = deps_from_config[dependency.name];
+                if (!(dependency.is_array)) { // dependency should be a string or an integer
+                    if (dep_config.is_array() && dep_config.size() == 1) {
+                        // an array of length 1 can be converted into a single string
+                        dep_config = dep_config[0];
+                    }
+                    auto dep_handle = dep_config.is_string() ?
+                        dependencyFinder.find(dependency.type, dep_config.get<std::string>(), nullptr)
+                      : dependencyFinder.find(dependency.type, dep_config.get<size_t>(), nullptr);
                     resolved_dependency_map[dependency.name].push_back(dep_handle);
+
+                } else { // dependency is an array
+
+                    if (dep_config.is_string() || dep_config.is_number_unsigned()) {
+                        // a single string can be converted into an array of size 1
+                        auto tmp_array = json::array();
+                        tmp_array.push_back(dep_config);
+                        dep_config = tmp_array;
+                    }
+                    if (!dep_config.is_array()) {
+                        throw BEDROCK_DETAILED_EXCEPTION(
+                                "Dependency \"{}\" should be an array",
+                                dependency.name);
+                    }
+                    for (const auto& elem : dep_config) {
+                        auto dep_handle = elem.is_string() ?
+                            dependencyFinder.find(dependency.type, elem.get<std::string>(), nullptr)
+                          : dependencyFinder.find(dependency.type, elem.get<size_t>(), nullptr);
+
+                        resolved_dependency_map[dependency.name].push_back(dep_handle);
+                    }
                 }
+            } else if (dependency.is_required) {
+                throw BEDROCK_DETAILED_EXCEPTION(
+                        "Missing dependency \"{}\" of type \"{}\" in provider configuration",
+                        dependency.name, dependency.type);
             }
-        } else if (dependency.is_required) {
+        } catch (const std::exception& ex) {
             throw BEDROCK_DETAILED_EXCEPTION(
-                    "Missing dependency \"{}\" of type \"{}\" in provider configuration",
-                    dependency.name, dependency.type);
+                    "While resolving dependency \"{}\" (type \"{}\"): {}",
+                    dependency.name, dependency.type, ex.what());
         }
     }
 
@@ -226,7 +232,15 @@ ProviderManager::addProviderFromJSON(const json& description) {
                     "Another provider already uses provider ID {}", args.provider_id);
         }
 
-        auto handle = ModuleManager::createComponent(type, args);
+        ComponentPtr handle;
+        try {
+            handle = ModuleManager::createComponent(type, args);
+        } catch (const std::exception& ex) {
+            throw BEDROCK_DETAILED_EXCEPTION(
+                    "While creating provider \"{}\" of type \"{}\" "
+                    "(ModuleManager::createComponent): {}",
+                    args.name, type, ex.what());
+        }
 
         entry = std::make_shared<LocalProvider>(
                 args.name, type, args.provider_id, handle,

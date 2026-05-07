@@ -90,7 +90,9 @@ std::shared_ptr<NamedDependency> MargoManager::getPool(const std::string& name) 
         auto pool = self->m_engines[0].pools()[name];
         return std::make_shared<PoolRef>(self->m_engines[0], pool.name(), pool);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not find pool with name \"{}\": {}", name, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not find pool with name \"{}\": {}", name, ex.what()};
     }
 }
 
@@ -100,7 +102,9 @@ std::shared_ptr<NamedDependency> MargoManager::getPool(uint32_t index) const {
         auto pool = self->m_engines[0].pools()[index];
         return std::make_shared<PoolRef>(self->m_engines[0], pool.name(), pool);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not find pool at index {}: {}", index, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not find pool at index {}: {}", index, ex.what()};
     }
 }
 
@@ -110,7 +114,11 @@ std::shared_ptr<NamedDependency> MargoManager::getPool(ABT_pool abt_pool) const 
         auto pool = self->m_engines[0].pools()[tl::pool{abt_pool}];
         return std::make_shared<PoolRef>(self->m_engines[0], pool.name(), pool);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not find pool from ABT_pool handle {}: {}",
+                        static_cast<const void*>(abt_pool), ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not find pool from ABT_pool handle {}: {}",
+                        static_cast<const void*>(abt_pool), ex.what()};
     }
 }
 
@@ -136,7 +144,9 @@ void MargoManager::removePool(uint32_t index) {
     try {
         self->m_engines[0].pools().remove(index);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not remove pool at index {}: {}", index, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not remove pool at index {}: {}", index, ex.what()};
     }
 }
 
@@ -145,7 +155,9 @@ void MargoManager::removePool(const std::string& name) {
     try {
         self->m_engines[0].pools().remove(name);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not remove pool with name \"{}\": {}", name, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not remove pool with name \"{}\": {}", name, ex.what()};
     }
 }
 
@@ -154,7 +166,11 @@ void MargoManager::removePool(ABT_pool pool) {
     try {
         self->m_engines[0].pools().remove(tl::pool{pool});
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not remove pool from ABT_pool handle {}: {}",
+                        static_cast<const void*>(pool), ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not remove pool from ABT_pool handle {}: {}",
+                        static_cast<const void*>(pool), ex.what()};
     }
 }
 
@@ -164,7 +180,9 @@ std::shared_ptr<NamedDependency> MargoManager::getXstream(const std::string& nam
         auto es = self->m_engines[0].xstreams()[name];
         return std::make_shared<XstreamRef>(self->m_engines[0], es.name(), es);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not find xstream with name \"{}\": {}", name, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not find xstream with name \"{}\": {}", name, ex.what()};
     }
 }
 
@@ -174,7 +192,9 @@ std::shared_ptr<NamedDependency> MargoManager::getXstream(uint32_t index) const 
         auto es = self->m_engines[0].xstreams()[index];
         return std::make_shared<XstreamRef>(self->m_engines[0], es.name(), es);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not find xstream at index {}: {}", index, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not find xstream at index {}: {}", index, ex.what()};
     }
 }
 
@@ -184,7 +204,11 @@ std::shared_ptr<NamedDependency> MargoManager::getXstream(ABT_xstream abt_es) co
         auto es = self->m_engines[0].xstreams()[tl::xstream{abt_es}];
         return std::make_shared<XstreamRef>(self->m_engines[0], es.name(), es);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not find xstream from ABT_xstream handle {}: {}",
+                        static_cast<const void*>(abt_es), ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not find xstream from ABT_xstream handle {}: {}",
+                        static_cast<const void*>(abt_es), ex.what()};
     }
 }
 
@@ -193,7 +217,9 @@ size_t MargoManager::getNumXstreams() const {
     try {
         return self->m_engines[0].xstreams().size();
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not get number of xstreams: {}", ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not get number of xstreams: {}", ex.what()};
     }
 }
 
@@ -214,7 +240,9 @@ void MargoManager::removeXstream(uint32_t index) {
     try {
         self->m_engines[0].xstreams().remove(index);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not remove xstream at index {}: {}", index, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not remove xstream at index {}: {}", index, ex.what()};
     }
 }
 
@@ -223,7 +251,9 @@ void MargoManager::removeXstream(const std::string& name) {
     try {
         self->m_engines[0].xstreams().remove(name);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not remove xstream with name \"{}\": {}", name, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not remove xstream with name \"{}\": {}", name, ex.what()};
     }
 }
 
@@ -232,7 +262,11 @@ void MargoManager::removeXstream(ABT_xstream es) {
     try {
         self->m_engines[0].xstreams().remove(tl::xstream{es});
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not remove xstream from ABT_xstream handle {}: {}",
+                        static_cast<const void*>(es), ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not remove xstream from ABT_xstream handle {}: {}",
+                        static_cast<const void*>(es), ex.what()};
     }
 }
 
@@ -269,7 +303,11 @@ std::shared_ptr<NamedDependency> MargoManager::getDefaultHandlerPool(size_t engi
         auto name = self->m_engines[engineIndex].pools()[pool].name();
         return std::make_shared<PoolRef>(self->m_engines[engineIndex], name, pool);
     } catch(const tl::exception& ex) {
-        throw Exception{"{}", ex.what()};
+        throw Exception{"Could not get default handler pool for engine {}: {}",
+                        engineIndex, ex.what()};
+    } catch(const std::exception& ex) {
+        throw Exception{"Could not get default handler pool for engine {}: {}",
+                        engineIndex, ex.what()};
     }
 }
 
